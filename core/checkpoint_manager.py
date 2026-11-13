@@ -21,6 +21,33 @@ logger = logging.getLogger(__name__)
 JOURNAL_HEADER = "#inforaxis-journal-v1"
 
 
+def _fsync_dir(directory: Path) -> None:
+    """Make the directory entry for a checkpoint file durable.
+
+    ``os.fsync`` on a file makes that file's data and metadata durable, but not
+    the directory entry pointing at it. Without this, a journal created moments
+    before a power loss can vanish entirely - the contents were written, but the
+    name never reached the disk - and the run restarts from zero.
+
+    Opening a directory for reading is not portable (Windows needs
+    ``FILE_FLAG_BACKUP_SEMANTICS``); where it is not possible this is a no-op
+    rather than a failure, because it is an extra guarantee, not the only one.
+    """
+    try:
+        fd = os.open(str(directory), os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+
+
 class CheckpointManager:
     """
     Manages checkpoint state for file processing operations.
@@ -215,6 +242,10 @@ class CheckpointManager:
                 self._journal_handle = open(self.journal_file, 'a', encoding='utf-8')
                 if is_new:
                     self._journal_handle.write(self._journal_header() + "\n")
+                    self._journal_handle.flush()
+                    # The file's name must survive too, or a power cut right
+                    # here loses the whole journal and the run starts over.
+                    _fsync_dir(self.journal_file.parent)
             self._journal_handle.write(f"{file_id:x}\n")
             # Make every mark durable before returning. A file is only marked
             # after its result is stored, so a process kill or power loss must
@@ -303,7 +334,12 @@ class CheckpointManager:
         temp_file = self.checkpoint_file.with_suffix('.tmp')
         with open(temp_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, separators=(',', ':'), ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
         temp_file.replace(self.checkpoint_file)
+        # Make the rename durable: the snapshot is the resume point, so a crash
+        # that loses it costs the whole run.
+        _fsync_dir(self.checkpoint_file.parent)
         # Drop the journal only after the snapshot that contains it is in place.
         try:
             if self.journal_file.exists():

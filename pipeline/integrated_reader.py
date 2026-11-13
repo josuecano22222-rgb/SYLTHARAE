@@ -866,7 +866,15 @@ class IntegratedFileReader:
         file_count = inventory['files']
         error_count = inventory['errors']
         skipped_count = inventory['skipped']
-        total_files = inventory['total'] - skipped_count
+        # ``inventory['total']`` is already the *remaining* work: _inventory_tree
+        # counts a checkpointed file as skipped and leaves it out of 'files' and
+        # 'errors'. Subtracting skipped again under-reported the run and, once a
+        # checkpoint covered more than half the corpus, went negative - the
+        # "all files already processed" branch below could never fire (a negative
+        # number is truthy) and add_discovered() received a negative count.
+        # The skipped files are still accounted for, one line down, by
+        # record(OUTCOME_SKIPPED, skipped_count).
+        total_files = inventory['total']
         remaining_files = total_files
 
         if not nested_run:
