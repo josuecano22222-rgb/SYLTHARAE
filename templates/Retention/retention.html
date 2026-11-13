@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% from 'components/table.html' import record_table %}
+{% from 'components/page_tips.html' import page_tips %}
+
+{% block title %}{{ _('Retention') }}{% endblock %}
+
+{% block content %}
+<div class="page-container" id="retentionPage">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                <i class="bi bi-hourglass-split me-2"></i>
+                {{ _('Retention') }}
+            </h1>
+            <p class="text-muted mb-0">{{ _('What is pruned, how old, and what it would delete right now. Every prune is audited with its count.') }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" data-on-click="refresh()"><i class="bi bi-arrow-clockwise me-1"></i> {{ _('Refresh') }}</button>
+            <button class="btn btn-danger" data-on-click="runAll()"><i class="bi bi-hourglass me-1"></i> {{ _('Run enabled policies') }}</button>
+        </div>
+    </div>
+
+    {% call page_tips() %}
+    <div class="tips-section">
+        <div class="tips-section-title"><i class="bi bi-info-circle"></i> {{ _('How retention works') }}</div>
+        <ul class="tips-list">
+            <li>{{ _('Each policy deletes rows older than its number of days, in batches, with the deleted count audited.') }}</li>
+            <li>{{ _('0 days means keep forever - the default for everything whose deletion would destroy evidence: scenario outcomes, notifications, report artifacts, the revision log and the audit log.') }}</li>
+            <li>{{ _('Live rows are never pruned: queued or running jobs, and report runs that never finished, stay whatever their age.') }}</li>
+            <li>{{ _('Deleting report artifacts removes their bytes and manifests: those files can no longer be verified afterwards. The audit row records it.') }}</li>
+            <li>{{ _('Retention can be scheduled like any report: create a retention schedule on the Schedules page (administrators).') }}</li>
+        </ul>
+    </div>
+    {% endcall %}
+
+    <div id="retentionError" class="d-none">
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <p class="state-message mb-0"></p>
+        </div>
+    </div>
+    <p id="retentionStatus" class="text-muted d-none" role="status"></p>
+
+    {% call record_table(
+            id='retentionTable',
+            columns=[
+                {'key': 'area', 'label': _('Area'), 'sortable': True, 'type': 'text'},
+                {'key': 'description', 'label': _('What it is'), 'sortable': False, 'type': 'text'},
+                {'key': 'days', 'label': _('Keep (days)'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '130px'},
+                {'key': 'eligible', 'label': _('Would delete now'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '150px'},
+                {'key': 'total', 'label': _('Rows in table'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '130px'},
+                {'key': 'oldest', 'label': _('Oldest'), 'sortable': False, 'width': '180px'},
+                {'kind': 'actions', 'width': '170px'}
+            ],
+            mode='client',
+            empty_message=_('No retention policies.')) %}
+        <tbody id="retentionTableBody"></tbody>
+    {% endcall %}
+</div>
+
+<div class="modal fade" id="retentionDialog" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="retentionDialogTitle"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted" id="retentionDialogDeletes"></p>
+                <label class="form-label" for="retentionDays">{{ _('Keep (days) — 0 keeps forever') }}</label>
+                <input class="form-control" id="retentionDays" type="number" min="0" max="{{ page_data.max_days }}" value="0">
+                <div class="text-danger d-none mt-2" id="retentionDialogError" role="alert"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                <button type="button" class="btn btn-primary" data-on-click="saveDays()">{{ _('Save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/json" id="retention-page-data">{{ page_data|tojson }}</script>
+<script type="application/json" id="retention-page-labels">{{ {
+    "keep_forever": _('keep forever'),
+    "never": _('never'),
+    "confirm_run_all": _('Run every enabled retention policy now? This deletes aged rows and is audited.'),
+    "confirm_run_area": _('Run this retention policy now? This deletes aged rows and is audited.'),
+    "dialog_title": _('Retention policy:'),
+    "dialog_error": _('The policy was refused:'),
+    "load_failed": _('The retention overview could not be loaded.'),
+    "fired": _('The retention job is on the Jobs page.'),
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/retention-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+{% endblock %}

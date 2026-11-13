@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('File Types') }}{% endblock %}
+{% block page_type %}file-types{% endblock %}
+
+{% from 'components/table.html' import record_table %}
+{% from 'components/documents_panel.html' import documents_panel %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/file-type-workspace.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<main class="file-type-workspace{% if file_types %} file-type-workspace-split{% endif %}">
+    <div class="file-type-main">
+    <header class="page-header file-type-header">
+        <div>
+            <p class="file-type-eyebrow">{{ _('Ingestion classification') }}</p>
+            <h1 class="page-title"><i class="bi bi-file-earmark-break me-2" aria-hidden="true"></i>{{ _('Browse by file type') }}</h1>
+            <p class="file-type-intro">
+                {{ _('Files are grouped by their detected format after ingestion. Choose a format to open its documents in the panel beside this list.') }}
+            </p>
+        </div>
+        <nav class="file-type-actions" aria-label="{{ _('File type workspace actions') }}">
+            <a class="btn btn-outline-secondary" href="{{ url_for('files.files_list') }}">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>{{ _('File Library') }}
+            </a>
+            <button type="button" class="btn btn-outline-primary" data-export-names="all" data-format="csv">
+                <i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>{{ _('All filenames CSV') }}
+            </button>
+            <button type="button" class="btn btn-primary" data-export-names="all" data-format="excel">
+                <i class="bi bi-file-earmark-excel me-1" aria-hidden="true"></i>{{ _('All filenames Excel') }}
+            </button>
+        </nav>
+    </header>
+
+    {#- These totals cover every indexed document, whatever the table shows: the
+        column filters below the list only hide rows in the browser and never
+        change these numbers. -#}
+    <section class="file-type-summary" aria-label="{{ _('Indexed file summary for the whole dataset') }}">
+        <div class="file-type-summary-icon"><i class="bi bi-collection" aria-hidden="true"></i></div>
+        <div>
+            <strong>{{ "{:,}".format(total_files|int) }}</strong>
+            <span>{{ _('indexed documents in the whole dataset') }}</span>
+        </div>
+        <div class="file-type-summary-divider" aria-hidden="true"></div>
+        <div>
+            <strong>{{ file_types|length }}</strong>
+            <span>{{ _('detected formats in the whole dataset') }}</span>
+        </div>
+    </section>
+
+    {% if file_types %}
+    {#- The formats list is one unified table: sortable headers, the same
+        presentation contract as every other list. The rows are few, so the
+        sort happens in place (client mode) - a click never reloads. -#}
+    {% call record_table(
+            id='fileTypesTable',
+            columns=[
+                {'key': 'type', 'label': _('Format'), 'sortable': True, 'type': 'text'},
+                {'key': 'code', 'label': _('Code'), 'sortable': True, 'type': 'text', 'width': '110px'},
+                {'key': 'count', 'label': _('Documents'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '130px'},
+                {'key': 'size', 'label': _('Total size'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '130px'},
+                {'kind': 'actions', 'width': '1%'}
+            ],
+            mode='client',
+            sort_key='count',
+            sort_dir='desc',
+            info_text=_('%(types)d detected formats across %(files)d indexed documents in the whole dataset',
+                        types=file_types|length, files=total_files|int),
+            empty_message=_('No indexed files yet.'),
+            export_interface=export_interface_for(request.endpoint),
+            export_columns=[
+                {'key': 'file_type', 'label': _('File type')},
+                {'key': 'count', 'label': _('Count')},
+                {'key': 'size', 'label': _('Total size')},
+            ]) %}
+        {% for item in file_types %}
+        <tr class="file-type-row" data-panel-open
+            data-panel-url="{{ url_for('files.file_type_documents', file_type=item.file_type) }}"
+            data-panel-label="{{ item.label }}"
+            tabindex="0" role="button"
+            aria-label="{{ _('Open the documents of format') }} {{ item.label }}">
+            <td data-ut-value="{{ item.label|lower }}">
+                <span class="file-type-chip">{{ item.label }}</span>
+            </td>
+            <td data-ut-value="{{ item.file_type }}"><code>{{ item.file_type }}</code></td>
+            <td class="text-end file-type-count" data-ut-value="{{ item.file_count }}">{{ "{:,}".format(item.file_count|int) }}</td>
+            <td class="text-end" data-ut-value="{{ item.total_size }}">{{ item.total_size|filesizeformat }}</td>
+            <td>
+                <div class="file-type-row-actions">
+                    <button type="button" class="btn btn-sm btn-outline-primary"
+                            data-panel-open
+                            data-panel-url="{{ url_for('files.file_type_documents', file_type=item.file_type) }}"
+                            data-panel-label="{{ item.label }}"
+                            title="{{ _('Browse these documents in the panel') }}">
+                        <i class="bi bi-folder2-open me-1" aria-hidden="true"></i>{{ _('Open') }}
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-export-names="type" data-file-type="{{ item.file_type }}" data-format="csv"
+                            title="{{ _('Export the filenames of this format') }}">
+                        {{ _('Names CSV') }}
+                    </button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    {% endcall %}
+    {% else %}
+    <div class="file-type-empty" role="status">
+        <i class="bi bi-inbox" aria-hidden="true"></i>
+        <h2>{{ _('No indexed files yet') }}</h2>
+        <p>{{ _('File formats and counts appear here after documents are ingested.') }}</p>
+    </div>
+    {% endif %}
+    </div>
+
+    {#- The panel: one format's documents, the same unified table the File
+        Library renders, fetched as a fragment and adopted in place. One
+        shared component with the keywords and categories panels. -#}
+    {{ documents_panel(id='documentsPanel',
+                       open_label=_('Documents of the chosen format')) }}
+</main>
+
+<script type="application/json" id="file-types-page-data">{{ {
+    "translations": {
+        "filenamePrompt": _('Name this filename export (leave blank for an automatic name):'),
+        "exportReady": _('Filename export ready.'),
+        "exportFailed": _('Could not export the filename list.'),
+        "exportLimit": _('This filename export exceeds the synchronous limit. Narrow the list and try again.'),
+        "csrfError": _('Your session expired. Refresh the page and try again.'),
+        "panelFailed": _('Could not load the documents of this format.'),
+        "panelLoadFailed": _('Could not load more documents.')
+    }
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+{% endblock %}

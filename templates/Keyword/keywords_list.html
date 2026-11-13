@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Keywords Management') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/unified-table.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/file-type-workspace.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/word-search.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='dist/css/select2.min.css') }}" rel="stylesheet" />
+{% endblock %}
+
+{% from 'components/documents_panel.html' import documents_panel %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-key me-2"></i> {{ _('Keywords') }} ({{ total_keywords|default(0) }})</h1>
+
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" data-on-click="openAddKeywordModal()"><i class="bi bi-plus-circle me-2"></i> {{ _('Add') }}</button>
+        <button class="btn btn-success" data-on-click="updateKeywordAssociations()" id="updateKeywordsBtn" title="{{ _('Update keyword associations for all files') }}">
+            <i class="bi bi-arrow-repeat me-2"></i> {{ _('Update Keywords') }}
+        </button>
+        <button class="btn btn-outline-primary" data-on-click="refreshMainContent()"><i class="bi bi-arrow-clockwise me-1"></i> {{ _('Refresh') }}</button>
+    </div>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+{% from 'components/status_badge.html' import status_badge %}
+{% from 'components/filter_bar.html' import filter_section, filter_grid, filter_group, search_group %}
+{% from 'components/action_toolbar.html' import action_toolbar, action_group, action_button, bulk_action_button, selection_summary, select_toggle_button %}
+{% from 'components/table.html' import record_table %}
+{% from "components/unified_pagination.html" import unified_pagination %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-key"></i>
+        {{ _('Understanding Keywords') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Keywords are important terms used to tag and categorize files for easier searching and organization') }}</li>
+        <li>{{ _('Keywords are automatically extracted from file content during analysis, or can be manually added') }}</li>
+        <li>{{ _('Each keyword can be associated with multiple files, categories, and sources') }}</li>
+        <li>{{ _('Keywords help improve search accuracy and enable better file organization') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-plus-circle"></i>
+        {{ _('Managing Keywords') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Click "Add" to create a new keyword with a name and optional description') }}</li>
+        <li>{{ _('Edit keywords by clicking the edit icon, and associate them with categories or files') }}</li>
+        <li>{{ _('Use "Update Keywords" to refresh keyword associations across all files') }}</li>
+        <li>{{ _('Delete keywords that are no longer needed, but check usage first to avoid breaking associations') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-search"></i>
+        {{ _('Searching and Filtering') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Search for keywords by name using the search box') }}</li>
+        <li>{{ _('Filter keywords by usage count, category association, or status') }}</li>
+        <li>{{ _('View statistics showing total keywords, active keywords, and their usage across files') }}</li>
+        <li>{{ _('Sort keywords by name, usage count, or creation date') }}</li>
+    </ul>
+</div>
+<div class="tips-info">
+    <strong>{{ _('Tip:') }}</strong> {{ _('Regularly updating keyword associations ensures your files remain properly tagged and searchable.') }}
+</div>
+{% endcall %}
+
+<div class="row g-4 mb-2">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-info-bg); color: var(--primary-color);">
+                <i class="bi bi-key"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Total Keywords') }}</div>
+                <div class="stat-card-value" id="totalKeywordsStat">{{ total_keywords or (keywords|length) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-success-bg); color: var(--success-color);">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Active') }}</div>
+                <div class="stat-card-value">{{ keywords|selectattr('usage_count','gt',0)|list|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-danger-bg); color: var(--danger-color);">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Duplicates') }}</div>
+                <div class="stat-card-value" id="duplicateCount">0</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Section -->
+{% call filter_section() %}
+    <!-- Search and Main Filters -->
+    {% call filter_grid() %}
+        {{ search_group('searchKeywords', _('Search Keywords'),
+                        _('Search keywords...'), value=search, onclear='clearSearch()') }}
+
+        {% call filter_group('statusFilter', _('Status'), 'bi-check-circle') %}
+            <select class="form-select" id="statusFilter" data-on-change="applyFilters()">
+                <option value="">{{ _('All Status') }}</option>
+                <option value="active">{{ _('Active') }}</option>
+                <option value="unused">{{ _('Unused') }}</option>
+            </select>
+        {% endcall %}
+
+        {% call filter_group('categoryFilter', _('Category'), 'bi-tags') %}
+            <select class="form-select" id="categoryFilter" data-on-change="applyFilters()">
+                <option value="">{{ _('All Categories') }}</option>
+            </select>
+        {% endcall %}
+    {% endcall %}
+
+    <!-- Action Bar -->
+    {% call action_toolbar(id='keywordsActionBar', label=_('Actions'), interface_id=inspector_interface) %}
+        {% call action_group(_('Selection:')) %}
+            {{ select_toggle_button(onclick='toggleAllSelection()', id='keywordsSelectToggleBtn',
+                 interface_id=inspector_interface, action_id='keywords.select_all') }}
+        {% endcall %}
+        {% call action_group(_('Bulk Actions:')) %}
+            {{ selection_summary(total_keywords|default(0), _('keywords'), _('keyword')) }}
+            {{ bulk_action_button(_('Edit Selected'), icon='bi-pencil', onclick='bulkUpdate()',
+                 tone='outline-warning', id='bulkUpdateBtn', noun=_('keywords'),
+                 interface_id=inspector_interface, action_id='keywords.edit_selected') }}
+            {{ bulk_action_button(_('Delete Selected'), icon='bi-trash', onclick='bulkDelete()',
+                 tone='outline-danger', id='bulkDeleteBtn', noun=_('keywords'),
+                 interface_id=inspector_interface, action_id='keywords.delete_selected') }}
+        {% endcall %}
+        {% call action_group(_('Actions:')) %}
+            {{ action_button(_('Merge Duplicates'), icon='bi-arrow-down-up',
+                 onclick='mergeAllDuplicates()', tone='warning',
+                 title=_('Merge all duplicate keywords'),
+                 interface_id=inspector_interface, action_id='keywords.merge_duplicates') }}
+        {% endcall %}
+    {% endcall %}
+{% endcall %}
+
+{#- The list: one unit - toolbar, sortable headers, body, pager. Sorting is
+    the table's own control; the page re-fetches in the chosen order. -#}
+{% set showing_info -%}
+    {%- if keywords -%}
+        {%- set start = (page - 1) * per_page + 1 -%}
+        {%- set end = start + keywords|length - 1 -%}
+        {{ _('Showing') }} {{ start }}–{{ end }} {{ _('of') }} {{ total_keywords }} {{ _('keywords') }}
+    {%- else -%}
+        {{ _('No keywords found') }}
+    {%- endif -%}
+{%- endset %}
+{% call record_table(
+        id='keywordsTable',
+        columns=[
+            {'kind': 'select', 'width': '50px'},
+            {'kind': 'index', 'width': '70px'},
+            {'key': 'text', 'label': _('Keyword'), 'sortable': True, 'type': 'text',
+             'filter': {'kind': 'text', 'param': 'search',
+                        'value': search|default('')}},
+            {'key': 'usage_count', 'label': _('Usage'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '110px'},
+            {'key': 'status', 'label': _('Status'), 'sortable': True, 'width': '140px'},
+            {'key': 'category', 'label': _('Category'), 'width': '160px'},
+            {'kind': 'actions', 'width': '150px'}
+        ],
+        mode='server',
+        sort_key=sort_by|default('usage_count'),
+        sort_dir=sort_order|default('desc'),
+        info_text=showing_info,
+        info_id='searchResultsInfo',
+        per_page=per_page,
+        per_page_id='perPage',
+        on_per_page_change='changePageSize()',
+        select_all_id='selectAllCheckbox',
+        select_all_onchange='toggleSelectAll()',
+        empty_message=_('No keywords found.'),
+        empty_action_label=_('Add your first keyword'),
+        empty_action_onclick='openAddKeywordModal()',
+        export_interface=export_interface_for(request.endpoint),
+        export_columns=[
+            {'key': 'id', 'label': _('Id')},
+        ],
+        page=page|default(1),
+        total_pages=total_pages|default(1),
+        total_count=total_keywords|default(0),
+        rows_shown=keywords|length,
+        append=True,
+        pager=True) %}
+    {% for keyword in keywords %}
+    {% set row_number = (page - 1) * per_page + loop.index %}
+    <tr data-keyword-id="{{ keyword.id }}"
+        data-usage-count="{{ keyword.usage_count }}"
+        data-status="{{ 'active' if keyword.usage_count > 0 else 'unused' }}">
+        <td class="ut-col-select">
+            <input type="checkbox"
+                   class="keyword-checkbox ut-row-check"
+                   value="{{ keyword.id }}"
+                   data-on-change="updateSelection()"
+                   aria-label="{{ _('Select keyword') }}: {{ keyword.text }}">
+        </td>
+        <td class="ut-index-cell"><span class="ut-badge ut-badge-neutral">{{ row_number }}</span></td>
+        <td data-ut-value="{{ keyword.text|lower }}">
+            <span class="ut-name">{{ keyword.text }}</span>
+            {% if keyword.is_duplicate %}
+                {{ status_badge(status='duplicate', title=_('Duplicate keyword'), extra_class='ms-2') }}
+            {% endif %}
+        </td>
+        <td class="text-end" data-ut-value="{{ keyword.usage_count }}">
+            {{ keyword.usage_count }}
+        </td>
+        <td data-ut-value="{{ 'active' if keyword.usage_count > 0 else 'unused' }}">
+            {{ status_badge(status='active' if keyword.usage_count > 0 else 'unused') }}
+        </td>
+        <td>
+            <span class="ut-muted">{{ keyword.category_name or _('Uncategorized') }}</span>
+        </td>
+        <td>
+            <div class="btn-group btn-group-sm ut-actions">
+                <a href="{{ url_for('keyword_detail', keyword_id=keyword.id) }}"
+                   class="btn btn-outline-primary"
+                   title="{{ _('View Details') }}">
+                    <i class="bi bi-eye"></i>
+                </a>
+                <button type="button" class="btn btn-outline-secondary"
+                        data-panel-open
+                        data-panel-url="{{ url_for('keyword_documents', keyword_id=keyword.id) }}"
+                        data-panel-label="{{ keyword.text }}"
+                        title="{{ _('Documents with this keyword') }}">
+                    <i class="bi bi-files"></i>
+                </button>
+                <button class="btn btn-outline-warning"
+                        data-on-click="editKeyword({{ keyword.id }})"
+                        title="{{ _('Edit') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger"
+                        data-on-click="deleteKeyword({{ keyword.id }})"
+                        title="{{ _('Delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% endcall %}
+
+<!-- Pagination: the mount the server pager fills, and the client pager refills -->
+<div class="pagination-container" id="pagination">
+    {% if total_pages > 1 %}
+        {{ unified_pagination(page, total_pages, url_for, 'keywords_list', {
+            'search': search,
+            'per_page': per_page,
+            'sort': sort_by|default('usage_count'),
+            'order': sort_order|default('desc')
+        }, table_id='keywordsTable', total_count=total_keywords|default(0), rows_shown=keywords|length, page_size=per_page) }}
+    {% endif %}
+</div>
+
+    <!-- Add Keyword Modal -->
+    <div class="modal fade" id="addKeywordModal" tabindex="-1" aria-labelledby="addKeywordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addKeywordModalLabel">{{ _('Add Keyword') }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addKeywordForm">
+                        <input type="hidden" id="selectedCategoryId" name="category_id">
+                        <div class="mb-3">
+                            <label for="keywordWordInput" class="form-label">{{ _('Select or Create Words') }} *</label>
+                            <div class="position-relative">
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="keywordWordInput" 
+                                       name="word_text" 
+                                       autocomplete="off"
+                                       placeholder="{{ _('Type to search or create a new word...') }}">
+                                <div id="keywordWordSearchResults" class="word-search-results" style="display: none;"></div>
+                            </div>
+                            <small class="form-text text-muted">{{ _('Type a new word name to create it, or search for an existing word. You must select at least 2 words to create a keyword phrase.') }}</small>
+                            <div id="selectedWordsContainer" class="mt-2" style="display: none;">
+                                <div class="d-flex flex-wrap gap-2" id="selectedWordsList"></div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="keywordCategoryInput" class="form-label">{{ _('Category (from Categories table)') }}</label>
+                            <div class="position-relative">
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="keywordCategoryInput" 
+                                       name="category_text" 
+                                       autocomplete="off"
+                                       placeholder="{{ _('Type to search for a category...') }}">
+                                <div id="keywordCategorySearchResults" class="word-search-results" style="display: none;"></div>
+                            </div>
+                            <small class="form-text text-muted">{{ _('Type to search for categories from the categories table.') }}</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                    <button type="button" class="btn btn-primary" data-on-click="saveKeyword()">{{ _('Add Keyword') }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+
+{{ documents_panel(id='documentsPanel') }}
+<script type="application/json" id="keywords-list-page-data">{{ {
+    "api_url": url_for('api_keywords', _external=False),
+    "select2_url": url_for('static', filename='dist/js/select2.min.js'),
+    "keywords_add_url": url_for('keywords_add'),
+        "panelFailed": _('Could not load the documents.'),
+        "panelLoadFailed": _('Could not load more documents.'),
+        "panelDocuments": _('document(s)'),
+    "translations": {
+        "editInline": _('Edit inline'),
+        "viewDetails": _('View Details'),
+        "deleteKeyword": _('Delete Keyword'),
+        "selectKeyword": _('Select keyword'),
+        "mergeDuplicates": _('Merge duplicates'),
+        "errorLoadingKeywords": _('Error loading keywords'),
+        "checkBrowserConsole": _('Check browser console for details'),
+        "failedToLoadKeywords": _('Failed to load keywords'),
+        "checkBrowserConsoleAndLogs": _('Check browser console and server logs for details'),
+        "noKeywordsFoundMatching": _('No keywords found matching'),
+        "noKeywordsYet": _('No keywords yet — add your first keyword.'),
+        "duplicate": _('Duplicate'),
+        "active": _('Active'),
+        "unused": _('Unused'),
+        "deleteKeywordConfirm": _('Delete keyword #'),
+        "keywordDeletedSuccessfully": _('Keyword deleted successfully!'),
+        "failedToDelete": _('Failed to delete'),
+        "error": _('Error'),
+        "mergeAllDuplicatesConfirm": _('Merge all duplicates of'),
+        "successfullyMerged": _('Successfully merged'),
+        "duplicateKeywordsFor": _('duplicate keywords for'),
+        "totalUsage": _('Total usage'),
+        "errorMergingDuplicates": _('Error merging duplicates'),
+        "unknownError": _('Unknown error'),
+        "tryDifferentSearchTerm": _('Try a different search term.'),
+        "addYourFirstKeyword": _('add your first keyword'),
+        "allCategories": _('All Categories'),
+        "uncategorized": _('Uncategorized'),
+        "errorLoadingData": _('Error loading data'),
+        "showing": _('Showing'),
+        "page": _('Page'),
+        "of": _('of'),
+        "errorUpdatingKeyword": _('Error updating keyword'),
+        "errorDeletingKeywords": _('Error deleting keywords'),
+        "errorUpdatingKeywords": _('Error updating keywords'),
+        "deleteSelectedKeywords": _('Delete selected keywords?'),
+        "successfullyDeleted": _('Successfully deleted'),
+        "keywords": _('keywords'),
+        "successfullyUpdated": _('Successfully updated'),
+        "mergeAllDuplicatesConfirmAll": _('Merge ALL duplicate keywords in the database?'),
+        "mergeAllDuplicatesDetails": _('This will:\n- Find all keywords with the same text\n- Keep the first occurrence (lowest ID)\n- Transfer all usage statistics to the first\n- Delete duplicates\n\nThis may take a few moments...'),
+        "merging": _('Merging...'),
+        "successfullyMergedAll": _('Successfully merged all duplicates!'),
+        "merged": _('Merged'),
+        "duplicateSets": _('Duplicate sets'),
+        "refreshingPage": _('Refreshing page...'),
+        "errorMergingDuplicatesColon": _('Error merging duplicates'),
+        "loading": _('Loading...')
+    }
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+<script type="module" src="{{ url_for('static', filename='js/pages/keywords-list-page.js') }}"></script>
+{% endblock %}

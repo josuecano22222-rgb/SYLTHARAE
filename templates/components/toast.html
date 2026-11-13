@@ -1,0 +1,39 @@
+{# component: toast
+   purpose: One place where the application tells the reader that something
+            happened. Every action ends visibly - success, information,
+            warning, failure - and every message passes through here, so no
+            page invents its own notification and no failure goes silent.
+   inputs: id (region id)
+   outputs: none
+   events: none of its own; the runtime raises Bootstrap's toast events
+   states: success, warning, error, loading, unavailable
+   placement: top end, above every other layer (see .toast-stack in
+            message_system.css). Success and other notes never sit at the bottom.
+   slots: message, detail line, action link, correlation id line
+   accessibility: the region is a polite live region (`role="status"`), so a
+           message is announced without stealing focus; each toast carries
+           `role="alert"` for errors, a close button with an accessible name,
+           and text is written with textContent - never as HTML - so a message
+           can never become markup.
+   third_party: Bootstrap 5 toast only.
+   css: toast, alert, btn-close, font-monospace - already shipped.
+   boundary: the component shows what it is given and nothing else. A caller
+             must not pass exception text, SQL, paths or credentials; the
+             shared error pipeline already sanitises what pages receive.
+#}
+{#
+   Usage - the region is rendered once, in the shell:
+
+       {% from 'components/toast.html' import toast_region %}
+       {{ toast_region() }}
+
+   and the runtime raises the messages:
+
+       Toast.success('27 files categorised.');
+       Toast.error('Export failed.', { correlationId: 'ERR-20260921-0042' });
+#}
+
+{%- macro toast_region(id='toastRegion') -%}
+<div id="{{ id }}" class="toast-container toast-stack position-fixed top-0 end-0 p-3"
+     role="status" aria-live="polite" aria-atomic="false" data-toast-region></div>
+{%- endmacro -%}

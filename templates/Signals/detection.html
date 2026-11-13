@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% from 'components/table.html' import data_table %}
+{% from 'components/states.html' import state_panel %}
+
+{% block title %}{{ _('Detection') }}{% endblock %}
+
+{% block content %}
+<div class="page-container" id="detectionPage">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                <i class="bi bi-radar me-2"></i>
+                {{ _('Detection') }}
+            </h1>
+            <p class="text-muted mb-0">{{ _('Which detector version analysed which content and with what outcome. Content that was never analysed is counted separately: it is not the same as content in which nothing was found.') }}</p>
+        </div>
+    </div>
+
+    {% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+    <div class="tips-section">
+        <div class="tips-section-title"><i class="bi bi-info-circle"></i> {{ _('How detection is recorded') }}</div>
+        <ul class="tips-list">
+            <li>{{ _('Each content is analysed once by each detector, at ingestion or by re-detection. The run records the detector version, the outcome and the number of signals found.') }}</li>
+            <li>{{ _('Stale content was never analysed, was analysed by an older version (for places, an older gazetteer), or its last run failed. Re-detecting stale content analyses exactly these.') }}</li>
+            <li>{{ _('Re-detection runs as a background job and replaces the stored signals of each content it analyses. It is recorded in the audit log.') }}</li>
+        </ul>
+    </div>
+    {% endcall %}
+
+    <div id="detectionError" class="d-none">
+        {{ state_panel('error', 'bi-exclamation-octagon', title=_('The request failed'), message=' ',
+                       tone='text-danger', role='alert') }}
+    </div>
+
+    {# --------------------------------------------------------------- Coverage #}
+    <section class="mb-4" aria-labelledby="coverageTitle">
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+            <h2 class="fs-5 m-0" id="coverageTitle">{{ _('Coverage') }}</h2>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="coverageRefresh"><i class="bi bi-arrow-clockwise me-1"></i>{{ _('Refresh') }}</button>
+        </div>
+        <div id="coverageNote" class="small mb-2" role="status"></div>
+        {% call data_table(id='coverageTable', variant='sm align-middle') %}
+            <thead><tr>
+                <th>{{ _('Detector') }}</th><th>{{ _('Current version') }}</th>
+                <th>{{ _('Complete') }}</th><th>{{ _('Truncated') }}</th><th>{{ _('No text') }}</th><th>{{ _('Failed') }}</th>
+                <th>{{ _('Older version') }}</th><th>{{ _('Never analysed') }}</th><th>{{ _('Stale') }}</th><th></th>
+            </tr></thead>
+            <tbody id="coverageRows"></tbody>
+        {% endcall %}
+    </section>
+
+    {# ------------------------------------------------------------ Re-detect #}
+    <form id="redetectForm" class="card mb-4" autocomplete="off">
+        <div class="card-body">
+            <h2 class="fs-5">{{ _('Re-detect') }}</h2>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small" for="redetectScope">{{ _('Content') }}</label>
+                    <select class="form-select form-select-sm" id="redetectScope">
+                        <option value="stale">{{ _('Stale content only') }}</option>
+                        <option value="hash_ids">{{ _('Listed content ids') }}</option>
+                        <option value="all">{{ _('All content') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <span class="form-label small d-block">{{ _('Detectors') }}</span>
+                    <div id="redetectDetectors" class="d-flex gap-3"></div>
+                </div>
+            </div>
+            <div id="redetectIdsBox" class="mt-2 d-none">
+                <label class="form-label small" for="redetectIds">{{ _('Content ids (hash ids), separated by spaces, commas or new lines') }}</label>
+                <textarea class="form-control form-control-sm" id="redetectIds" rows="2" dir="ltr"></textarea>
+            </div>
+            <div id="redetectAllBox" class="form-check mt-2 d-none">
+                <input class="form-check-input" type="checkbox" id="redetectAllConfirm">
+                <label class="form-check-label small" for="redetectAllConfirm">{{ _('I understand that this analyses every stored content again and replaces its signals.') }}</label>
+            </div>
+            <div class="d-flex gap-2 mt-2 align-items-center">
+                <button type="submit" class="btn btn-primary btn-sm" id="redetectSubmit"><i class="bi bi-play-fill me-1"></i>{{ _('Start re-detection') }}</button>
+                <div id="redetectJob" class="small" aria-live="polite"></div>
+            </div>
+        </div>
+    </form>
+
+    {# ----------------------------------------------------------------- Runs #}
+    <section class="mb-3" aria-labelledby="runsTitle">
+        <h2 class="fs-5" id="runsTitle">{{ _('Runs') }}</h2>
+        <form id="runFilters" class="row g-2 align-items-end mb-2" autocomplete="off">
+            <div class="col-md-2">
+                <label class="form-label small" for="runDetector">{{ _('Detector') }}</label>
+                <select class="form-select form-select-sm" id="runDetector"></select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small" for="runStatus">{{ _('Outcome') }}</label>
+                <select class="form-select form-select-sm" id="runStatus"></select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small" for="runVersion">{{ _('Version') }}</label>
+                <select class="form-select form-select-sm" id="runVersion">
+                    <option value="">{{ _('Any version') }}</option>
+                    <option value="current">{{ _('Current version') }}</option>
+                    <option value="older">{{ _('Older version') }}</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small" for="runTrigger">{{ _('Trigger') }}</label>
+                <select class="form-select form-select-sm" id="runTrigger">
+                    <option value="">{{ _('Any trigger') }}</option>
+                    <option value="ingestion">{{ _('Ingestion') }}</option>
+                    <option value="redetection">{{ _('Re-detection') }}</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small" for="runHash">{{ _('Content id') }}</label>
+                <input class="form-control form-control-sm" id="runHash" inputmode="numeric" dir="ltr">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary btn-sm" id="runApply"><i class="bi bi-funnel me-1"></i>{{ _('Show runs') }}</button>
+            </div>
+        </form>
+        <div id="runNote" class="small mb-2" role="status"></div>
+        {% call data_table(id='runTable', variant='sm align-middle') %}
+            <thead><tr>
+                <th>{{ _('Ran at') }}</th><th>{{ _('File') }}</th><th>{{ _('Content id') }}</th>
+                <th>{{ _('Detector') }}</th><th>{{ _('Version') }}</th><th>{{ _('Outcome') }}</th>
+                <th>{{ _('Signals') }}</th><th>{{ _('Characters scanned') }}</th><th>{{ _('Trigger') }}</th>
+                <th>{{ _('Job') }}</th><th>{{ _('Error') }}</th>
+            </tr></thead>
+            <tbody id="runRows"></tbody>
+        {% endcall %}
+        <nav id="runPager" class="d-flex justify-content-between align-items-center"></nav>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="detection-page-data">{{ page_data|tojson }}</script>
+<script type="application/json" id="detection-page-labels">{{ {
+    "none": _('none'),
+    "request_failed": _('The request failed'),
+    "any_detector": _('Any detector'),
+    "any_outcome": _('Any outcome'),
+    "status_complete": _('Complete'),
+    "status_truncated": _('Truncated'),
+    "status_no_text": _('No text'),
+    "status_failed": _('Failed'),
+    "version_unavailable": _('unavailable'),
+    "version_unavailable_help": _('The current version cannot be determined (for places: no gazetteer is loaded). Every content counts as stale until it can.'),
+    "coverage_note": _('%(analysable)s contents have stored text; %(stale)s are stale for at least one detector. Exact counts from one database snapshot taken %(at)s.'),
+    "redetect_stale": _('Re-detect stale'),
+    "nothing_stale": _('Nothing is stale.'),
+    "is_current": _('current'),
+    "more_files": _('and %(count)s more'),
+    "no_file": _('no file'),
+    "older": _('Older'),
+    "newer": _('Newer'),
+    "runs_note": _('Showing %(from)s-%(to)s, newest first.'),
+    "runs_more": _('More runs exist.'),
+    "runs_end": _('No more runs.'),
+    "runs_empty": _('No runs match these filters.'),
+    "runs_empty_all": _('No content has been analysed yet.'),
+    "chars_of": _('%(scanned)s of %(total)s'),
+    "open_job": _('Open job'),
+    "job_queued": _('Re-detection job %(id)s queued.'),
+    "job_state": _('Job %(id)s: %(status)s. %(processed)s contents analysed, %(signals)s signals, %(failed)s failed.'),
+    "job_status_only": _('Job %(id)s: %(status)s.'),
+    "job_done_warnings": _('Some runs failed; they are listed under Runs with their error.'),
+    "choose_detector": _('Choose at least one detector.'),
+    "ids_required": _('List at least one content id.'),
+    "ids_invalid": _('Content ids must be positive whole numbers: %(bad)s'),
+    "confirm_all": _('Confirm that every content should be analysed again.'),
+    "open_file": _('Open file'),
+} |tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/detection-page.js') }}"></script>
+{% endblock %}

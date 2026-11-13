@@ -1,0 +1,448 @@
+/* ============================================================
+   Analyst Categorization View (FR-4)
+   Deliberately distinct visual identity: violet accent + banner
+   layout, structurally separate from the blue "smart
+   classification" analysis pages (FR-4.3).
+   ============================================================ */
+
+.analyst-view {
+    --analyst-accent: #7c3aed;
+    --analyst-accent-soft: #ede9fe;
+    --analyst-accent-border: #c4b5fd;
+    --analyst-text: #4c1d95;
+}
+
+/* ---- Banner ------------------------------------------------ */
+
+.analyst-banner {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: linear-gradient(135deg, var(--analyst-accent-soft) 0%, #f8f7ff 100%);
+    border: 1px solid var(--analyst-accent-border);
+    border-left: 6px solid var(--analyst-accent);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.analyst-banner-icon {
+    font-size: 2.2rem;
+    color: var(--analyst-accent);
+    background: #fff;
+    border: 1px solid var(--analyst-accent-border);
+    border-radius: 12px;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.analyst-banner-text { flex: 1 1 320px; }
+
+.analyst-banner-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--analyst-text);
+    margin: 0 0 .25rem 0;
+}
+
+.analyst-banner-subtitle {
+    margin: 0;
+    color: #5b21b6;
+    font-size: .9rem;
+}
+
+.analyst-banner-actions {
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+}
+
+/* ---- Buttons ------------------------------------------------ */
+
+.btn-analyst {
+    background-color: var(--analyst-accent);
+    border-color: var(--analyst-accent);
+    color: #fff;
+}
+
+.btn-analyst:hover:not(:disabled) {
+    background-color: #6d28d9;
+    border-color: #6d28d9;
+    color: #fff;
+}
+
+.btn-analyst-outline {
+    background-color: transparent;
+    border-color: var(--analyst-accent);
+    color: var(--analyst-accent);
+}
+
+.btn-analyst-outline:hover:not(:disabled) {
+    background-color: var(--analyst-accent);
+    color: #fff;
+}
+
+/* ---- Stats -------------------------------------------------- */
+
+.analyst-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: .9rem;
+    margin-bottom: 1.5rem;
+}
+
+.analyst-stat-card {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: .9rem 1rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+}
+
+.analyst-stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: var(--analyst-accent-soft);
+    color: var(--analyst-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.analyst-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.analyst-stat-label {
+    font-size: .75rem;
+    color: #6b7280;
+}
+
+/* ---- Panels -------------------------------------------------- */
+
+.analyst-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.analyst-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .8rem 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    background: #faf9ff;
+}
+
+.analyst-panel-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--analyst-text);
+}
+
+.analyst-panel-body { padding: 1rem; }
+
+/* ---- Filters ------------------------------------------------- */
+
+.analyst-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: .7rem;
+    padding: 1rem;
+    background: #faf9ff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.analyst-filter-label {
+    display: block;
+    font-size: .72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #6b7280;
+    margin-bottom: .25rem;
+}
+
+.analyst-filter-grow { grid-column: span 2; }
+
+.analyst-filter-actions {
+    display: flex;
+    align-items: flex-end;
+    gap: .4rem;
+}
+
+/* ---- Assignments table --------------------------------------- */
+
+.analyst-table thead th {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #6b7280;
+    border-bottom: 2px solid var(--analyst-accent-border);
+    background: #faf9ff;
+}
+
+.analyst-table .file-link {
+    color: var(--analyst-text);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.analyst-table .file-link:hover { text-decoration: underline; }
+
+.analyst-table .file-path {
+    display: block;
+    font-size: .72rem;
+    color: #9ca3af;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Analyst category badge: always violet with person icon so the
+   manual namespace is instantly distinguishable from the gray
+   smart-category badges (FR-1.4). */
+.analyst-category-badge {
+    background-color: var(--analyst-accent-soft);
+    color: var(--analyst-text);
+    border: 1px solid var(--analyst-accent-border);
+    font-weight: 600;
+}
+
+.originating-query {
+    display: inline-block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    font-size: .75rem;
+    background: #f3f4f6;
+    border-radius: 6px;
+    padding: .15rem .45rem;
+    color: #374151;
+    vertical-align: middle;
+}
+
+.analyst-badge-soft {
+    display: inline-block;
+    background: var(--analyst-accent-soft);
+    color: var(--analyst-text);
+    border-radius: 999px;
+    padding: .1rem .6rem;
+    font-size: .75rem;
+    font-weight: 600;
+}
+
+/* ---- Category list ------------------------------------------- */
+
+.analyst-category-list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.analyst-category-item {
+    padding: .5rem .25rem;
+    border-bottom: 1px dashed #e5e7eb;
+}
+
+.analyst-category-item:last-child { border-bottom: none; }
+
+.analyst-category-name {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    flex-wrap: wrap;
+    color: var(--analyst-text);
+    font-weight: 600;
+    font-size: .9rem;
+}
+
+/* ---- Audit log ------------------------------------------------ */
+
+.analyst-audit-list { max-height: 420px; overflow-y: auto; }
+
+.analyst-audit-entry {
+    padding: .55rem .25rem;
+    border-bottom: 1px dashed #e5e7eb;
+    font-size: .8rem;
+}
+
+.analyst-audit-entry:last-child { border-bottom: none; }
+
+.analyst-audit-entry .audit-action-assign { color: #047857; font-weight: 700; }
+.analyst-audit-entry .audit-action-remove { color: #b45309; font-weight: 700; }
+.analyst-audit-entry .audit-action-category_created { color: #1d4ed8; font-weight: 700; }
+
+.analyst-audit-meta { color: #6b7280; font-size: .72rem; }
+
+/* ---- Responsive ------------------------------------------------ */
+
+@media (max-width: 768px) {
+    .analyst-banner { flex-direction: column; align-items: flex-start; }
+    .analyst-filter-grow { grid-column: span 1; }
+    .analyst-table .file-path { max-width: 140px; }
+}
+
+/* --------------------------------------------------------------------------
+   Origin of classified files (source / side)
+   Each analyst-classified file shows where it came from: the source and
+   the side of its content identity, as soft chips in the analyst accent.
+   -------------------------------------------------------------------------- */
+.assignment-origin-cell {
+    max-width: 14rem;
+}
+
+.assignment-origin {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    margin-inline-end: 0.35rem;
+    margin-block: 0.15rem;
+    padding: 0.15rem 0.55rem;
+    border: 1px solid var(--analyst-accent-border, #c4b5fd);
+    border-radius: var(--radius-pill, 999px);
+    background: var(--analyst-accent-soft, #ede9fe);
+    color: var(--analyst-text, #4c1d95);
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.assignment-origin i {
+    flex: 0 0 auto;
+    opacity: 0.75;
+}
+
+/* Analyst CSV export dialog (shared ops pattern) */
+.analyst-export-dialog.fmas-ops-dialog[hidden] {
+    display: none !important;
+}
+
+.analyst-export-dialog.fmas-ops-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 1085;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.analyst-export-dialog .fmas-ops-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+}
+
+.analyst-export-dialog .fmas-ops-dialog-panel {
+    position: relative;
+    width: min(520px, 100%);
+    max-height: min(88vh, 720px);
+    overflow: auto;
+    background: var(--bs-body-bg, #fff);
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--analyst-accent-border, #c4b5fd);
+}
+
+.analyst-export-dialog .fmas-ops-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.analyst-export-dialog .fmas-ops-dialog-header h2 {
+    font-size: 1.05rem;
+    margin: 0;
+    color: var(--analyst-text, #4c1d95);
+}
+
+.analyst-export-dialog .fmas-ops-dialog-close {
+    border: none;
+    background: transparent;
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+.analyst-export-dialog .fmas-ops-dialog-form {
+    padding: 1rem 1.15rem 1.15rem;
+}
+
+.analyst-export-dialog .fmas-ops-columns {
+    border: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+}
+
+.analyst-export-dialog .fmas-ops-columns legend {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
+.analyst-export-dialog .fmas-ops-column-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-bottom: 0.5rem;
+}
+
+.analyst-export-dialog .fmas-ops-column-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+    gap: 0.25rem 0.75rem;
+    max-height: 14rem;
+    overflow: auto;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: var(--analyst-accent-soft, #f5f3ff);
+}
+
+.analyst-export-dialog .fmas-ops-column-item {
+    display: flex;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    margin: 0;
+    cursor: pointer;
+}
+
+.analyst-export-dialog .fmas-ops-field {
+    margin-bottom: 0.75rem;
+}
+
+.analyst-export-dialog .fmas-ops-field label {
+    display: block;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+
+.analyst-export-dialog .fmas-ops-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}

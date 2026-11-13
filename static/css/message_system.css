@@ -1,0 +1,540 @@
+.message-container {
+    /* Base positioning: fixed toast stack in the top-right corner. Without
+       this rule the container was a static block at the end of <body>, so the
+       messages' translateX(120%) entrance transform pushed real page content
+       sideways and produced ~1728px of horizontal overflow. */
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 10010;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-width: 420px;
+    width: calc(100vw - 3rem);
+    pointer-events: none;
+}
+
+.message {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    padding: 1.25rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    border-left: 4px solid;
+    pointer-events: all;
+    transform: translateX(120%);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.message-success {
+    border-left-color: var(--success-color);
+    background: linear-gradient(135deg, var(--bg-white) 0%, var(--alert-success-bg) 100%);
+}
+
+.message-error {
+    border-left-color: var(--danger-color);
+    background: linear-gradient(135deg, var(--bg-white) 0%, var(--alert-danger-bg) 100%);
+}
+
+.message-warning {
+    border-left-color: var(--warning-color);
+    background: linear-gradient(135deg, var(--bg-white) 0%, var(--alert-warning-bg) 100%);
+}
+
+.message-info {
+    border-left-color: var(--info-color);
+    background: linear-gradient(135deg, var(--bg-white) 0%, var(--alert-info-bg) 100%);
+}
+
+.message-processing {
+    border-left-color: var(--primary-color);
+    background: linear-gradient(135deg, var(--bg-white) 0%, var(--alert-info-bg) 100%);
+}
+
+.message-title {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-heading);
+    margin-bottom: 0.5rem;
+}
+
+.message-text {
+    font-size: 0.9375rem;
+    color: var(--text-dark);
+    line-height: 1.5;
+}
+
+.message-action-primary {
+    background: var(--btn-primary);
+    color: var(--text-white);
+}
+
+.message-action-primary:hover {
+    background: var(--btn-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message-action-cancel {
+    background: transparent;
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+}
+
+.message-action-cancel:hover {
+    background: var(--bg-section);
+    color: var(--text-dark);
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.message-details-toggle {
+    background: none;
+    border: none;
+    color: var(--info-color);
+    font-size: 0.875rem;
+    cursor: pointer;
+    padding: 0.25rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+}
+
+.message-details-toggle:hover {
+    color: var(--primary-color);
+}
+
+.message-details-content pre {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-size: 0.8125rem;
+    color: #64748b;
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.message-code {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-family: 'Courier New', monospace;
+}
+
+.message-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+}
+
+.message-close:hover {
+    background: var(--bg-section);
+    color: var(--text-dark);
+}
+
+@keyframes messageProgress {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0%;
+    }
+}
+
+.processing-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10005;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: auto;
+}
+
+.processing-overlay.visible {
+    display: flex;
+    opacity: 1;
+}
+
+.processing-content {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 3rem;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    min-width: 300px;
+    max-width: 500px;
+}
+
+.processing-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--border-light);
+    border-top: 4px solid var(--info-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1.5rem;
+}
+
+.processing-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-heading);
+    margin-bottom: 1rem;
+}
+
+.processing-progress {
+    height: 4px;
+    background: var(--border-color);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.processing-progress::after {
+    content: '';
+    display: block;
+    height: 100%;
+    background: linear-gradient(90deg, var(--info-color), var(--primary-color));
+    border-radius: 2px;
+    animation: processingProgress 2s ease-in-out infinite;
+}
+
+@keyframes processingProgress {
+    0% {
+        width: 0%;
+        transform: translateX(0);
+    }
+    50% {
+        width: 70%;
+        transform: translateX(0);
+    }
+    100% {
+        width: 100%;
+        transform: translateX(100%);
+    }
+}
+
+@media (max-width: 768px) {
+    .message-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    .message {
+        padding: 1rem;
+    }
+    .processing-content {
+        margin: 1rem;
+        padding: 2rem;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .message {
+        background: #1e293b;
+        color: #f1f5f9;
+    }
+    .message-title {
+        color: #f1f5f9;
+    }
+    .message-text {
+        color: #cbd5e1;
+    }
+    .message-details-content pre {
+        background: #0f172a;
+        border-color: #334155;
+        color: #cbd5e1;
+    }
+    .processing-content {
+        background: #1e293b;
+        color: #f1f5f9;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(120%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(120%);
+        opacity: 0;
+    }
+}
+
+@media (max-width: 1199.98px) {
+    .message-container {
+        top: 15px;
+        right: 15px;
+        max-width: 400px;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .message-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        width: auto;
+    }
+    .message {
+        padding: 1rem;
+        border-radius: 10px;
+    }
+    .message-icon {
+        font-size: 1.25rem;
+    }
+    .message-title {
+        font-size: 0.9375rem;
+    }
+    .message-text {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .message-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        gap: 0.75rem;
+    }
+    .message {
+        padding: 0.875rem;
+        border-radius: 8px;
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    .message.message-visible {
+        transform: translateY(0);
+    }
+    .message.message-hiding {
+        transform: translateY(-100%);
+    }
+    .message-icon {
+        font-size: 1.125rem;
+    }
+    .message-title {
+        font-size: 0.875rem;
+        margin-bottom: 0.375rem;
+    }
+    .message-text {
+        font-size: 0.8125rem;
+    }
+    .message-actions {
+        margin-top: 0.5rem;
+        gap: 0.5rem;
+    }
+    .message-action-btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .message-container {
+        top: 5px;
+        right: 5px;
+        left: 5px;
+        gap: 0.5rem;
+    }
+    .message {
+        padding: 0.75rem;
+        border-radius: 6px;
+        gap: 0.75rem;
+    }
+    .message-icon {
+        font-size: 1rem;
+        margin-top: 0;
+    }
+    .message-title {
+        font-size: 0.8125rem;
+        margin-bottom: 0.25rem;
+    }
+    .message-text {
+        font-size: 0.75rem;
+        line-height: 1.4;
+    }
+    .message-actions {
+        margin-top: 0.375rem;
+        gap: 0.375rem;
+        flex-wrap: wrap;
+    }
+    .message-action-btn {
+        padding: 0.3rem 0.625rem;
+        font-size: 0.75rem;
+    }
+    .message-close-btn {
+        width: 20px;
+        height: 20px;
+        font-size: 0.875rem;
+    }
+    .message-details-toggle {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    .message-details-content {
+        margin-top: 0.5rem;
+        padding: 0.5rem;
+        font-size: 0.75rem;
+    }
+    .processing-content {
+        padding: 0.5rem;
+    }
+    .processing-item {
+        padding: 0.375rem;
+        font-size: 0.75rem;
+    }
+}
+
+
+/* ==========================================================================
+   Notification stack - one top-end layer for every success and note.
+
+   Every message (Toast.* from core/toast.js, the message system's
+   showSuccess/messageRouter, and the per-page showToast helpers) is drawn
+   inside the single [data-toast-region]. That layer is fixed to the top-end
+   corner and sits above every other layer in the app: the highest z-index in
+   use is 10020 (sticky table headers) and modals are 1055, so the stack uses
+   --z-notice, which is above both. Nothing renders below the page or behind
+   a modal, and two stacks can no longer overlap in the same corner.
+   ========================================================================== */
+:root {
+    --z-notice: 10100;
+}
+
+.toast-stack {
+    position: fixed !important;
+    top: 0;
+    right: 0;
+    bottom: auto;
+    left: auto;
+    z-index: var(--z-notice) !important;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.6rem;
+    width: min(24rem, calc(100vw - 2rem));
+    max-width: none;
+    padding: 1rem !important;
+    pointer-events: none;
+}
+
+.toast-stack > * {
+    pointer-events: auto;
+}
+
+/* The message system draws its cards inside the stack, in normal flow, so the
+   two kinds of note share one column rather than fighting over the corner. */
+.toast-stack .message-container {
+    position: static;
+    top: auto;
+    right: auto;
+    z-index: auto;
+    width: 100%;
+    max-width: none;
+    gap: 0.6rem;
+    pointer-events: auto;
+}
+
+/* Refined toast card: a solid tone, rounded, lifted, and easy to read at a
+   glance. Tone colours still come from Bootstrap's text-bg-* classes. */
+.toast-stack .toast {
+    width: 100%;
+    min-width: 16rem;
+    border: 0;
+    border-radius: 0.75rem;
+    box-shadow: 0 0.75rem 2rem rgba(15, 23, 42, 0.25);
+    overflow: hidden;
+    animation: toast-stack-drop 220ms ease-out both;
+}
+
+.toast-stack .toast .toast-body {
+    padding: 0.8rem 1rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.toast-stack .toast > .d-flex {
+    align-items: center;
+}
+
+.toast-stack .toast .bi {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.toast-stack .toast .toast-action {
+    color: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.toast-stack .toast .btn-close {
+    opacity: 0.85;
+}
+
+@keyframes toast-stack-drop {
+    from {
+        opacity: 0;
+        transform: translateY(-0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast-stack .toast {
+        animation: none;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .toast-stack {
+        width: calc(100vw - 1rem);
+        padding: 0.5rem !important;
+    }
+}

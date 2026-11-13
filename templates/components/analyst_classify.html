@@ -1,0 +1,88 @@
+{# component: analyst_classify
+   purpose: The analyst-category control for the record being read, usable
+            from wherever that record is displayed.
+   states: normal, editing, saving, success, error, unauthorized
+   classes: analyst-badges, analyst-category-badge, dropdown-menu
+   notes: Renders what the analyst may do and posts the change; the server
+          decides what the account is allowed to change.
+#}
+{#
+    Analyst classification control — shared by EVERY content display
+    interface (File Detail, Full Content Reader). Lets an analyst/admin
+    assign or remove ANALYST categories for the displayed file directly
+    from wherever they are reading it.
+
+    Contract (FR-1.4 separation): this control reads and writes ONLY the
+    analyst (manual) taxonomy via /api/analyst/*. The smart classification
+    shown elsewhere on the pages is a different namespace and is never
+    touched.
+
+    Parameters:
+      file_id           — the file being classified
+      analyst_categories— current analyst categories (list of {id, name, color})
+      can_categorize    — whether the current user may write (analyst/admin)
+      compact           — render the slim toolbar variant (reader header)
+
+    Every card carries the same data-* hooks, and the JavaScript finds the
+    controls through them inside the card element (never through a global id),
+    so a page holding more than one card — the preview pop-up adds one next to
+    nothing, the detail page has its own — cannot cross-wire them.
+
+    The preview pop-up renders this macro into its modal and lets
+    static/js/modules/analyst-classify.js re-point the card at whichever file
+    is on screen; that is also why ``file_id`` may be 0 there.
+#}
+{% macro analyst_classify(file_id, analyst_categories=None, can_categorize=false, compact=false, card_id='analystClassifyCard') %}
+<div class="analyst-classify {% if compact %}analyst-classify-compact{% endif %}"
+     id="{{ card_id }}"
+     data-analyst-classify
+     data-file-id="{{ file_id }}">
+    <div class="analyst-classify-header">
+        <i class="bi bi-person-badge" aria-hidden="true"></i>
+        <span>{{ _('Analyst Categories') }}</span>
+        <span class="analyst-namespace-tag" title="{{ _('Analyst-defined categories only (never smart categories)') }}">{{ _('manual') }}</span>
+    </div>
+
+    <div class="analyst-classify-badges" id="{{ card_id }}-badges" data-analyst-badges>
+        {% if analyst_categories %}
+            {% for cat in analyst_categories %}
+            <span class="badge analyst-category-badge" data-category-id="{{ cat.id }}">
+                <i class="bi bi-person-fill me-1" aria-hidden="true"></i>{{ cat.name }}
+                {% if can_categorize %}
+                <button type="button" class="badge-remove" data-remove-category-id="{{ cat.id }}"
+                        title="{{ _('Remove analyst category from this file? It returns to uncategorized status for search scope.') }}"
+                        aria-label="{{ _('Remove') }} {{ cat.name }}">&times;</button>
+                {% endif %}
+            </span>
+            {% endfor %}
+        {% else %}
+            <span class="analyst-classify-empty" id="{{ card_id }}-empty" data-analyst-empty>
+                {{ _('This file has no analyst-assigned category yet. Assign one here, or from the Advanced Search results.') }}
+            </span>
+        {% endif %}
+    </div>
+
+    {% if can_categorize %}
+    <div class="analyst-classify-controls">
+        <select class="form-select form-select-sm" id="{{ card_id }}-select" data-analyst-select
+                aria-label="{{ _('Choose analyst category…') }}">
+            <option value="">{{ _('Choose analyst category…') }}</option>
+        </select>
+        <input type="text" class="form-control form-control-sm" id="{{ card_id }}-new-name" data-analyst-new-name
+               placeholder="{{ _('…or new category name') }}" maxlength="255"
+               aria-label="{{ _('…or new category name') }}">
+        <button type="button" class="btn btn-sm btn-analyst-assign" id="{{ card_id }}-assign" data-analyst-assign>
+            <i class="bi bi-tag-fill me-1" aria-hidden="true"></i>{{ _('Categorize') }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="{{ card_id }}-remove-all" data-analyst-remove-all
+                title="{{ _('Remove analyst categories from selected files (returns them to uncategorized scope)') }}">
+            <i class="bi bi-tag me-1" aria-hidden="true"></i>{{ _('Remove') }}
+        </button>
+    </div>
+    {% else %}
+    <p class="analyst-classify-readonly-note">
+        {{ _('Assigned manually by analysts. Fully separate from the smart classification shown beside it.') }}
+    </p>
+    {% endif %}
+</div>
+{% endmacro %}

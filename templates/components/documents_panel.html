@@ -1,0 +1,75 @@
+{# component: documents_panel
+   purpose: The side panel of one owner's documents - a file type, a
+            keyword, a category. One markup for every host page; the body
+            is the shared file-library table fragment, adopted in place by
+            static/js/modules/ui/documents-panel.js. Openers anywhere on
+            the page declare data-panel-open + data-panel-url.
+   states: normal, loading, empty
+   classes: documents-panel, file-type-panel, file-type-panel-head,
+            file-type-panel-heading, file-type-panel-title,
+            file-type-panel-sub, file-type-panel-tools,
+            file-type-panel-search, file-type-panel-bulk,
+            file-type-panel-bulk-count, file-type-panel-body,
+            file-type-panel-placeholder
+   styles: static/css/file-type-workspace.css
+   notes: Shared with the File Types dashboard, the Keywords page and the
+          Categories page; the panel's table IS the File Library's table.
+#}
+{% macro documents_panel(id='documentsPanel', title=_('Documents'),
+                         search_placeholder=_('Search these documents…'),
+                         close_label=_('Close the panel'),
+                         open_label=_('Documents of the chosen format')) %}
+{#- The side panel of one owner's documents - a file type, a keyword, a
+    category. One markup for every host page; the body is adopted from the
+    documents fragment (the shared file-library table) by
+    static/js/modules/ui/documents-panel.js, so the panel's table IS the
+    File Library's table. A row or button anywhere on the page opens it by
+    declaring data-panel-open + data-panel-url (+ optional data-panel-label). -#}
+<aside class="documents-panel file-type-panel" id="{{ id }}" hidden
+       aria-label="{{ open_label }}">
+    <div class="file-type-panel-head">
+        <div class="file-type-panel-heading">
+            <h2 class="file-type-panel-title" data-panel-title>{{ title }}</h2>
+            <p class="file-type-panel-sub" data-panel-sub></p>
+        </div>
+        <div class="file-type-panel-tools">
+            <input type="search" class="form-control form-control-sm file-type-panel-search"
+                   data-panel-search aria-label="{{ _('Search these documents') }}"
+                   placeholder="{{ search_placeholder }}">
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-panel-close
+                    aria-label="{{ close_label }}">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="file-type-panel-bulk" data-panel-export-toolbar hidden
+             role="group" aria-label="{{ _('Bulk Actions:') }}">
+            <span class="file-type-panel-bulk-count" aria-live="polite">
+                <span data-panel-selected-count>0</span> {{ _('selected') }}
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-primary"
+                    data-bulk-file-export="text" disabled>
+                <i class="bi bi-file-earmark-text me-1" aria-hidden="true"></i>{{ _('Export Content') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary"
+                    data-bulk-file-export="originals" disabled>
+                <i class="bi bi-file-zip me-1" aria-hidden="true"></i>{{ _('Export Originals') }}
+            </button>
+        </div>
+    </div>
+    <div class="file-type-panel-body" data-panel-body>
+        <div class="file-type-panel-placeholder" data-panel-placeholder>
+            <i class="bi bi-folder2-open" aria-hidden="true"></i>
+            <p>{{ _('Open an item to see its documents: search, sort, load more, select, export, rename, copy.') }}</p>
+        </div>
+    </div>
+</aside>
+<script type="application/json" id="documents-panel-data">{{ {
+    "translations": {
+        "panelFailed": _('Could not load the documents.'),
+        "panelLoadFailed": _('Could not load more documents.'),
+        "panelDocuments": _('document(s)'),
+        "panelMatches": _('document(s) matching'),
+        "panelTitle": _('Documents')
+    }
+}|tojson }}</script>
+{% endmacro %}

@@ -1,0 +1,93 @@
+{# component: status_badge
+   purpose: One way to show a status word, so the same state is not green on
+            one page and grey on the next. An application status is looked up
+            in the vocabulary - `core/frontend/status_vocabulary.py` - which
+            maps it to one of a few presentation states; the component only
+            turns that state into classes.
+   states: success, warning, error, unavailable, archived
+   presentation_states: success, warning, danger, info, progress, neutral, muted
+   classes: badge, bg-secondary, bg-success, bg-warning, bg-danger, bg-info,
+            bg-primary, text-dark, ms-2, bg-success-subtle,
+            text-success-emphasis, bg-light, border
+   notes: Two callers, one owner. Pass `status=` for anything the application
+          calls a status (`status_badge(status='COMPLETED_WITH_WARNINGS')`) and
+          the vocabulary decides the state and the words. Pass `label` and
+          `tone` only for a chip that is not an application status - a count, a
+          method, an id - because a presentation state chosen at the call site
+          is exactly the drift this component exists to stop. A status nobody
+          has heard of renders neutral, in its own words, marked
+          `data-status-known="false"` rather than being given a meaning.
+#}
+{#
+   Usage:
+
+       {% from 'components/status_badge.html' import status_badge %}
+
+       {{ status_badge(job.state, tone='success') }}
+
+   Tones: neutral, info, primary, success, warning, danger, muted.
+#}
+
+{#- Presentation state -> stylesheet classes. This is the component's own
+    business: the state is the interface, the classes are how it is drawn. -#}
+{#- Two weights, not twenty variants: the solid badge for a status in a table,
+    the quiet one for a status that sits inline with other text. -#}
+{% set _CHIP_VARIANTS = {
+    'solid': {},
+    'quiet': {
+        'success': 'bg-success-subtle text-success-emphasis',
+        'warning': 'bg-warning-subtle text-warning-emphasis',
+        'danger': 'bg-danger-subtle text-danger-emphasis',
+        'info': 'bg-info-subtle text-info-emphasis',
+        'primary': 'bg-primary-subtle text-primary-emphasis',
+        'progress': 'bg-primary-subtle text-primary-emphasis',
+        'neutral': 'bg-light text-dark border',
+        'muted': 'bg-light text-dark border'
+    }
+} %}
+
+{% set _TONES = {
+    'neutral': 'bg-secondary',
+    'info': 'bg-info text-dark',
+    'primary': 'bg-primary',
+    'progress': 'bg-primary',
+    'success': 'bg-success',
+    'warning': 'bg-warning text-dark',
+    'danger': 'bg-danger',
+    'error': 'bg-danger',
+    'muted': 'bg-secondary'
+} %}
+
+
+{% macro status_badge(label=None, tone=None, status=None, title=None,
+                     extra_class=None, icon=None, variant='solid') %}
+{%- if status is not none -%}
+    {#- An application status: the vocabulary owns both the state and the
+        words, and an unknown one is shown as such instead of guessed at. -#}
+    {%- set info = status_presentation(status) -%}
+    {{- _chip(_(info.label), info.state, title=title, extra_class=extra_class,
+              known=info.known, icon=icon, variant=variant) -}}
+{%- elif label -%}
+    {{- _chip(label, tone or 'neutral', title=title, extra_class=extra_class) -}}
+{%- endif -%}
+{% endmacro %}
+
+
+{% macro _chip(label, tone, title=None, extra_class=None, known=None,
+               icon=None, variant='solid') %}
+{%- if label -%}
+<span class="badge {{ _CHIP_VARIANTS.get(variant, _CHIP_VARIANTS['solid']).get(tone, _TONES.get(tone, _TONES['neutral'])) }}{{ ' ' ~ extra_class if extra_class }}"
+      {% if title %}title="{{ title }}"{% endif %}
+      {% if known is not none %}data-status-known="{{ 'true' if known else 'false' }}"{% endif %}>{% if icon %}<i class="bi {{ icon }} me-1" aria-hidden="true"></i>{% endif %}{{ label }}</span>
+{%- endif -%}
+{% endmacro %}
+
+
+{% macro status_badge_with_icon(label, icon, tone='neutral', title=None) %}
+{%- if label -%}
+<span class="badge {{ _TONES.get(tone, _TONES['neutral']) }}"
+      {% if title %}title="{{ title }}"{% endif %}>
+    <i class="bi {{ icon }} me-1" aria-hidden="true"></i>{{ label }}
+</span>
+{%- endif -%}
+{% endmacro %}

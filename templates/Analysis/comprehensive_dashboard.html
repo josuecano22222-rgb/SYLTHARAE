@@ -1,0 +1,613 @@
+{% extends "base.html" %}
+
+{% block page_type %}comprehensive-dashboard{% endblock %}
+{% block title %}{{ _('Comprehensive Dashboard') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/comprehensive-dashboard.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/multi-select-dropdown.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+  {% include "components/operations_widget.html" %}
+
+<div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title"><i class="bi bi-layout-three-columns me-2"></i> {{ _('Comprehensive Dashboard') }}</h1>
+            <p class="text-muted mb-0">{{ _('Advanced filtering and analysis across files, categories, keywords, sources, and words') }}</p>
+        </div>
+    </div>
+
+    <!-- Page Tips -->
+    {% from 'components/page_tips.html' import page_tips %}
+        {% call page_tips() %}
+
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-layout-three-columns"></i>
+            {{ _('Comprehensive Dashboard Overview') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('This dashboard provides a unified view of all your data across files, categories, keywords, sources, and words') }}</li>
+            <li>{{ _('Use the tab navigation to switch between different data views (Files, Categories, Keywords, Sources, Words)') }}</li>
+            <li>{{ _('Each tab contains advanced filtering options to narrow down your analysis') }}</li>
+            <li>{{ _('Apply multiple filters simultaneously to create complex queries and find exactly what you need') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-funnel"></i>
+            {{ _('Using Filters') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Filters are available for each data type (category, source, date range, etc.)') }}</li>
+            <li>{{ _('Select multiple values in dropdown filters to include multiple options') }}</li>
+            <li>{{ _('Use date range filters to analyze data within specific time periods') }}</li>
+            <li>{{ _('Clear all filters using the reset button to start a new search') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-table"></i>
+            {{ _('Data Views') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Each tab shows data in a table format with sortable columns') }}</li>
+            <li>{{ _('Click column headers to sort data by that field') }}</li>
+            <li>{{ _('Use pagination controls to navigate through large result sets') }}</li>
+            <li>{{ _('Export filtered results to CSV, Excel, or JSON formats for further analysis') }}</li>
+        </ul>
+    </div>
+{% endcall %}
+
+    <!-- Dashboard Navigation Buttons -->
+    <div class="dashboard-navigation section-card">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary dashboard-nav-btn">
+                <i class="bi bi-speedometer2"></i> {{ _('Overview') }}
+            </a>
+            <a href="{{ url_for('comprehensive_dashboard') }}" class="btn btn-outline-primary dashboard-nav-btn active">
+                <i class="bi bi-layout-three-columns"></i> {{ _('Comprehensive Dashboard') }}
+            </a>
+            <a href="{{ url_for('charts_dashboard') }}" class="btn btn-outline-primary dashboard-nav-btn">
+                <i class="bi bi-graph-up"></i> {{ _('Charts Dashboard') }}
+            </a>
+        </div>
+    </div>
+    <!-- Layout Navigation -->
+    <nav class="tab-navigation" role="tablist" aria-label="{{ _('Dashboard views') }}">
+        <!-- Files Tab -->
+        <button class="tab-button active" 
+                role="tab" 
+                aria-selected="true" 
+                aria-controls="layout-files"
+                data-layout="files"
+                tabindex="0">
+            <i class="bi bi-files" aria-hidden="true"></i> {{ _('Files') }}
+        </button>
+        
+        <!-- Categories Tab -->
+        <button class="tab-button" 
+                role="tab" 
+                aria-selected="false" 
+                aria-controls="layout-categories"
+                data-layout="categories"
+                tabindex="-1">
+            <i class="bi bi-collection" aria-hidden="true"></i> {{ _('Categories') }}
+        </button>
+        
+        <!-- Keywords Tab -->
+        <button class="tab-button" 
+                role="tab" 
+                aria-selected="false" 
+                aria-controls="layout-keywords"
+                data-layout="keywords"
+                tabindex="-1">
+            <i class="bi bi-tags" aria-hidden="true"></i> {{ _('Keywords') }}
+        </button>
+        
+        <!-- Sources Tab -->
+        <button class="tab-button" 
+                role="tab" 
+                aria-selected="false" 
+                aria-controls="layout-sources"
+                data-layout="sources"
+                tabindex="-1">
+            <i class="bi bi-database" aria-hidden="true"></i> {{ _('Sources') }}
+        </button>
+        
+        <!-- Sides Tab -->
+        <button class="tab-button" 
+                role="tab" 
+                aria-selected="false" 
+                aria-controls="layout-sides"
+                data-layout="sides"
+                tabindex="-1">
+            <i class="bi bi-diagram-3" aria-hidden="true"></i> {{ _('Sides') }}
+        </button>
+        
+        <!-- Words Tab -->
+        <button class="tab-button" 
+                role="tab" 
+                aria-selected="false" 
+                aria-controls="layout-words"
+                data-layout="words"
+                tabindex="-1">
+            <i class="bi bi-fonts" aria-hidden="true"></i> {{ _('Words') }}
+        </button>
+        
+        <!-- Similar Files Tab -->
+        <button class="tab-button" 
+                role="tab" 
+                aria-selected="false" 
+                aria-controls="layout-similar"
+                data-layout="similar"
+                tabindex="-1">
+            <i class="bi bi-files-alt" aria-hidden="true"></i> {{ _('Similar Files') }}
+        </button>
+    </nav>
+
+    <!-- Layout Container -->
+    <div id="layouts-container" role="tabpanel">
+        <!-- Files Combined Layout -->
+        <div class="layout-content active" id="layout-files" role="tabpanel" aria-labelledby="tab-files">
+            <div class="layout-header">
+                <h2><i class="bi bi-files" aria-hidden="true"></i> {{ _('Files Analysis') }}</h2>
+            </div>
+            <div class="filter-section" role="search" aria-label="{{ _('Files filters') }}">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="files-filter-category">{{ _('Category') }}</label>
+                        <select id="files-filter-category" aria-label="{{ _('Filter by category') }}">
+                            <option value="">{{ _('All Categories') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="files-filter-source">{{ _('Source') }}</label>
+                        <select id="files-filter-source" aria-label="{{ _('Filter by source') }}">
+                            <option value="">{{ _('All Sources') }} </option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="files-filter-side">{{ _('Side') }}</label>
+                        <select id="files-filter-side" aria-label="{{ _('Filter by side') }}">
+                            <option value="">{{ _('All Sides') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="files-filter-keyword">{{ _('Keyword') }}</label>
+                        <select id="files-filter-keyword" aria-label="{{ _('Filter by keyword') }}">
+                            <option value="">{{ _('All Keywords') }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('files', 'combined')" aria-label="{{ _('Apply filters') }}">
+                        <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                    </button>
+                    <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('files', 'combined')" aria-label="{{ _('Reset filters') }}">
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                    </button>
+                </div>
+            </div>
+            <div class="combined-view">
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('File Types Table') }}</h3>
+                        <span class="results-count" id="files-count" aria-live="polite">-</span>
+                    </div>
+                    <div id="files-results" aria-live="polite" aria-busy="true">
+                        <div class="skeleton-loader skeleton-table"></div>
+                    </div>
+                </div>
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem;">{{ _('File Types Chart') }}</h3>
+                        <span class="results-count" id="files-chart-count" aria-live="polite" style="font-size: 1rem; font-weight: 500;">-</span>
+                    </div>
+                    <div class="chart-container-layout" role="img" aria-label="{{ _('File types distribution chart') }}">
+                        <canvas id="files-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Combined Layout -->
+        <div class="layout-content" id="layout-categories" role="tabpanel" aria-labelledby="tab-categories">
+            <div class="layout-header">
+                <h2><i class="bi bi-collection" aria-hidden="true"></i> {{ _('Categories Analysis') }}</h2>
+            </div>
+            <div class="filter-section" role="search" aria-label="{{ _('Categories filters') }}">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="categories-filter-source">{{ _('Source') }}</label>
+                        <select id="categories-filter-source" aria-label="{{ _('Filter by source') }}">
+                            <option value="">{{ _('All Sources') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="categories-filter-side">{{ _('Side') }} </label>
+                        <select id="categories-filter-side" aria-label="{{ _('Filter by side') }}">
+                            <option value="">{{ _('All Sides') }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('categories', 'combined')" aria-label="{{ _('Apply filters') }}">
+                        <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                    </button>
+                    <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('categories', 'combined')" aria-label="{{ _('Reset filters') }}">
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                    </button>
+                </div>
+            </div>
+            <div class="combined-view">
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('Categories Table') }}</h3>
+                        <span class="results-count" id="categories-count" aria-live="polite">-</span>
+                    </div>
+                    <div id="categories-results" aria-live="polite" aria-busy="false">
+                        <div class="skeleton-loader skeleton-table"></div>
+                    </div>
+                </div>
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('Categories Chart') }}</h3>
+                        <span class="results-count" id="categories-chart-count" aria-live="polite">-</span>
+                    </div>
+                    <div class="chart-container-layout" role="img" aria-label="{{ _('Categories distribution chart') }}">
+                        <canvas id="categories-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Keywords Combined Layout -->
+        <div class="layout-content" id="layout-keywords" role="tabpanel" aria-labelledby="tab-keywords">
+            <div class="layout-header">
+                <h2><i class="bi bi-tags" aria-hidden="true"></i> {{ _('Keywords Analysis') }}</h2>
+            </div>
+            <div class="filter-section" role="search" aria-label="{{ _('Keywords filters') }}">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="keywords-filter-category">{{ _('Category') }}</label>
+                        <select id="keywords-filter-category" aria-label="{{ _('Filter by category') }}">
+                            <option value="">{{ _('All Categories') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="keywords-filter-source">{{ _('Source') }}</label>
+                        <select id="keywords-filter-source" aria-label="{{ _('Filter by source') }}">
+                            <option value="">{{ _('All Sources') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="keywords-filter-side">{{ _('Side') }}</label>
+                        <select id="keywords-filter-side" aria-label="{{ _('Filter by side') }}">
+                            <option value="">{{ _('All Sides') }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('keywords', 'combined')" aria-label="{{ _('Apply filters') }}">
+                        <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                    </button>
+                    <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('keywords', 'combined')" aria-label="{{ _('Reset filters') }}">
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                    </button>
+                </div>
+            </div>
+            <div class="combined-view">
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('Keywords Table') }}</h3>
+                        <span class="results-count" id="keywords-count" aria-live="polite">-</span>
+                    </div>
+                    <div id="keywords-results" aria-live="polite" aria-busy="false">
+                        <div class="skeleton-loader skeleton-table"></div>
+                    </div>
+                </div>
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('Keywords Chart') }}</h3>
+                        <span class="results-count" id="keywords-chart-count" aria-live="polite">-</span>
+                    </div>
+                    <div class="chart-container-layout" role="img" aria-label="{{ _('Keywords distribution chart') }}">
+                        <canvas id="keywords-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sources Combined Layout -->
+        <div class="layout-content" id="layout-sources" role="tabpanel" aria-labelledby="tab-sources">
+            <div class="layout-header">
+                <h2><i class="bi bi-database" aria-hidden="true"></i> {{ _('Sources Analysis') }}</h2>
+            </div>
+            <div class="filter-section" role="search" aria-label="{{ _('Sources filters') }}">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="sources-filter-filetype">{{ _('File Type') }}</label>
+                        <select id="sources-filter-filetype" class="msdd-enhance" multiple
+                                data-compact-multi="type" data-placeholder="{{ _('All types') }}"
+                                title="{{ _('Filter by one or more file types') }}"
+                                aria-label="{{ _('Filter by one or more file types') }}">
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sources-filter-side">{{ _('Side') }}</label>
+                        <select id="sources-filter-side" aria-label="{{ _('Filter by side') }}">
+                            <option value="">{{ _('All Sides') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sources-filter-keyword">{{ _('Keyword') }}</label>
+                        <select id="sources-filter-keyword" aria-label="{{ _('Filter by keyword') }}">
+                            <option value="">{{ _('All Keywords') }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('sources', 'combined')" aria-label="{{ _('Apply filters') }}">
+                        <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                    </button>
+                    <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('sources', 'combined')" aria-label="{{ _('Reset filters') }}">
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                    </button>
+                </div>
+            </div>
+            <div class="combined-view">
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('Sources Table') }}</h3>
+                        <span class="results-count" id="sources-count" aria-live="polite">-</span>
+                    </div>
+                    <div id="sources-results" aria-live="polite" aria-busy="false">
+                        <div class="skeleton-loader skeleton-table"></div>
+                    </div>
+                </div>
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('File Count Chart') }}</h3>
+                        <span class="results-count" id="sources-count-chart-count" aria-live="polite">-</span>
+                    </div>
+                    <div class="chart-container-layout" role="img" aria-label="{{ _('Sources file count chart') }}">
+                        <canvas id="sources-chart-count"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="combined-view" style="margin-top: 2rem;">
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('Size Distribution Chart') }}</h3>
+                        <span class="results-count" id="sources-size-chart-count" aria-live="polite">-</span>
+                    </div>
+                    <div class="chart-container-layout" role="img" aria-label="{{ _('Sources size distribution chart') }}">
+                        <canvas id="sources-chart-size"></canvas>
+                    </div>
+                </div>
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('Processing Rate Chart') }}</h3>
+                        <span class="results-count" id="sources-rate-chart-count" aria-live="polite">-</span>
+                    </div>
+                    <div class="chart-container-layout" role="img" aria-label="{{ _('Sources processing rate chart') }}">
+                        <canvas id="sources-chart-rate"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sides Combined Layout -->
+        <div class="layout-content" id="layout-sides" role="tabpanel" aria-labelledby="tab-sides">
+            <div class="layout-header">
+                <h2><i class="bi bi-diagram-3" aria-hidden="true"></i> {{ _('Sides Analysis') }}</h2>
+            </div>
+            <div class="filter-section" role="search" aria-label="{{ _('Sides filters') }}">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="sides-filter-filetype">{{ _('File Type') }}</label>
+                        <select id="sides-filter-filetype" class="msdd-enhance" multiple
+                                data-compact-multi="type" data-placeholder="{{ _('All types') }}"
+                                title="{{ _('Filter by one or more file types') }}"
+                                aria-label="{{ _('Filter by one or more file types') }}">
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sides-filter-category">{{ _('Category') }}</label>
+                        <select id="sides-filter-category" aria-label="{{ _('Filter by category') }}">
+                            <option value="">{{ _('All Categories') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="sides-filter-keyword">{{ _('Keyword') }}</label>
+                        <select id="sides-filter-keyword" aria-label="{{ _('Filter by keyword') }}">
+                            <option value="">{{ _('All Keywords') }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('sides', 'combined')" aria-label="{{ _('Apply filters') }}">
+                        <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                    </button>
+                    <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('sides', 'combined')" aria-label="{{ _('Reset filters') }}">
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                    </button>
+                </div>
+            </div>
+            <div class="combined-view">
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('Sides Table') }}</h3>
+                        <span class="results-count" id="sides-count" aria-live="polite">-</span>
+                    </div>
+                    <div id="sides-results" aria-live="polite" aria-busy="false">
+                        <div class="skeleton-loader skeleton-table"></div>
+                    </div>
+                </div>
+                <div class="results-section">
+                    <div class="results-header">
+                        <h3>{{ _('Sides Chart') }}</h3>
+                        <span class="results-count" id="sides-chart-count" aria-live="polite">-</span>
+                    </div>
+                    <div class="chart-container-layout" role="img" aria-label="{{ _('Sides statistics chart') }}">
+                        <canvas id="sides-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Words Layout -->
+        <div class="layout-content" id="layout-words" role="tabpanel" aria-labelledby="tab-words">
+            <div class="layout-header">
+                <h2><i class="bi bi-fonts" aria-hidden="true"></i> {{ _('Words Layout') }}</h2>
+            </div>
+            <div class="filter-section" role="search" aria-label="{{ _('Words filters') }}">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="words-filter-category">{{ _('Category (Optional)') }}</label>
+                        <select id="words-filter-category" aria-label="{{ _('Filter by category') }}">
+                            <option value="">{{ _('All Categories') }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('words', 'grid')" aria-label="{{ _('Load words') }}">
+                        <i class="bi bi-search" aria-hidden="true"></i> {{ _('Load Words') }}
+                    </button>
+                    <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('words', 'grid')" aria-label="{{ _('Reset filters') }}">
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                    </button>
+                </div>
+            </div>
+            <div class="results-section">
+                <div class="results-header">
+                    <h3>{{ _('Words by Category') }}</h3>
+                    <button class="btn-filter btn-filter-secondary" data-on-click="toggleWordsView()" id="toggle-words-view" aria-label="{{ _('Toggle view mode') }}">
+                        <i class="bi bi-graph-up" aria-hidden="true"></i> <span id="view-toggle-text">{{ _('Chart View') }}</span>
+                    </button>
+                </div>
+                <div id="words-results" aria-live="polite" aria-busy="false">
+                    <div class="skeleton-loader skeleton-table"></div>
+                </div>
+                <div class="words-chart-container" id="words-chart-container" style="display: none; min-height: 500px; height: 500px; background: var(--bg-white); border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); border: 1px solid var(--border-color); position: relative; max-width: 100%; width: 100%; box-sizing: border-box;" role="img" aria-label="{{ _('Words distribution chart') }}">
+                    <canvas id="words-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Similar Files Layout -->
+        <div class="layout-content" id="layout-similar" role="tabpanel" aria-labelledby="tab-similar">
+            <div class="layout-header">
+                <h2><i class="bi bi-files-alt" aria-hidden="true"></i> {{ _('Similar Files Analysis') }}</h2>
+            </div>
+            <div class="filter-section" role="search" aria-label="{{ _('Similar files filters') }}">
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="similar-filter-threshold">{{ _('Similarity Threshold') }}</label>
+                        <select id="similar-filter-threshold" aria-label="{{ _('Filter by similarity threshold') }}">
+                            <option value="0.9">{{ _('Very High (90%+)') }}</option>
+                            <option value="0.8" selected>{{ _('High (80%+)') }}</option>
+                            <option value="0.7">{{ _('Medium (70%+)') }}</option>
+                            <option value="0.6">{{ _('Low (60%+)') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="similar-filter-minsize">{{ _('Min Group Size') }}</label>
+                        <select id="similar-filter-minsize" aria-label="{{ _('Minimum files per group') }}">
+                            <option value="2" selected>{{ _('2+ files') }}</option>
+                            <option value="3">{{ _('3+ files') }}</option>
+                            <option value="5">{{ _('5+ files') }}</option>
+                            <option value="10">{{ _('10+ files') }}</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="similar-filter-type">{{ _('Group Type') }}</label>
+                        <select id="similar-filter-type" aria-label="{{ _('Filter by group type') }}">
+                            <option value="">{{ _('All Types') }}</option>
+                            <option value="hash">{{ _('Hash Duplicates') }}</option>
+                            <option value="title">{{ _('Similar Titles') }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-actions">
+                    <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('similar', 'combined')" aria-label="{{ _('Apply filters') }}">
+                        <i class="bi bi-search" aria-hidden="true"></i> {{ _('Load Similar Files') }}
+                    </button>
+                    <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('similar', 'combined')" aria-label="{{ _('Reset filters') }}">
+                        <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                    </button>
+                </div>
+            </div>
+            <div class="results-section">
+                <div class="results-header">
+                    <h3>{{ _('Similar Files Groups') }}</h3>
+                    <span class="results-count" id="similar-count" aria-live="polite">-</span>
+                </div>
+                <div id="similar-results" aria-live="polite" aria-busy="false">
+                    <div class="skeleton-loader skeleton-table"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
+<script type="application/json" id="comprehensive-dashboard-page-data">{{ {
+    "translations": {
+        "fileType": _('File Type'),
+        "fileCount": _('File Count'),
+        "totalSize": _('Total Size'),
+        "avgSize": _('Avg Size'),
+        "category": _('Category'),
+        "wordCount": _('Word Count'),
+        "fileDensity": _('File Density'),
+        "keyword": _('Keyword'),
+        "sourceName": _('Source Name'),
+        "fileTypes": _('File Types'),
+        "processed": _('Processed'),
+        "processingRate": _('Processing Rate'),
+        "sideName": _('Side Name'),
+        "importance": _('Importance'),
+        "sources": _('Sources'),
+        "noFileTypesFound": _('No file types found'),
+        "noCategoriesFound": _('No categories found'),
+        "noKeywordsFound": _('No keywords found'),
+        "noSourcesFound": _('No sources found'),
+        "noSidesFound": _('No sides found'),
+        "noWordsFound": _('No words found'),
+        "noSimilarFilesFound": _('No similar files found'),
+        "errorLoadingData": _('Error loading data'),
+        "noDataAvailable": _('No data available'),
+        "unknown": _('Unknown'),
+        "groupsLabel": _('groups'),
+        "hashDuplicate": _('Hash Duplicate'),
+        "similarTitle": _('Similar Title'),
+        "fileName": _('File Name'),
+        "fileTypesLabel": _('file types'),
+        "categoriesLabel": _('categories'),
+        "keywordsLabel": _('keywords'),
+        "sourcesLabel": _('sources'),
+        "sidesLabel": _('sides'),
+        "itemsLabel": _('items'),
+        "filesLabel": _('files'),
+        "gridView": _('Grid View'),
+        "chartView": _('Chart View'),
+        "files": _('Files'),
+        "words": _('Words'),
+        "density": _('Density'),
+        "totalSizeLabel": _('Total Size'),
+        "avgSizeLabel": _('Avg Size'),
+        "processingRateLabel": _('Processing Rate'),
+        "source": _('Source'),
+        "side": _('Side'),
+        "word": _('Word'),
+        "totalFiles": _('Total Files'),
+        "fileTypesLabel2": _('File Types')
+    }
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/comprehensive-dashboard-page.js') }}"></script>
+{% endblock %}

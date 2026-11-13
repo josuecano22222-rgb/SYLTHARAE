@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Map Viewer') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='vendor/map/maplibre-gl.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/map-viewer.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="map-viewer-page" id="mapViewerPage" data-page-type="map-viewer">
+    <header class="map-viewer-topbar">
+        <div class="map-viewer-topbar__titles">
+            <h1 class="map-viewer-title"><i class="bi bi-map me-2" aria-hidden="true"></i>{{ _('Map Viewer') }}</h1>
+            <p class="map-viewer-subtitle">{{ _('Layered basemaps, offline packs, and customizable coordinate markers') }}</p>
+        </div>
+        <div class="map-viewer-topbar__status">
+            <span class="map-viewer-pill" id="mapNetworkStatus" data-state="unknown">{{ _('Checking connection…') }}</span>
+            <span class="map-viewer-pill map-viewer-pill--muted" id="mapPointCount">0 {{ _('points') }}</span>
+            <span class="map-viewer-pill map-viewer-pill--muted" id="mapStorageSummary" title="{{ _('Offline map storage') }}">—</span>
+        </div>
+    </header>
+
+    <div class="map-viewer-shell">
+        <aside class="map-viewer-rail" aria-label="{{ _('Map controls') }}">
+            <section class="map-rail-card">
+                <h2>{{ _('Map layers') }}</h2>
+                <p class="map-rail-hint">{{ _('Choose standard, aerial, hybrid, terrain, or downloaded offline databases.') }}</p>
+                <div class="map-layer-groups" id="mapLayerGroups" role="radiogroup" aria-label="{{ _('Map layers') }}"></div>
+                <p class="map-rail-hint" id="mapLayerHint"></p>
+            </section>
+
+            <section class="map-rail-card">
+                <h2>{{ _('Offline capture') }}</h2>
+                <label class="form-check map-rail-check">
+                    <input type="checkbox" class="form-check-input" id="mapAutoCacheOnline" checked>
+                    <span>{{ _('Automatically save map tiles while browsing online') }}</span>
+                </label>
+                <p class="map-rail-hint">{{ _('Viewed areas are stored as compressed images in map_data/registry.db and work offline on this device. Respect third-party tile provider terms.') }}</p>
+            </section>
+
+            <section class="map-rail-card">
+                <h2>{{ _('Display mode') }}</h2>
+                <select class="form-select form-select-sm" id="mapDisplayMode" aria-label="{{ _('Display mode') }}">
+                    <option value="map2d">{{ _('2D map') }}</option>
+                </select>
+            </section>
+
+            <section class="map-rail-card">
+                <h2>{{ _('Coordinate markers') }}</h2>
+                <p class="map-rail-hint">{{ _('Icons shown at each geotagged file position.') }}</p>
+                <div class="map-icon-picker" id="mapIconPicker" role="radiogroup" aria-label="{{ _('Marker icon') }}"></div>
+                <label class="form-label map-rail-label mt-2" for="mapMarkerColor">{{ _('Marker color') }}</label>
+                <div class="map-color-picker" id="mapColorPicker"></div>
+                <label class="form-label map-rail-label mt-2" for="mapMarkerScale">{{ _('Marker size') }}</label>
+                <input type="range" class="form-range" id="mapMarkerScale" min="0.6" max="1.6" step="0.1" value="1">
+                <label class="form-check map-rail-check mt-2">
+                    <input type="checkbox" class="form-check-input" id="mapAutoIconByType" checked>
+                    <span>{{ _('Icon by file type (photos, documents, …)') }}</span>
+                </label>
+                <label class="form-check map-rail-check">
+                    <input type="checkbox" class="form-check-input" id="mapOpenFileOnClick" checked>
+                    <span>{{ _('Open file when marker is clicked') }}</span>
+                </label>
+                <label class="form-check map-rail-check">
+                    <input type="checkbox" class="form-check-input" id="mapShowLabels">
+                    <span>{{ _('Show file names on map') }}</span>
+                </label>
+            </section>
+
+            <section class="map-rail-card">
+                <div class="map-rail-card__head">
+                    <h2>{{ _('Offline databases') }}</h2>
+                    <button type="button" class="btn btn-link btn-sm p-0" id="mapRefreshPackages">{{ _('Refresh') }}</button>
+                </div>
+                <p class="map-rail-hint">{{ _('Download compressed tile packs into map_data for use without network access. Copy map_data to move packs between devices.') }}</p>
+                <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" id="mapExportBundle">
+                    <i class="bi bi-box-seam me-1" aria-hidden="true"></i>{{ _('Export portable map bundle') }}
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2" id="mapImportBundle">
+                    <i class="bi bi-upload me-1" aria-hidden="true"></i>{{ _('Import portable map bundle') }}
+                </button>
+                <input type="file" class="visually-hidden" id="mapImportBundleInput"
+                       accept=".tar.gz,.gz,application/gzip,application/x-gzip">
+                <p class="map-rail-hint">{{ _('Creates or restores a .sylmap.tar.gz with catalog, SQLite registry, packages, and installed layers.') }}</p>
+                <div class="map-package-list" id="mapPackageList"></div>
+            </section>
+
+            <section class="map-rail-card">
+                <h2>{{ _('Coordinates') }}</h2>
+                <label class="form-label map-rail-label" for="mapCoordSearch">{{ _('Filter') }}</label>
+                <input type="search" class="form-control form-control-sm" id="mapCoordSearch"
+                       placeholder="{{ _('File name or coordinates…') }}">
+                <div class="map-coord-list" id="mapCoordList" role="list"></div>
+            </section>
+        </aside>
+
+        <div class="map-viewer-stage">
+            <div id="mapCanvas" class="map-canvas" role="application" aria-label="{{ _('Interactive map') }}"></div>
+            <div class="map-viewer-hud">
+                <div class="map-hud-readout" id="mapCursorReadout">—</div>
+                <div class="map-hud-actions">
+                    <button type="button" class="btn btn-sm btn-outline-light" id="mapFitPoints">{{ _('Fit all points') }}</button>
+                    <button type="button" class="btn btn-sm btn-outline-light" id="mapRecenter">{{ _('Recenter') }}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/json" id="map-viewer-config">
+{{ {
+    "geolocationApi": "/api/archives/geolocation",
+    "layersApi": "/api/map/layers",
+    "packagesApi": "/api/map/packages",
+    "storageApi": "/api/map/storage",
+    "viewerUrl": url_for("map_viewer_page"),
+    "fileDetailPattern": "/file/"
+}|tojson }}
+</script>
+<script type="application/json" id="map-viewer-i18n">
+{{ {
+    "online": _("Online"),
+    "offline": _("Offline"),
+    "installed": _("Installed"),
+    "notInstalled": _("Not installed"),
+    "builtIn": _("Built-in"),
+    "download": _("Download"),
+    "remove": _("Remove"),
+    "useLayer": _("Use this layer"),
+    "downloadFailed": _("Download failed"),
+    "removeConfirm": _("Remove this offline map package from disk?"),
+    "noMatchingCoords": _("No matching coordinates."),
+    "offlineTilesOnly": _("Offline — local tiles only"),
+    "checkingConnection": _("Checking connection…"),
+    "installToUseOffline": _("Download or install this pack to use it offline."),
+    "networkRequired": _("This layer requires network access."),
+    "openFile": _("Open file"),
+    "mapInitFailed": _("Could not initialize map viewer"),
+    "mapLayerStandard": _("Standard map"),
+    "mapLayerSatellite": _("Aerial imagery"),
+    "mapLayerHybrid": _("Hybrid (imagery + labels)"),
+    "mapLayerTerrain": _("Topographic terrain"),
+    "mapLayerDark": _("Dark map"),
+    "mapKindStandard": _("Standard"),
+    "mapKindSatellite": _("Satellite"),
+    "mapKindHybrid": _("Hybrid"),
+    "mapKindTerrain": _("Terrain"),
+    "mapKindDark": _("Dark"),
+    "mapKindOffline": _("Offline"),
+    "iconPin": _("Pin"),
+    "iconDocument": _("Document"),
+    "iconCamera": _("Camera"),
+    "iconVideo": _("Video"),
+    "iconFlag": _("Flag"),
+    "iconStar": _("Star"),
+    "iconDiamond": _("Diamond"),
+    "storageLabel": _("Offline storage"),
+    "points": _("points"),
+    "autoIconByType": _("Icon by file type (photos, documents, …)"),
+    "openFileOnClick": _("Open file when marker is clicked"),
+    "exportPortableBundle": _("Export portable map bundle"),
+    "importPortableBundle": _("Import portable map bundle"),
+    "importBundleOk": _("Map bundle imported successfully."),
+    "importBundleFailed": _("Map bundle import failed."),
+    "cachedTiles": _("cached tiles"),
+    "autoCacheOnline": _("Automatically save map tiles while browsing online")
+}|tojson }}
+</script>
+{% endblock %}

@@ -1,0 +1,5 @@
+# SYLTHARAE ripgrep defaults (set RIPGREP_CONFIG_PATH or search.ripgrep_config_path)
+--smart-case
+--glob=!.git
+--glob=!**/__pycache__/**
+--glob=!**/node_modules/**

@@ -1,0 +1,184 @@
+/* --------------------------------------------------------------------------
+   Analyst classification control (shared)
+   --------------------------------------------------------------------------
+   Loaded by EVERY content display interface (File Detail, Full Content
+   Reader, and the file preview pop-up on the archives page) so the
+   analyst-classify card and its toast look identical everywhere.
+   Self-contained violet tokens (FR-1.4): the analyst (manual) namespace is
+   visually distinct from the blue/gray smart classification.
+   -------------------------------------------------------------------------- */
+
+.analyst-classify {
+    --analyst-ink: #4c1d95;
+    --analyst-accent: #7c3aed;
+    --analyst-accent-strong: #6d28d9;
+    --analyst-soft: #ede9fe;
+    --analyst-border: #c4b5fd;
+
+    background: #fff;
+    border: 1px solid var(--analyst-border);
+    border-inline-start: 4px solid var(--analyst-accent);
+    border-radius: 0.75rem;
+    padding: 0.9rem 1rem;
+}
+
+.analyst-classify-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    color: var(--analyst-ink);
+    margin-bottom: 0.6rem;
+}
+
+.analyst-namespace-tag {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--analyst-soft);
+    color: var(--analyst-ink);
+    border: 1px solid var(--analyst-border);
+    border-radius: 999px;
+    padding: 0.1rem 0.5rem;
+    cursor: help;
+}
+
+.analyst-classify-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+}
+
+.analyst-classify .badge.analyst-category-badge {
+    background-color: var(--analyst-soft);
+    color: var(--analyst-ink);
+    border: 1px solid var(--analyst-border);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.badge-remove {
+    background: transparent;
+    border: none;
+    color: inherit;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 0.15rem;
+    margin-inline-start: 0.15rem;
+    cursor: pointer;
+    opacity: 0.7;
+}
+
+.badge-remove:hover,
+.badge-remove:focus-visible {
+    opacity: 1;
+    color: #b91c1c;
+}
+
+.analyst-classify-empty {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.analyst-classify-readonly-note {
+    color: #6c757d;
+    font-size: 0.8rem;
+    margin: 0;
+}
+
+.analyst-classify-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.analyst-classify-controls select,
+.analyst-classify-controls input {
+    flex: 1 1 12rem;
+    min-width: 10rem;
+    max-width: 18rem;
+}
+
+.btn-analyst-assign {
+    background: var(--analyst-accent);
+    border-color: var(--analyst-accent);
+    color: #fff;
+    font-weight: 600;
+}
+
+.btn-analyst-assign:hover,
+.btn-analyst-assign:focus {
+    background: var(--analyst-accent-strong);
+    border-color: var(--analyst-accent-strong);
+    color: #fff;
+}
+
+/* Compact variant (reader header toolbar) */
+.analyst-classify-compact {
+    padding: 0.55rem 0.8rem;
+    margin-bottom: 0.75rem;
+}
+
+.analyst-classify-compact .analyst-classify-header {
+    margin-bottom: 0.4rem;
+    font-size: 0.9rem;
+}
+
+/* Toast (appended to <body> by JS — outside the page containers where the
+   scoped tokens live, so values are defined explicitly here). */
+.analyst-action-toast {
+    --analyst-ink: #4c1d95;
+    --analyst-accent: #7c3aed;
+    position: fixed;
+    bottom: 1.5rem;
+    inset-inline-end: 1.5rem;
+    background: var(--analyst-ink);
+    color: #fff;
+    padding: 0.7rem 1.1rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 24px rgba(76, 29, 149, 0.28);
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 180ms ease-out, transform 180ms ease-out;
+    z-index: 1080;
+    pointer-events: none;
+    max-width: 380px;
+    font-size: 0.88rem;
+}
+
+.analyst-action-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.analyst-action-toast.toast-error {
+    background: #b91c1c;
+}
+
+/* --------------------------------------------------------------------------
+   Slot for the card inside a container rather than a page
+
+   The file preview pop-up renders the same card at the top of its
+   "Classification & Analysis" column, above the smart classification it must
+   not be confused with. That column scrolls, so the slot keeps the card's own
+   height (flex-shrink: 0) and the card sizes itself to the narrower column.
+   -------------------------------------------------------------------------- */
+.analyst-classify-slot {
+    overscroll-behavior: contain;
+    padding: 0.75rem 0.75rem 0.5rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    scrollbar-width: thin;
+}
+
+.analyst-classify-slot .analyst-classify {
+    border-radius: 0.5rem;
+}
+
+.analyst-classify-slot .analyst-classify-controls {
+    flex-wrap: wrap;
+}

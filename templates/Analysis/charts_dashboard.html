@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Charts Dashboard') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/charts-dashboard.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/multi-select-dropdown.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title"><i class="bi bi-graph-up me-2"></i> {{ _('Charts Dashboard') }}</h1>
+            <p class="text-muted mb-0">{{ _('Visual analytics with filters - all sections in one view') }}</p>
+        </div>
+    </div>
+
+    <!-- Page Tips -->
+    {% from 'components/page_tips.html' import page_tips %}
+        {% call page_tips() %}
+
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-graph-up"></i>
+            {{ _('Charts Dashboard Overview') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('This dashboard displays visual analytics and charts for files, categories, keywords, sources, and words') }}</li>
+            <li>{{ _('Each section contains interactive charts that update based on your filter selections') }}</li>
+            <li>{{ _('Charts help you visualize trends, distributions, and patterns in your data') }}</li>
+            <li>{{ _('Use filters at the top of each section to customize the data displayed in charts') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-bar-chart"></i>
+            {{ _('Interactive Charts') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Hover over chart elements to see detailed tooltips with exact values') }}</li>
+            <li>{{ _('Click on chart legends to show or hide specific data series') }}</li>
+            <li>{{ _('Export charts as images (PNG, JPG, SVG) or PDF documents') }}</li>
+            <li>{{ _('Charts automatically update when you change filter selections') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-funnel"></i>
+            {{ _('Filtering Charts') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Apply filters to focus on specific subsets of your data') }}</li>
+            <li>{{ _('Filters affect all charts in the current section simultaneously') }}</li>
+            <li>{{ _('Use date range filters to analyze trends over time') }}</li>
+            <li>{{ _('Combine multiple filters to create detailed, focused visualizations') }}</li>
+        </ul>
+    </div>
+{% endcall %}
+
+    <!-- Dashboard Navigation Buttons -->
+    <div class="dashboard-navigation section-card">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary dashboard-nav-btn">
+                <i class="bi bi-speedometer2"></i> {{ _('Overview') }}
+            </a>
+            <a href="{{ url_for('comprehensive_dashboard') }}" class="btn btn-outline-primary dashboard-nav-btn">
+                <i class="bi bi-layout-three-columns"></i> {{ _('Comprehensive Dashboard') }}
+            </a>
+            <a href="{{ url_for('charts_dashboard') }}" class="btn btn-outline-primary dashboard-nav-btn active">
+                <i class="bi bi-graph-up"></i> {{ _('Charts Dashboard') }}
+            </a>
+        </div>
+    </div>
+
+    <!-- Files Section -->
+    <div class="chart-section" id="section-files">
+        <div class="section-header">
+            <h2><i class="bi bi-files" aria-hidden="true"></i> {{ _('Files Analysis') }}</h2>
+        </div>
+        <div class="filter-section" role="search" aria-label="{{ _('Files filters') }}">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="files-filter-category">{{ _('Category') }}</label>
+                    <select id="files-filter-category" aria-label="{{ _('Filter by category') }}">
+                        <option value="">{{ _('All Categories') }}</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="files-filter-source">{{ _('Source') }}</label>
+                    <select id="files-filter-source" aria-label="{{ _('Filter by source') }}">
+                        <option value="">{{ _('All Sources') }}</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="files-filter-side">{{ _('Side') }}</label>
+                    <select id="files-filter-side" aria-label="{{ _('Filter by side') }}">
+                        <option value="">{{ _('All Sides') }}</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="files-filter-keyword">{{ _('Keyword') }}</label>
+                    <select id="files-filter-keyword" aria-label="{{ _('Filter by keyword') }}">
+                        <option value="">{{ _('All Keywords') }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('files', 'charts')" aria-label="{{ _('Apply filters') }}">
+                    <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                </button>
+                <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('files', 'charts')" aria-label="{{ _('Reset filters') }}">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                </button>
+            </div>
+        </div>
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <h3>{{ _('File Types Distribution') }}</h3>
+                    <span class="chart-count" id="files-chart-count" aria-live="polite">-</span>
+                </div>
+                <div class="chart-container-layout" role="img" aria-label="{{ _('File types distribution chart') }}">
+                    <canvas id="files-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Categories Section -->
+    <div class="chart-section" id="section-categories">
+        <div class="section-header">
+            <h2><i class="bi bi-collection" aria-hidden="true"></i> {{ _('Categories Analysis') }}</h2>
+        </div>
+        <div class="filter-section" role="search" aria-label="{{ _('Categories filters') }}">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="categories-filter-source">{{ _('Source') }}</label>
+                    <select id="categories-filter-source" aria-label="{{ _('Filter by source') }}">
+                        <option value="">{{ _('All Sources') }}</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="categories-filter-side">{{ _('Side') }}</label>
+                    <select id="categories-filter-side" aria-label="{{ _('Filter by side') }}">
+                        <option value="">{{ _('All Sides') }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('categories', 'charts')" aria-label="{{ _('Apply filters') }}">
+                    <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                </button>
+                <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('categories', 'charts')" aria-label="{{ _('Reset filters') }}">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                </button>
+            </div>
+        </div>
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <h3>{{ _('Categories Distribution') }}</h3>
+                    <span class="chart-count" id="categories-chart-count" aria-live="polite">-</span>
+                </div>
+                <div class="chart-container-layout" role="img" aria-label="{{ _('Categories distribution chart') }}">
+                    <canvas id="categories-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keywords Section -->
+    <div class="chart-section" id="section-keywords">
+        <div class="section-header">
+            <h2><i class="bi bi-tags" aria-hidden="true"></i> {{ _('Keywords Analysis') }}</h2>
+        </div>
+        <div class="filter-section" role="search" aria-label="{{ _('Keywords filters') }}">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="keywords-filter-category">{{ _('Category') }}</label>
+                    <select id="keywords-filter-category" aria-label="{{ _('Filter by category') }}">
+                        <option value="">{{ _('All Categories') }}</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="keywords-filter-source">{{ _('Source') }}</label>
+                    <select id="keywords-filter-source" aria-label="{{ _('Filter by source') }}">
+                        <option value="">{{ _('All Sources') }}</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="keywords-filter-side">{{ _('Side') }}</label>
+                    <select id="keywords-filter-side" aria-label="{{ _('Filter by side') }}">
+                        <option value="">{{ _('All Sides') }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('keywords', 'charts')" aria-label="{{ _('Apply filters') }}">
+                    <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                </button>
+                <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('keywords', 'charts')" aria-label="{{ _('Reset filters') }}">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                </button>
+            </div>
+        </div>
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <h3>{{ _('Keywords Distribution') }}</h3>
+                    <span class="chart-count" id="keywords-chart-count" aria-live="polite">-</span>
+                </div>
+                <div class="chart-container-layout" role="img" aria-label="{{ _('Keywords distribution chart') }}">
+                    <canvas id="keywords-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sources Section -->
+    <div class="chart-section" id="section-sources">
+        <div class="section-header">
+            <h2><i class="bi bi-database" aria-hidden="true"></i> {{ _('Sources Analysis') }}</h2>
+        </div>
+        <div class="filter-section" role="search" aria-label="{{ _('Sources filters') }}">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="sources-filter-filetype">{{ _('File Type') }}</label>
+                    <select id="sources-filter-filetype" class="msdd-enhance" multiple
+                            data-compact-multi="type" data-placeholder="{{ _('All types') }}"
+                            title="{{ _('Filter by one or more file types') }}"
+                            aria-label="{{ _('Filter by one or more file types') }}">
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sources-filter-side">{{ _('Side') }}</label>
+                    <select id="sources-filter-side" aria-label="{{ _('Filter by side') }}">
+                        <option value="">{{ _('All Sides') }}</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sources-filter-keyword">{{ _('Keyword') }}</label>
+                    <select id="sources-filter-keyword" aria-label="{{ _('Filter by keyword') }}">
+                        <option value="">{{ _('All Keywords') }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('sources', 'charts')" aria-label="{{ _('Apply filters') }}">
+                    <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                </button>
+                <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('sources', 'charts')" aria-label="{{ _('Reset filters') }}">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                </button>
+            </div>
+        </div>
+        <div class="sources-charts-grid">
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <h3>{{ _('File Count by Source') }}</h3>
+                    <span class="chart-count" id="sources-count-chart-count" aria-live="polite">-</span>
+                </div>
+                <div class="chart-container-layout" role="img" aria-label="{{ _('Sources file count chart') }}">
+                    <canvas id="sources-chart-count"></canvas>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <h3>{{ _('Size Distribution by Source') }}</h3>
+                    <span class="chart-count" id="sources-size-chart-count" aria-live="polite">-</span>
+                </div>
+                <div class="chart-container-layout" role="img" aria-label="{{ _('Sources size distribution chart') }}">
+                    <canvas id="sources-chart-size"></canvas>
+                </div>
+            </div>
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <h3>{{ _('Processing Rate by Source') }}</h3>
+                    <span class="chart-count" id="sources-rate-chart-count" aria-live="polite">-</span>
+                </div>
+                <div class="chart-container-layout" role="img" aria-label="{{ _('Sources processing rate chart') }}">
+                    <canvas id="sources-chart-rate"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sides Section -->
+    <div class="chart-section" id="section-sides">
+        <div class="section-header">
+            <h2><i class="bi bi-diagram-3" aria-hidden="true"></i> {{ _('Sides Analysis') }}</h2>
+        </div>
+        <div class="filter-section" role="search" aria-label="{{ _('Sides filters') }}">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="sides-filter-filetype">{{ _('File Type') }}</label>
+                    <select id="sides-filter-filetype" class="msdd-enhance" multiple
+                            data-compact-multi="type" data-placeholder="{{ _('All types') }}"
+                            title="{{ _('Filter by one or more file types') }}"
+                            aria-label="{{ _('Filter by one or more file types') }}">
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sides-filter-category">{{ _('Category') }}</label>
+                    <select id="sides-filter-category" aria-label="{{ _('Filter by category') }}">
+                        <option value="">{{ _('All Categories') }}</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="sides-filter-keyword">{{ _('Keyword') }}</label>
+                    <select id="sides-filter-keyword" aria-label="{{ _('Filter by keyword') }}">
+                        <option value="">{{ _('All Keywords') }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('sides', 'charts')" aria-label="{{ _('Apply filters') }}">
+                    <i class="bi bi-search" aria-hidden="true"></i> {{ _('Apply Filters') }}
+                </button>
+                <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('sides', 'charts')" aria-label="{{ _('Reset filters') }}">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                </button>
+            </div>
+        </div>
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <h3>{{ _('Sides Distribution') }}</h3>
+                    <span class="chart-count" id="sides-chart-count" aria-live="polite">-</span>
+                </div>
+                <div class="chart-container-layout" role="img" aria-label="{{ _('Sides statistics chart') }}">
+                    <canvas id="sides-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Words Section -->
+    <div class="chart-section" id="section-words">
+        <div class="section-header">
+            <h2><i class="bi bi-fonts" aria-hidden="true"></i> {{ _('Words Analysis') }}</h2>
+        </div>
+        <div class="filter-section" role="search" aria-label="{{ _('Words filters') }}">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="words-filter-category">{{ _('Category (Optional)') }}</label>
+                    <select id="words-filter-category" aria-label="{{ _('Filter by category') }}">
+                        <option value="">{{ _('All Categories') }}</option>
+                    </select>
+                </div>
+            </div>
+            <div class="filter-actions">
+                <button class="btn-filter btn-filter-primary" data-on-click="applyFilters('words', 'charts')" aria-label="{{ _('Load words') }}">
+                    <i class="bi bi-search" aria-hidden="true"></i> {{ _('Load Words') }}
+                </button>
+                <button class="btn-filter btn-filter-secondary" data-on-click="resetFilters('words', 'charts')" aria-label="{{ _('Reset filters') }}">
+                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i> {{ _('Reset') }}
+                </button>
+            </div>
+        </div>
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <div class="chart-header">
+                    <h3>{{ _('Words Distribution') }}</h3>
+                    <span class="chart-count" id="words-chart-count" aria-live="polite">-</span>
+                </div>
+                <div class="chart-container-layout" role="img" aria-label="{{ _('Words distribution chart') }}">
+                    <canvas id="words-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
+<script type="application/json" id="charts-dashboard-page-data">{{ {
+    "translations": {
+        "fileType": _('File Type'),
+        "fileCount": _('File Count'),
+        "totalSize": _('Total Size'),
+        "avgSize": _('Avg Size'),
+        "category": _('Category'),
+        "wordCount": _('Word Count'),
+        "fileDensity": _('File Density'),
+        "keyword": _('Keyword'),
+        "sourceName": _('Source Name'),
+        "fileTypes": _('File Types'),
+        "processed": _('Processed'),
+        "processingRate": _('Processing Rate'),
+        "sideName": _('Side Name'),
+        "importance": _('Importance'),
+        "sources": _('Sources'),
+        "noFileTypesFound": _('No file types found'),
+        "noCategoriesFound": _('No categories found'),
+        "noKeywordsFound": _('No keywords found'),
+        "noSourcesFound": _('No sources found'),
+        "noSidesFound": _('No sides found'),
+        "noWordsFound": _('No words found'),
+        "errorLoadingData": _('Error loading data'),
+        "noDataAvailable": _('No data available'),
+        "unknown": _('Unknown'),
+        "fileTypesLabel": _('file types'),
+        "categoriesLabel": _('categories'),
+        "keywordsLabel": _('keywords'),
+        "sourcesLabel": _('sources'),
+        "sidesLabel": _('sides'),
+        "itemsLabel": _('items'),
+        "filesLabel": _('files'),
+        "files": _('Files'),
+        "words": _('Words'),
+        "wordsDistribution": _('Words Distribution'),
+        "density": _('Density'),
+        "totalSizeLabel": _('Total Size'),
+        "avgSizeLabel": _('Avg Size'),
+        "processingRateLabel": _('Processing Rate'),
+        "source": _('Source'),
+        "side": _('Side'),
+        "word": _('Word'),
+        "totalFiles": _('Total Files'),
+        "fileTypesLabel2": _('File Types')
+    }
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/charts-dashboard-page.js') }}"></script>
+{% endblock %}
+

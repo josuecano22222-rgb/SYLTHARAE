@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Jobs / Operations') }}{% endblock %}
+{% block page_type %}default{% endblock %}
+{% block content %}
+{% from 'components/confirm_dialog.html' import confirm_dialog %}
+{{ confirm_dialog(id='jobCancelDialog',
+                  title=_('Cancel this job?'),
+                  message=_('In-flight files finish; no new files start.'),
+                  scope_label=_('Job'),
+                  confirm_label=_('Cancel job'),
+                  cancel_label=_('Keep running'),
+                  dangerous=True,
+                  action='jobs.cancel',
+                  confirmation_key='action.jobs.cancel.confirm') }}
+<div class="container-fluid py-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h3 mb-0">
+      <i class="bi bi-list-task me-2" aria-hidden="true"></i>{{ _('Jobs') }}
+    </h1>
+    <div class="d-flex flex-wrap gap-2">
+      <a href="/operations/input" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> {{ _('New Ingestion') }}</a>
+      <a href="/operations/import" class="btn btn-outline-primary btn-sm"><i class="bi bi-box-arrow-in-down"></i> {{ _('New Import') }}</a>
+    </div>
+  </div>
+
+  <div class="row g-2 mb-3" id="filterBar">
+    <div class="col-md-3">
+      <select id="fType" class="form-select form-select-sm">
+        <option value="">{{ _('All types') }}</option>
+        <option value="ingestion">{{ _('Ingestion') }}</option>
+        <option value="import">{{ _('Import') }}</option>
+        <option value="domain_import">{{ _('Domain import') }}</option>
+        <option value="backup_import">{{ _('Backup import') }}</option>
+        <option value="batch_import">{{ _('Batch import') }}</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <select id="fStatus" class="form-select form-select-sm">
+        <option value="">{{ _('All statuses') }}</option>
+        {% for s in ['QUEUED','RUNNING','PAUSED','CANCELLING','CANCELLED','COMPLETED','COMPLETED_WITH_WARNINGS','FAILED'] %}
+        <option value="{{ s }}">{{ s.replace('_', ' ') }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="col-md-3">
+      <input id="fUser" class="form-control form-control-sm" placeholder="{{ _('User') }}">
+    </div>
+    <div class="col-md-3">
+      <button id="btnRefresh" class="btn btn-sm btn-outline-secondary w-100">
+        <i class="bi bi-arrow-repeat"></i> {{ _('Refresh') }}
+      </button>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0" id="jobsTable">
+        <thead class="table-light">
+          <tr>
+            <th>{{ _('Job') }}</th><th>{{ _('Type') }}</th><th>{{ _('Source') }}</th><th>{{ _('Side') }}</th>
+            <th>{{ _('Status') }}</th><th style="min-width:160px;">{{ _('Progress') }}</th>
+            <th>{{ _('Issues') }}</th><th>{{ _('Started') }}</th><th>{{ _('Duration') }}</th><th>{{ _('User') }}</th><th>{{ _('Actions') }}</th>
+          </tr>
+        </thead>
+        <tbody id="jobsBody">
+          <tr><td colspan="11" class="text-center text-muted py-4">{{ _('Loading jobs…') }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer small text-muted" id="liveIndicator">
+      {{ _('Live updates: polling every 2s') }}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="jobs-page-data">{{ {
+    "noJobsYetStartAnIngestion": _('No jobs yet. Start an ingestion or import.'),
+    "cancelJob": _('Cancel job'),
+    "keepRunning": _('Keep running'),
+    "jobCancelled": _('Job cancelled.'),
+    "theJobCouldNotBeCancelled": _('The job could not be cancelled.'),
+    "liveUpdatesEventStreamConnected": _('Live updates: event stream connected'),
+    "csrfToken": csrf_token()
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/pages/jobs-page.js') }}"></script>
+{% endblock %}

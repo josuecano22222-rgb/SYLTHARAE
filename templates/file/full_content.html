@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}{{ file[1] }} - {{ _('Reader') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/full-content.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/formatted-content.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/analyst-classify.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/file-nav.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/file-content-tabs.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+{% set embed_mode = request.args.get('embed') == '1' %}
+<div class="container-fluid">
+    <!-- Page Tips (hidden when embedded in another surface's viewer -
+         FullDocumentViewer.jsx already has its own header/chrome) -->
+    {% from 'components/page_tips.html' import page_tips %}
+    {% from 'components/analyst_classify.html' import analyst_classify %}
+    {% from 'components/file_nav.html' import file_nav %}
+    {% if not embed_mode %}
+        {% call page_tips() %}
+
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-journal-text"></i>
+            {{ _('Full Content Reader Overview') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('This page displays the complete extracted text content from the file') }}</li>
+            <li>{{ _('View the full text in a readable format with customizable display options') }}</li>
+            <li>{{ _('Use toolbar buttons to copy, download, print, or adjust the display') }}</li>
+            <li>{{ _('Content statistics show word count, character count, and storage information') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-sliders"></i>
+            {{ _('Display Options') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Toggle text wrapping to control how long lines are displayed') }}</li>
+            <li>{{ _('Adjust font size using the zoom in/out buttons') }}</li>
+            <li>{{ _('Switch between light and dark themes for comfortable reading') }}</li>
+            <li>{{ _('Use the print button to create a formatted print version') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-clipboard"></i>
+            {{ _('Content Actions') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Copy the entire content to clipboard for use in other applications') }}</li>
+            <li>{{ _('Download the content as a text file') }}</li>
+            <li>{{ _('Return to file details to view metadata and other information') }}</li>
+            <li>{{ _('View content statistics to understand the file\'s text characteristics') }}</li>
+        </ul>
+    </div>
+{% endcall %}
+    {% endif %}
+
+    <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+            <h1 class="h3 mb-2"><i class="bi bi-journal-text me-2"></i>{{ file[1] }} - {{ _('Reader') }}</h1>
+            <div class="text-muted small d-flex gap-3">
+                <span><i class="bi bi-hdd me-1"></i>{{ ((file[3] or 0) / 1024)|round(1) }} KB</span>
+                <span><i class="bi bi-calendar me-1"></i>{{ file[7]|format_date('%Y-%m-%d') }}</span>
+                <span><i class="bi bi-hash me-1"></i>{{ _('ID') }} {{ file[0] }}</span>
+            </div>
+            <!-- Same Previous/Next control as the detail page, same browsed
+                 set: switching between a file's two views must not reset
+                 where the operator is. Hidden when embedded in the React
+                 FullDocumentViewer (embed=1): that shell has its own
+                 Prev/Next scoped to the exact analytical result list the
+                 operator drilled in from (a word/keyword/facet's files),
+                 which this server-rendered strip has no way to know about
+                 (it only understands source/side/status/type/date/size
+                 library filters, via nav_* params) -- showing both would
+                 mean two counters disagreeing about "how many files" and
+                 "which one is next". Standalone/new-tab access (no
+                 embed=1) keeps this control, since there the React shell
+                 isn't present to provide one at all. -->
+            {% if not embed_mode %}
+            <div class="file-nav-strip">
+                {{ file_nav(nav, 'plain') }}
+            </div>
+            {% endif %}
+        </div>
+        <div class="btn-toolbar gap-2" role="toolbar" aria-label="{{ _('Toolbar') }}">
+            <a href="{{ nav.details_url }}" class="btn btn-outline-primary"><i class="bi bi-arrow-left me-1"></i>{{ _('Details') }}</a>
+            {# The original file is shown IN PLACE, where the extracted text is
+               (tab pair below), through the same pop-up interface the analysis
+               uses — its pane carries its own open-in-new-tab and download
+               actions, so the toolbar needs no second copy. #}
+            {# Copy/Download/Print/Wrap/Zoom act on the extracted text, so they
+               hide while the Original tab is open (data-extracted-only). #}
+            <span data-extracted-only class="d-inline-flex gap-2 flex-wrap align-items-center">
+                <button class="btn btn-outline-secondary" id="btnCopy"><i class="bi bi-clipboard me-1"></i>{{ _('Copy') }}</button>
+                <button class="btn btn-outline-secondary" id="btnDownload"><i class="bi bi-download me-1"></i>{{ _('Download') }}</button>
+                <button class="btn btn-outline-secondary" id="btnPrint"><i class="bi bi-printer me-1"></i>{{ _('Print') }}</button>
+                <span class="vr d-none d-md-block"></span>
+                <button class="btn btn-outline-secondary" id="btnWrap"><i class="bi bi-text-wrap me-1"></i>{{ _('Wrap') }}</button>
+                <button class="btn btn-outline-secondary" id="btnFontDec" title="{{ _('Smaller') }}"><i class="bi bi-zoom-out"></i></button>
+                <button class="btn btn-outline-secondary" id="btnFontInc" title="{{ _('Larger') }}"><i class="bi bi-zoom-in"></i></button>
+            </span>
+            <button class="btn btn-outline-dark" id="btnTheme"><i class="bi bi-moon me-1"></i>{{ _('Dark') }}</button>
+        </div>
+    </div>
+
+    <!-- Analyst classification (manual layer - FR-1.4) directly from the
+         reader. Read-only for non-analysts; smart taxonomy untouched. -->
+    {{ analyst_classify(file[0] if file|length > 0 else 0, analyst_categories if analyst_categories is defined else None, current_user.is_authenticated and current_user.has_role('admin', 'analyst'), compact=True) }}
+
+    {% if content_stats %}
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body text-center"><div class="h5 mb-0">{{ content_stats.estimated_words|default(0) }}</div><div class="text-muted small">{{ _('Words') }}</div></div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body text-center"><div class="h5 mb-0">{{ (content_stats.total_size or 0) }}</div><div class="text-muted small">{{ _('Bytes Stored') }}</div></div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body text-center"><div class="h5 mb-0">{{ content_stats.chunks|default(0) }}</div><div class="text-muted small">{{ _('Chunks') }}</div></div></div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100"><div class="card-body text-center"><div class="h5 mb-0">{{ total_chars or 0 }}</div><div class="text-muted small">{{ _('Characters') }}</div></div></div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Two sides of the same object, in the same location: the extracted
+         text and the source file it came from (the pop-up interface used in
+         the analysis, brought to the full-page reader). -->
+    <div class="card">
+        <div class="card-header d-flex align-items-center flex-wrap gap-2" style="padding-bottom: 0;">
+            <div class="file-content-tabs" role="tablist" aria-label="{{ _('File Content') }}">
+                <button type="button" class="file-content-tab active" id="extractedContentTab"
+                        role="tab" aria-selected="true" data-content-tab="extracted">
+                    <i class="bi bi-file-text" aria-hidden="true"></i> {{ _('Extracted Text') }}
+                </button>
+                <button type="button" class="file-content-tab" id="originalFileTab"
+                        role="tab" aria-selected="false" data-content-tab="original">
+                    <i class="bi bi-file-earmark-image" aria-hidden="true"></i> {{ _('Original File') }}
+                </button>
+            </div>
+        </div>
+
+        <!-- Extracted-text pane: everything below belongs to the extraction
+             (position pager, search, chunked reading) and hides with it. -->
+        <div data-content-pane="extracted">
+        <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2" data-extracted-only>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary">{{ start_char or 1 }}–{{ end_char or (content|length if content) }} {{ _('of') }} {{ total_chars or 0 }}</span>
+                <div class="d-none d-md-flex align-items-center gap-2">
+                    <i class="bi bi-arrows-move"></i>
+                    <input type="range" min="0" max="{{ total_chars or 0 }}" value="{{ start_char or 1 }}" class="form-range" id="rangeJump" style="width: 220px;">
+                </div>
+            </div>
+            <div class="input-group" style="max-width:520px;">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="q" class="form-control" placeholder="{{ _('Search... (supports whole word, case)') }}" value="{{ search_query }}">
+                <button class="btn btn-outline-secondary" id="btnPrev"><i class="bi bi-arrow-up"></i></button>
+                <button class="btn btn-outline-secondary" id="btnNext"><i class="bi bi-arrow-down"></i></button>
+                <button class="btn btn-outline-secondary" id="btnClear"><i class="bi bi-x-lg"></i></button>
+                <div class="input-group-text gap-2">
+                    <label class="small m-0"><input class="form-check-input me-1" type="checkbox" id="optCase" {% if case_sensitive %}checked{% endif %}>{{ _('Aa') }}</label>
+                    <label class="small m-0"><input class="form-check-input me-1" type="checkbox" id="optWhole" {% if whole_word %}checked{% endif %}>{{ _('Whole') }}</label>
+                </div>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div id="reader" class="reader" 
+                 data-file-type="{{ file[4] if file|length > 4 else '' }}" 
+                 data-file-path="{{ file[2] if file|length > 2 else '' }}"
+                 data-file-id="{{ file[0] if file|length > 0 else 0 }}"
+                 style="width: 100%; overflow-x: auto;">
+                <div id="content" class="content pre-wrap formatted-content-wrapper" style="width: 100%; word-wrap: break-word; overflow-wrap: break-word; white-space: pre-wrap; padding: 1rem;"></div>
+                <div id="sentinel" class="sentinel text-center text-muted py-3">{{ _('Loading…') }}</div>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2" data-extracted-only>
+            <div class="small text-muted" id="status">{{ _('Ready') }}</div>
+            <div class="d-flex align-items-center gap-2">
+                <label class="small text-muted">{{ _('Chunk size') }} </label>
+                <select id="chunkSize" class="form-select form-select-sm" style="width:auto;">
+                    <option value="20000">20k</option>
+                    <option value="50000" selected>50k</option>
+                    <option value="100000">100k</option>
+                </select>
+                <button class="btn btn-sm btn-outline-primary" id="btnTop"><i class="bi bi-chevron-double-up"></i></button>
+                <button class="btn btn-sm btn-outline-primary" id="btnBottom"><i class="bi bi-chevron-double-down"></i></button>
+            </div>
+        </div>
+        </div><!-- /extracted pane -->
+
+        <!-- The original/source file (images, PDF pages, raw text, or an
+             explicit "not available") rendered in the same location, lazily
+             on first tab switch — the pop-up viewer, in place. -->
+        <div class="file-details-content-view" data-content-pane="original"
+             style="display: none; position: relative; overflow: auto; min-height: 16rem;">
+            <div class="content-loading">{{ _('Loading original file...') }}</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% set file_id = file[0] if file is defined and file else 0 %}
+{% set file_name = file[1] if file is defined and file and file|length > 1 else '' %}
+{% set total_chars_val = total_chars|default(0) %}
+{% set start_char_val = start_char|default(1) %}
+{% set initial_content_val = content|default('') %}
+{% set search_query_val = search_query|default('') %}
+{% set case_sensitive_val = case_sensitive|default(False) %}
+{% set whole_word_val = whole_word|default(False) %}
+<script type="application/json" id="full-content-page-data">{{ {
+    "fileId": file_id,
+    "fileName": file_name,
+    "totalChars": total_chars_val,
+    "startChar": start_char_val,
+    "initialContent": initial_content_val,
+    "searchQuery": search_query_val,
+    "caseSensitive": case_sensitive_val,
+    "wholeWord": whole_word_val,
+    "translations": {
+        "loading": _('Loading…'),
+        "error": _('Error loading'),
+        "noMatches": _('No matches'),
+        "matchOf": _('Match {current} of {total}'),
+        "onLine": _(' · line {line}'),
+        "searchCleared": _('Search cleared'),
+        "slidesNavLabel": _('Slides'),
+        "previousSlideLabel": _('Previous slide'),
+        "nextSlideLabel": _('Next slide'),
+        "sheetsNavLabel": _('Sheets')
+    }
+}|tojson|safe }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/full-content-page.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/modules/content-formatter.js') }}"></script>
+{% from 'components/analyst_classify_page_data.html' import analyst_classify_page_data %}
+{{ analyst_classify_page_data(current_user.is_authenticated and current_user.has_role('admin', 'analyst')) }}
+<script type="module" src="{{ url_for('static', filename='js/modules/analyst-classify.js') }}"></script>
+{% endblock %}
+
+

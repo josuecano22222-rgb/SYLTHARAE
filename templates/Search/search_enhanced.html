@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Enhanced Search') }}{% endblock %}
+{% block page_type %}search-enhanced{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/search-enhanced.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/multi-select-dropdown.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <h1 class="page-title">
+        <i class="bi bi-search me-2"></i>
+        {{ _('Enhanced Search') }}
+    </h1>
+    <p class="text-muted">{{ _('Full-text search with advanced filters, sorting, and export') }}</p>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-search-heart"></i>
+        {{ _('Enhanced Search Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Enhanced Search provides intelligent search with auto-complete and suggestions') }}</li>
+        <li>{{ _('View search history to quickly repeat previous searches') }}</li>
+        <li>{{ _('Export search results to various formats for further analysis') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-magic"></i>
+        {{ _('Smart Features') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Auto-complete suggests search terms as you type') }}</li>
+        <li>{{ _('Search suggestions help you refine your queries') }}</li>
+        <li>{{ _('Recent searches are saved for quick access') }}</li>
+        <li>{{ _('Search highlights matching terms in results for easy identification') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-filter"></i>
+        {{ _('Advanced Filtering') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Use the sidebar filters to narrow down results by category, source, date, and more') }}</li>
+        <li>{{ _('Apply multiple filters simultaneously for precise results') }}</li>
+        <li>{{ _('Sort results by relevance, date, name, or other criteria') }}</li>
+        <li>{{ _('Clear filters individually or reset all at once') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<!-- Search View Navigation -->
+<div class="search-view-navigation section-card">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('search_page') }}" class="btn btn-outline-primary search-view-btn {% if request.endpoint == 'search_page' %}active{% endif %}" data-view="search">
+            <i class="bi bi-search"></i> {{ _('Search') }}
+        </a>
+        <a href="{{ url_for('search_advanced') }}" class="btn btn-outline-primary search-view-btn {% if request.endpoint == 'search_advanced' %}active{% endif %}" data-view="advanced">
+            <i class="bi bi-funnel"></i> {{ _('Advanced Search') }}
+        </a>
+        <a href="{{ url_for('search_enhanced_page') }}" class="btn btn-outline-primary search-view-btn {% if request.endpoint == 'search_enhanced_page' %}active{% endif %}" data-view="enhanced">
+            <i class="bi bi-search-heart"></i> {{ _('Enhanced Search') }}
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Search Sidebar -->
+    <div class="col-md-3">
+        <div class="search-sidebar">
+            <!-- Search Form -->
+            <form id="enhancedSearchForm" class="mb-4">
+                <div class="mb-3">
+                    <label for="searchQuery" class="form-label fw-bold">
+                        <i class="bi bi-search me-1"></i>{{ _('Search Query') }}
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="searchQuery" 
+                           placeholder="{{ _('Enter search terms...') }}"
+                           autocomplete="off">
+                </div>
+
+
+                <!-- Search Scope (FR-2.2): analyst-categorization scope. This
+                     select is picked up by global-search.js and sent with
+                     every /api/search request; the server persists the choice
+                     in the session (FR-2.3). Operates only on analyst
+                     categorization status - never smart categorization
+                     (FR-2.4). -->
+                <div class="mb-3">
+                    <label for="analystScopeSelect" class="form-label fw-bold">
+                        <i class="bi bi-funnel me-1"></i>{{ _('Search Scope') }}
+                    </label>
+                    <select class="form-select form-select-sm" id="analystScopeSelect">
+                        <option value="uncategorized" {% if analyst_scope != 'all' and analyst_scope != 'categorized' %}selected{% endif %}>
+                            {{ _('Uncategorized Files Only') }} ({{ _('default') }})
+                        </option>
+                        <option value="all" {% if analyst_scope == 'all' %}selected{% endif %}>
+                            {{ _('All Files') }}
+                        </option>
+                        <option value="categorized" {% if analyst_scope == 'categorized' %}selected{% endif %}>
+                            {{ _('Analyst-Categorized Files Only') }}
+                        </option>
+                    </select>
+                    <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">
+                        {{ _('By analyst categorization status - independent of smart categorization') }}
+                    </small>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>{{ _('Search') }}
+                </button>
+            </form>
+
+            <!-- Sort Options -->
+            <div class="filter-section">
+                <h6><i class="bi bi-sort-alpha-down me-1"></i>{{ _('Sort By') }}</h6>
+                <label for="sortBy" class="visually-hidden">{{ _('Sort results by') }}</label>
+                <select class="form-select form-select-sm" id="sortBy">
+                    <option value="relevance">{{ _('Relevance') }}</option>
+                    <option value="date">{{ _('Date') }}</option>
+                    <option value="name">{{ _('Name') }}</option>
+                    <option value="type">{{ _('Type') }}</option>
+                    <option value="size">{{ _('Size') }}</option>
+                </select>
+                <label for="sortOrder" class="visually-hidden">{{ _('Sort order') }}</label>
+                <select class="form-select form-select-sm mt-2" id="sortOrder">
+                    <option value="desc">{{ _('Descending') }}</option>
+                    <option value="asc">{{ _('Ascending') }}</option>
+                </select>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-section">
+                <h6><i class="bi bi-funnel me-1"></i>{{ _('Filters') }}</h6>
+                
+                <div class="mb-2">
+                    <label class="form-label small" for="filterFileType">{{ _('File Type') }}</label>
+                    <select class="form-select form-select-sm search-filter msdd-enhance" id="filterFileType" multiple
+                            data-compact-multi="type" data-placeholder="{{ _('All types') }}"
+                            title="{{ _('Filter by one or more file types') }}"
+                            aria-label="{{ _('Filter by one or more file types') }}">
+                        <option value="pdf">PDF</option>
+                        <option value="docx">DOCX</option>
+                        <option value="xlsx">XLSX</option>
+                        <option value="txt">TXT</option>
+                        <option value="jpg">JPG</option>
+                        <option value="png">PNG</option>
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small" for="filterSourceId">{{ _('Source') }}</label>
+                    <select class="form-select form-select-sm search-filter" id="filterSourceId">
+                        <option value="">{{ _('All Sources') }}</option>
+                        {% for source in sources %}
+                        <option value="{{ source[0] if source is iterable and source is not string else source.id }}">{{ source[1] if source is iterable and source is not string else source.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small" for="filterSideId">{{ _('Side') }}</label>
+                    <select class="form-select form-select-sm search-filter" id="filterSideId">
+                        <option value="">{{ _('All Sides') }}</option>
+                        {% for side in sides %}
+                        <option value="{{ side[0] if side is iterable and side is not string else side.id }}">{{ side[1] if side is iterable and side is not string else side.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small" for="filterDateFrom">{{ _('Date From') }}</label>
+                    <input type="date" class="form-control form-control-sm search-filter" id="filterDateFrom">
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small" for="filterDateTo">{{ _('Date To') }}</label>
+                    <input type="date" class="form-control form-control-sm search-filter" id="filterDateTo">
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label small" for="filterCategoryId">{{ _('Category') }}</label>
+                    <select class="form-select form-select-sm search-filter" id="filterCategoryId">
+                        <option value="">{{ _('All Categories') }}</option>
+                        {% for category in categories %}
+                        <option value="{{ category[0] if category is iterable and category is not string else category.id }}">{{ category[1] if category is iterable and category is not string else category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Search History -->
+            <div class="filter-section">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-1"></i>{{ _('Recent Searches') }}</h6>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="clearSearchHistoryBtn"
+                            aria-label="{{ _('Clear recent searches') }}" title="{{ _('Clear recent searches') }}">
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div id="searchHistory" class="small" data-empty-message="{{ _('No search history') }}">
+                    <p class="text-muted">{{ _('Loading...') }}</p>
+                </div>
+            </div>
+
+            <!-- Saved Searches -->
+            <div class="filter-section">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0"><i class="bi bi-bookmark me-1"></i>{{ _('Saved Searches') }}</h6>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="saveSearchBtn"
+                            aria-label="{{ _('Save current search') }}" title="{{ _('Save current search') }}">
+                        <i class="bi bi-plus" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div id="savedSearches" class="small" data-empty-message="{{ _('No saved searches') }}">
+                    <p class="text-muted">{{ _('Loading...') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Search Results -->
+    <div class="col-md-9">
+        <div class="stat-card search-results-card">
+            <div id="searchResults" aria-live="polite" aria-atomic="false">
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-search display-4 d-block mb-3"></i>
+                    <p>{{ _('Enter a search query to get started') }}</p>
+                </div>
+            </div>
+            <div id="searchPagination" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+
+<!-- File Preview Modal -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1" aria-labelledby="filePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filePreviewModalLabel">{{ _('File Preview') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body" id="previewModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">{{ _('Loading...') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/json" id="searchEnhancedTranslations">{{ {
+    "No search history": _('No search history'),
+    "No saved searches": _('No saved searches'),
+    "Pagination": _('Pagination'),
+    "Matching content:": _('Matching content:'),
+    "Open Search & Review workspace": _('Open Search & Review workspace'),
+    "filenameExportPrompt": _('Name this export (leave blank for an automatic name):'),
+    "Case sensitive": _('Case sensitive'),
+    "Match uppercase and lowercase exactly": _('Match uppercase and lowercase exactly'),
+    "Whole word": _('Whole word'),
+    "Match complete words only": _('Match complete words only'),
+    "Line": _('Line'),
+    "Similar": _('Similar'),
+    "Enter a name for this search:": _('Enter a name for this search:'),
+    "Delete this saved search?": _('Delete this saved search?')
+}|tojson }}</script>
+{% endblock %}

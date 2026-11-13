@@ -1,0 +1,51 @@
+{# component: sidebar_nav
+   purpose: The product navigation, grouped by domain, rendered from the
+            navigation model the application prepares.
+   states: normal, empty
+   classes: sidebar-nav, sidebar-nav-link, sidebar-nav-badge, active
+   notes: The entry carries its route (the navigation script matches
+          data-endpoint against the current endpoint) and its interface id in
+          data-interface. No product id is named in this file.
+#}
+{# ==========================================================================
+   Sidebar navigation.
+
+   This template knows four things: label, icon, url, active. It does not know
+   an interface ID, whether anything is enabled, who owns an endpoint, what
+   role it needs or what it depends on - all of that is decided by
+   `core.interfaces.build_navigation()` and handed over in `navigation`
+   (see `Api/routes/common.py`).
+
+   That split is the point of the registry work: this file used to be a
+   hand-written list of <li> entries gated by hard-coded ids, which is how a
+   rename left a dead sidebar entry behind with nothing failing.
+
+   Markup, classes, icons and the data-endpoint attributes are unchanged, so
+   the stylesheet and the navigation scripts keep working.
+   ========================================================================== #}
+<ul class="sidebar-nav">
+    {% for group in navigation|default((), true) %}
+        {% if group.entries %}
+            <li class="sidebar-nav-item">
+                <span class="sidebar-section-label">{{ group.label }}</span>
+            </li>
+            {% for entry in group.entries %}
+                <li class="sidebar-nav-item">
+                    <a href="{{ entry.url }}"
+                       class="sidebar-nav-link {% if entry.active %}active{% endif %}"
+                       data-endpoint="{{ entry.route }}"
+                       data-interface="{{ entry.interface_id }}"
+                       {% if entry.description %}title="{{ entry.description }}{% if entry.note %} — {{ entry.note }}{% endif %}"{% endif %}
+                       {% if entry.shortcut %}data-shortcut="{{ entry.shortcut }}"{% endif %}
+                       {% if entry.active %}aria-current="page"{% endif %}>
+                        <i class="bi {{ entry.icon }}" aria-hidden="true"></i>
+                        <span>{{ entry.label }}</span>
+                        {% if entry.badge %}
+                            <span class="sidebar-nav-badge" data-status="{{ entry.status if entry.status is defined else '' }}">{{ entry.badge }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+</ul>

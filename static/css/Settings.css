@@ -1,0 +1,324 @@
+.settings-tabs {
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.settings-tabs .nav-link {
+    color: var(--text-muted);
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.settings-tabs .nav-link:hover {
+    color: var(--text-dark);
+    border-bottom-color: var(--border-color);
+}
+
+.settings-tabs .nav-link.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+    background: transparent;
+}
+
+.settings-container .tab-content .tab-pane {
+    display: none;
+}
+
+.settings-container .tab-content .tab-pane.active, .settings-container .tab-content .tab-pane.show {
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.setting-group {
+    background: var(--bg-section);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.setting-group h6 {
+    color: var(--text-dark);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.setting-item {
+    padding: 1rem;
+    background: var(--bg-white);
+    border-radius: 0.375rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.setting-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
+}
+
+.setting-item:last-child {
+    margin-bottom: 0;
+}
+
+.setting-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.setting-label strong {
+    color: var(--text-heading);
+    font-size: 0.95rem;
+}
+
+.setting-description {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    line-height: 1.5;
+}
+
+.system-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.info-card {
+    background: var(--gradient-bg);
+    color: var(--text-white);
+    padding: 1.25rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-card h6 {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.info-card .value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+}
+
+.interface-card {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.interface-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.interface-card.disabled {
+    opacity: 0.6;
+}
+
+.config-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-section);
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    margin: 0.25rem;
+}
+
+.config-badge code {
+    background: var(--bg-white);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 1199.98px) {
+    .settings-tabs {
+        margin-bottom: 1.75rem;
+    }
+    .settings-tabs .nav-link {
+        padding: 0.7rem 1.375rem;
+    }
+    .setting-group {
+        padding: 1.375rem;
+        margin-bottom: 1.375rem;
+    }
+    .system-info-grid {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 0.875rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .settings-tabs {
+        margin-bottom: 1.5rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .settings-tabs .nav-link {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.9375rem;
+        white-space: nowrap;
+    }
+    .setting-group {
+        padding: 1.25rem;
+        margin-bottom: 1.25rem;
+    }
+    .setting-group h6 {
+        font-size: 0.9375rem;
+        margin-bottom: 0.875rem;
+        padding-bottom: 0.625rem;
+    }
+    .setting-item {
+        padding: 0.875rem;
+        margin-bottom: 0.625rem;
+    }
+    .setting-label strong {
+        font-size: 0.9rem;
+    }
+    .setting-description {
+        font-size: 0.8125rem;
+    }
+    .system-info-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.75rem;
+    }
+    .info-card {
+        padding: 1.125rem;
+    }
+    .info-card h6 {
+        font-size: 0.8125rem;
+    }
+    .info-card .value {
+        font-size: 1.375rem;
+    }
+    .config-badge {
+        padding: 0.45rem 0.875rem;
+        font-size: 0.8125rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .settings-tabs {
+        margin-bottom: 1.25rem;
+    }
+    .settings-tabs .nav-link {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+    .setting-group {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    .setting-group h6 {
+        font-size: 0.875rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+    }
+    .setting-item {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    .setting-label {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.375rem;
+    }
+    .setting-label strong {
+        font-size: 0.875rem;
+    }
+    .setting-description {
+        font-size: 0.75rem;
+    }
+    .system-info-grid {
+        grid-template-columns: 1fr;
+        gap: 0.625rem;
+    }
+    .info-card {
+        padding: 1rem;
+    }
+    .info-card h6 {
+        font-size: 0.75rem;
+    }
+    .info-card .value {
+        font-size: 1.25rem;
+    }
+    .config-badge {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+    }
+    .config-badge code {
+        padding: 0.2rem 0.45rem;
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .settings-tabs {
+        margin-bottom: 1rem;
+    }
+    .settings-tabs .nav-link {
+        padding: 0.45rem 0.875rem;
+        font-size: 0.8125rem;
+    }
+    .setting-group {
+        padding: 0.875rem;
+        margin-bottom: 0.875rem;
+    }
+    .setting-group h6 {
+        font-size: 0.8125rem;
+        margin-bottom: 0.625rem;
+        padding-bottom: 0.45rem;
+    }
+    .setting-item {
+        padding: 0.625rem;
+        margin-bottom: 0.45rem;
+    }
+    .setting-label strong {
+        font-size: 0.8125rem;
+    }
+    .setting-description {
+        font-size: 0.7rem;
+    }
+    .system-info-grid {
+        gap: 0.5rem;
+    }
+    .info-card {
+        padding: 0.875rem;
+    }
+    .info-card h6 {
+        font-size: 0.7rem;
+    }
+    .info-card .value {
+        font-size: 1.125rem;
+    }
+    .config-badge {
+        padding: 0.35rem 0.625rem;
+        font-size: 0.7rem;
+        margin: 0.2rem;
+    }
+    .config-badge code {
+        padding: 0.15rem 0.4rem;
+        font-size: 0.65rem;
+    }
+    .interface-card {
+        margin-bottom: 0.75rem;
+    }
+}
+

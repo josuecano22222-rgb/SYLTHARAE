@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Saved Searches') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-bookmarks me-2"></i>
+        {{ _('Saved Searches') }}
+    </h1>
+    <a href="{{ url_for('search_advanced') }}" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-2"></i>
+        {{ _('New Search') }}
+    </a>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-bookmarks"></i>
+        {{ _('Saved Searches Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Saved Searches stores your frequently used search queries for quick access') }}</li>
+        <li>{{ _('Save a search from the Advanced Search page using the "Save" button') }}</li>
+        <li>{{ _('Run saved searches instantly without re-entering the query') }}</li>
+        <li>{{ _('Rename or delete saved searches at any time') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<!-- Search Filter -->
+<div class="stat-card mb-4">
+    <div class="input-group">
+        <span class="input-group-text">
+            <i class="bi bi-search"></i>
+        </span>
+        <input type="text" class="form-control" id="searchSaved"
+               placeholder="{{ _('Search saved searches...') }}" data-on-keyup="filterSavedSearches()"
+               aria-label="{{ _('Filter saved searches by name') }}">
+    </div>
+</div>
+
+<!-- Saved Searches Grid -->
+<div class="row g-4" id="savedSearchesContainer">
+    {% for search in saved_searches %}
+    <div class="col-md-6 col-lg-4 search-card" data-name="{{ search.name|lower }}">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <h5 class="mb-0 search-name">
+                    <i class="bi bi-pin-angle me-2 text-primary"></i>
+                    {{ search.name }}
+                </h5>
+            </div>
+
+            <div class="mb-3">
+                <div class="text-muted small mb-2">
+                    <i class="bi bi-search me-1"></i>
+                    {{ _('Query:') }} <strong>{{ search.query }}</strong>
+                </div>
+                <div class="text-muted small mb-2">
+                    <i class="bi bi-clock me-1"></i>
+                    {{ _('Saved:') }} {{ search.created_at[:10] if search.created_at else '—' }}
+                </div>
+                {% set active_filters = search.get('filters') or {} %}
+                {% if active_filters %}
+                <div class="text-muted small">
+                    <i class="bi bi-funnel me-1"></i>
+                    {% for fk, fv in active_filters.items() %}
+                        {% if fv %}<span class="badge bg-light text-dark me-1">{{ fk }}: {{ fv }}</span>{% endif %}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Actions -->
+            <div class="btn-group w-100" role="group">
+                <a class="btn btn-primary" href="{{ search.run_url or ('/search/advanced?q=' ~ (search.query|urlencode)) }}" title="{{ _('Run this search on the Advanced Search page with all filters restored') }}">
+                    <i class="bi bi-play-fill"></i> {{ _('Run') }}
+                </a>
+                <button class="btn btn-outline-secondary" data-on-click='renameSavedSearch({{ search.id }}, {{ search.name|tojson }})' title="{{ _('Rename') }}">
+                    <i class="bi bi-pencil"></i> {{ _('Rename') }}
+                </button>
+                <button class="btn btn-outline-danger" data-on-click="deleteSavedSearch({{ search.id }})" title="{{ _('Delete') }}">
+                    <i class="bi bi-trash"></i> {{ _('Delete') }}
+                </button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="stat-card text-center py-5">
+            <i class="bi bi-bookmarks display-4 d-block mb-3 text-muted"></i>
+            <h5 class="text-muted">{{ _('No Saved Searches') }}</h5>
+            <p class="text-muted mb-4">{{ _('Run a search on the Advanced Search page and use "Save" to bookmark it here.') }}</p>
+            <a href="{{ url_for('search_advanced') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-2"></i>
+                {{ _('Go to Advanced Search') }}
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="saved-searches-page-data">{{ {
+    "translations": {
+        "renamePrompt": _('Enter a new name for this search:'),
+        "searchUpdatedSuccessfully": _('Search updated successfully'),
+        "error": _('Error'),
+        "deleteSearchConfirm": _('Are you sure you want to delete this saved search?'),
+        "searchDeletedSuccessfully": _('Search deleted successfully'),
+        "unknownError": _('Unknown error')
+    }
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/saved-searches-page.js') }}"></script>
+{% endblock %}

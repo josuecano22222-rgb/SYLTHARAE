@@ -1,0 +1,101 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "file-analysis"
+version = "2.2.0"
+description = "SYLTHARAE and indexing system with PostgreSQL-backed full-text search, readers for common formats, and a Flask web UI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "SYLTHARAE Team" }]
+keywords = ["file-analysis", "full-text-search", "postgresql", "flask"]
+
+dependencies = [
+    "Flask>=3.0,<4",
+    "flask-babel>=4.0",
+    "flask-limiter>=3.5",
+    "flask-wtf>=1.2",
+    "flask-compress>=1.15",
+    "psycopg2-binary>=2.9",
+    "python-dateutil>=2.8",
+    "python-dotenv>=1.0",
+    "psutil>=5.9",
+    "chardet>=5.0",
+    "PyYAML>=6.0",
+    "html2text>=2024.2.26",
+    "extract-msg>=0.47",
+    "rarfile>=4.2",
+    "py7zr>=0.21",
+    "icalendar>=5.0",
+]
+
+[project.optional-dependencies]
+pdf = ["PyMuPDF>=1.24.3", "pypdf>=6.0"]
+office = [
+    "python-docx>=1.1",
+    "openpyxl>=3.1",
+    "python-pptx>=0.6.23",
+    "xlrd>=2.0",
+    "odfpy>=1.4",
+    "striprtf>=0.0.26",
+]
+ocr = [
+    "pytesseract>=0.3.10",
+    "Pillow>=12.3.0",
+    # Fallback engine used when the tesseract binary is not installed. It is
+    # pure-pip (bundled ONNX models), so OCR works on hosts with no system
+    # package manager access. Preferred engine remains tesseract: RapidOCR's
+    # bundled models are ch_PP-OCRv4 (Latin + Chinese) and cannot cover this
+    # project's declared heb/eng/ara defaults.
+    "rapidocr-onnxruntime>=1.4",
+    "opencv-python-headless>=4.9",
+]
+ebook = ["ebooklib>=0.18", "beautifulsoup4>=4.12", "mobi>=0.3"]
+audio = ["mutagen>=1.47"]
+server = ["waitress>=3.0"]  # opt-in production WSGI server: WSGI_SERVER=waitress
+pst = ["libpff-python"]  # needs a C toolchain / libpff headers on most hosts
+media = ["opencv-python-headless>=4.9"]  # moviepy removed: no wheel on 1.x, pillow<11 on 2.x (conflicts with the Pillow security floor)
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+    "bandit>=1.7",
+    "pgserver>=0.1",
+    "pyzipper>=0.3.6",  # builds the AES-encrypted ZIP fixture; test-only
+]
+
+[project.scripts]
+file-analysis-web = "run_web:main"
+file-analysis-cli = "apps.cli.main:cli_main"
+
+[tool.setuptools]
+py-modules = ["run_web", "verify_readiness"]
+
+[tool.setuptools.packages.find]
+include = ["Api*", "apps*", "concurrency*", "core*", "database*", "reader_file*", "settings*", "pipeline*", "services*", "Hdg_Err_Ex_Log*"]
+exclude = ["tests*", "templates*", "static*", "*.venv*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "integration: tests that require a disposable PostgreSQL database",
+    "security: security regression tests",
+    "e2e: end-to-end workflow tests",
+]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+extend-exclude = [".venv", "translations", "static"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B"]
+# E501 handled by formatter where practical; legacy codebase has long lines.
+ignore = ["E501"]
+
+[tool.bandit]
+exclude_dirs = [".venv", "tests", "translations"]

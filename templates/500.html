@@ -1,0 +1,42 @@
+
+<!-- templates/500.html -->
+{% extends "base.html" %}
+
+{% block title %}{{ _('500 - Internal Server Error') }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center align-items-center" style="min-height: 60vh;">
+        <div class="col-md-6 text-center">
+            <i class="bi bi-exclamation-octagon-fill text-danger" style="font-size: 6rem;"></i>
+            <h1 class="display-1 fw-bold mt-4">500</h1>
+            <h3 class="mb-4">{{ _('Internal Server Error') }}</h3>
+            <p class="text-muted mb-4">
+                {{ _('Something went wrong on our end. We\'re working to fix it.') }}
+            </p>
+            <div class="stat-card text-start mb-4">
+                <h6 class="mb-3"><i class="bi bi-info-circle me-2"></i>{{ _('What you can do:') }}</h6>
+                <ul class="mb-0">
+                    <li>{{ _('Try refreshing the page') }}</li>
+                    <li>{{ _('Check back in a few minutes') }}</li>
+                    <li>{{ _('Contact support if the problem persists') }}</li>
+                </ul>
+            </div>
+            <div class="d-flex gap-3 justify-content-center">
+                <a href="{{ url_for('index') }}" class="btn btn-primary">
+                    <i class="bi bi-house-door me-2"></i>
+                    {{ _('Go Home') }}
+                </a>
+                <a href="#" data-on-click="location.reload(); return false;" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-clockwise me-2"></i>
+                    {{ _('Retry') }}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/error-500.css') }}" rel="stylesheet">
+{% endblock %}

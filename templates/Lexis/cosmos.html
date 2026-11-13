@@ -1,0 +1,364 @@
+{% extends "base.html" %}
+{% block title %}{{ _('LEXIS Cosmos') }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet"
+      href="{{ url_for('static', filename='css/lexis-cosmos.css') }}?v=20261022b">
+{% endblock %}
+
+{% block content %}
+{# ---------------------------------------------------------------------------
+   LEXIS Cosmos
+
+   One workspace: the taxonomy galaxy on the left, the scoped file stack on the
+   right, and every number on both from Api/services/lexis_queries.py. The
+   buttons carry no inline handler - lexis-cosmos-page.js binds them, which is
+   what the CSP allows and what keeps the labels translatable (a handler in an
+   attribute would be neither).
+--------------------------------------------------------------------------- #}
+{# The workspace keeps its own header chrome, so the page heading is present
+   for assistive technology and document structure but not repeated visually. #}
+<h1 class="visually-hidden sr-only">{{ _('LEXIS Cosmos') }}</h1>
+<div id="lexisApp" class="lexis-app" dir="{{ 'rtl' if current_language in ['ar', 'fa', 'he', 'ur'] else 'ltr' }}">
+
+  <header class="lexis-top">
+    <div class="lexis-brand">{{ _('LEXIS') }} <span>{{ _('Cosmos') }}</span></div>
+    <nav id="lexisCrumbs" class="lexis-crumbs" aria-label="{{ _('Structure path') }}"></nav>
+
+    <div class="lexis-hbtns">
+      <div class="lexis-find-wrap">
+        <label class="sr-only" for="lexisFind">{{ _('Find a term') }}</label>
+        <input id="lexisFind" type="search" autocomplete="off" spellcheck="false"
+               placeholder="{{ _('Find a term…  ( / )') }}">
+        <div id="lexisFindRes" class="lexis-find-res" role="listbox"
+             aria-label="{{ _('Matching terms') }}"></div>
+      </div>
+
+      <button type="button" id="lexisUndo" title="{{ _('Undo the last change') }}"
+              aria-label="{{ _('Undo') }}">&#8634;</button>
+      <button type="button" id="lexisRedo" title="{{ _('Redo the change') }}"
+              aria-label="{{ _('Redo') }}">&#8635;</button>
+      <button type="button" id="lexisDashboardBtn"
+              title="{{ _('Overview and data health') }}">{{ _('Dashboard') }}</button>
+      <button type="button" id="lexisManageBtn"
+              title="{{ _('Manage taxonomy, files and views (M)') }}">{{ _('Manage') }}</button>
+      <button type="button" id="lexisBasketBtn" title="{{ _('Clear the basket') }}">
+        {{ _('Basket') }}<span id="lexisBasketN" class="lexis-badge-n">0</span>
+      </button>
+      <button type="button" id="lexisHelpBtn" title="{{ _('Keyboard shortcuts (?)') }}"
+              aria-label="{{ _('Keyboard shortcuts') }}">?</button>
+    </div>
+  </header>
+
+  <div class="lexis-main">
+    {# ------------------------------------------------------------- canvas #}
+    <section class="lexis-stage" aria-label="{{ _('Cosmos') }}">
+      <div class="lexis-toolbar" role="toolbar" aria-label="{{ _('Canvas tools') }}">
+        <div class="grp" role="group" aria-label="{{ _('Zoom') }}">
+          <button type="button" class="tb" id="lexisZoomOut" title="{{ _('Zoom out (-)') }}">&#8722;</button>
+          <button type="button" class="tb lbl" id="lexisZoomReset"
+                  title="{{ _('Reset to 100% (0)') }}">100%</button>
+          <button type="button" class="tb" id="lexisZoomIn" title="{{ _('Zoom in (+)') }}">+</button>
+          <button type="button" class="tb" id="lexisZoomFit"
+                  title="{{ _('Fit to screen (F)') }}">{{ _('Fit') }}</button>
+        </div>
+
+        <div class="grp" role="group" aria-label="{{ _('Depth') }}">
+          <label class="sr-only" for="lexisDepth">{{ _('Depth') }}</label>
+          <select id="lexisDepth" title="{{ _('Open the chart to a depth (D cycles)') }}">
+            <option value="1">{{ _('Show 1 level') }}</option>
+            <option value="2">{{ _('Show 2 levels') }}</option>
+            <option value="3">{{ _('Show 3 levels') }}</option>
+            <option value="4">{{ _('Show 4 levels') }}</option>
+            <option value="5">{{ _('Show all levels') }}</option>
+          </select>
+          <button type="button" class="tb lbl" id="lexisExpandOne"
+                  title="{{ _('Open one more level') }}">&#9662; {{ _('Level') }}</button>
+          <button type="button" class="tb lbl" id="lexisCollapseOne"
+                  title="{{ _('Close the deepest open level') }}">&#9652; {{ _('Level') }}</button>
+          <button type="button" class="tb" id="lexisEmptyBtn"
+                  title="{{ _('Show or hide items that contain no files') }}">{{ _('Empty items') }}</button>
+        </div>
+
+        <div class="grp" role="group" aria-label="{{ _('Structure') }}">
+          <button type="button" class="tb" id="lexisLocate"
+                  title="{{ _('Centre on the focus (L)') }}">{{ _('Locate') }}</button>
+          <button type="button" class="tb" id="lexisPanelBtn"
+                  title="{{ _('Show or hide the sidebar (B)') }}">{{ _('Sidebar') }}</button>
+          <button type="button" class="tb" id="lexisFullscreen"
+                  title="{{ _('Full screen (Shift+F)') }}">&#9974;</button>
+          <button type="button" class="tb" id="lexisOutlineBtn"
+                  title="{{ _('Download the whole structure as Markdown') }}">{{ _('Outline') }}</button>
+          <button type="button" class="tb" id="lexisPrintBtn"
+                  title="{{ _('Print the structure') }}">{{ _('Print') }}</button>
+        </div>
+      </div>
+
+      <div id="lexisChartWrap" class="lexis-chart-wrap">
+        <div id="lexisChart" class="lexis-chart" role="application" tabindex="0"
+             aria-label="{{ _('The taxonomy galaxy') }}"></div>
+      </div>
+
+      <div id="lexisStatus" class="lexis-statusbar" aria-live="polite"></div>
+    </section>
+
+    {# ------------------------------------------------------------ sidebar #}
+    <aside id="lexisPanel" class="lexis-panel" aria-label="{{ _('Sidebar') }}">
+      <div id="lexisResize" class="lexis-panel-resize"
+           title="{{ _('Drag to resize the sidebar · double-click to reset') }}"></div>
+
+      <div class="lexis-phead">
+        <div id="lexisKicker" class="lexis-kicker">{{ _('LEXIS Cosmos') }}</div>
+        <h2 id="lexisScopeTitle">{{ _('Library') }}</h2>
+        <div id="lexisScopeSub" class="sub"></div>
+        <div id="lexisStats" class="lexis-stats"></div>
+        <div id="lexisLensStrip" class="lexis-lens-strip" aria-live="polite" hidden></div>
+        <div class="lexis-pbar">
+          <label class="sr-only" for="lexisQ">{{ _('Search and filters') }}</label>
+          <input id="lexisQ" type="search" autocomplete="off"
+                 placeholder="{{ _('Search names, sources, sides and text…') }}">
+          <button type="button" id="lexisFiltersBtn" aria-expanded="true"
+                  title="{{ _('Show or hide the filter cards') }}">{{ _('Hide filters') }}</button>
+          <button type="button" id="lexisSaveView"
+                  title="{{ _('Save the current view') }}">{{ _('Save view') }}</button>
+        </div>
+      </div>
+
+      <div id="lexisActiveBar" class="lexis-active-bar" aria-live="polite"></div>
+
+      <div id="lexisFilters" class="lexis-filters">
+        <div class="lexis-fgrid">
+
+          {# The structure filter. It is the same state as the canvas's "Empty
+             items" button - this is where an operator looks for it, and the
+             two controls mirror each other. #}
+          <div class="lexis-fcard wide">
+            <div class="lexis-fhead">
+              <span class="lexis-ftitle">{{ _('Empty items') }}</span>
+            </div>
+            <div class="lexis-fbody">
+              <label class="lexis-switch" for="lexisEmptyToggle">
+                <input type="checkbox" id="lexisEmptyToggle" role="switch"
+                       aria-label="{{ _('Show or hide items that contain no files') }}"
+                       aria-describedby="lexisEmptyHelp" checked>
+                <span class="lexis-switch-track" aria-hidden="true">
+                  <span class="lexis-switch-dot"></span>
+                </span>
+                <span id="lexisEmptyLabel">{{ _('Hidden') }}</span>
+              </label>
+              <p id="lexisEmptyHelp" class="lexis-fhelp">
+                {{ _('Categories, subcategories and terms with no files in scope are left out of the structure.') }}
+              </p>
+            </div>
+          </div>
+
+          <div class="lexis-fcard">
+            <div class="lexis-fhead">
+              <button type="button" class="lexis-ftog" data-card-toggle
+                      aria-expanded="true">
+                <span class="lexis-ftitle">{{ _('File type') }}</span>
+                <span id="lexisCntTypes" class="lexis-fcnt"></span>
+                <span class="lexis-fcar" aria-hidden="true">&#9662;</span>
+              </button>
+              <button type="button" class="lexis-fclr" data-clear-card="types"
+                      title="{{ _('Clear file types') }}">{{ _('Clear') }}</button>
+            </div>
+            <div class="lexis-fbody">
+              <div id="lexisMsTypes" class="lexis-ms"></div>
+            </div>
+          </div>
+
+          <div class="lexis-fcard">
+            <div class="lexis-fhead">
+              <button type="button" class="lexis-ftog" data-card-toggle
+                      aria-expanded="true">
+                <span class="lexis-ftitle">{{ _('Source') }}</span>
+                <span id="lexisCntSources" class="lexis-fcnt"></span>
+                <span class="lexis-fcar" aria-hidden="true">&#9662;</span>
+              </button>
+              <button type="button" class="lexis-fclr" data-clear-card="sources"
+                      title="{{ _('Clear sources') }}">{{ _('Clear') }}</button>
+            </div>
+            <div class="lexis-fbody">
+              <div id="lexisMsSources" class="lexis-ms"></div>
+            </div>
+          </div>
+
+          <div class="lexis-fcard">
+            <div class="lexis-fhead">
+              <button type="button" class="lexis-ftog" data-card-toggle
+                      aria-expanded="true">
+                <span class="lexis-ftitle">{{ _('Side') }}</span>
+                <span id="lexisCntSides" class="lexis-fcnt"></span>
+                <span class="lexis-fcar" aria-hidden="true">&#9662;</span>
+              </button>
+              <button type="button" class="lexis-fclr" data-clear-card="side"
+                      title="{{ _('Clear side values') }}">{{ _('Clear') }}</button>
+            </div>
+            <div class="lexis-fbody">
+              <div id="lexisMsSides" class="lexis-ms"></div>
+            </div>
+          </div>
+
+          <div class="lexis-fcard">
+            <div class="lexis-fhead">
+              <button type="button" class="lexis-ftog" data-card-toggle
+                      aria-expanded="true">
+                <span class="lexis-ftitle">{{ _('Date range') }}</span>
+                <span id="lexisCntDates" class="lexis-fcnt"></span>
+                <span class="lexis-fcar" aria-hidden="true">&#9662;</span>
+              </button>
+              <button type="button" class="lexis-fclr" data-clear-card="dates"
+                      title="{{ _('Clear dates') }}">{{ _('Clear') }}</button>
+            </div>
+            <div class="lexis-fbody">
+              <div class="lexis-dates">
+                <label for="lexisFrom">{{ _('From date') }}
+                  <input id="lexisFrom" type="date">
+                </label>
+                <label for="lexisTo">{{ _('To date') }}
+                  <input id="lexisTo" type="date">
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="lexis-fcard wide">
+            <div class="lexis-fhead">
+              <button type="button" class="lexis-ftog" data-card-toggle
+                      aria-expanded="true">
+                <span class="lexis-ftitle">{{ _('Basket') }}</span>
+                <span id="lexisCntBasket" class="lexis-fcnt"></span>
+                <span class="lexis-fcar" aria-hidden="true">&#9662;</span>
+              </button>
+              <button type="button" class="lexis-fclr" data-clear-card="basket"
+                      title="{{ _('Empty the basket') }}">{{ _('Clear') }}</button>
+            </div>
+            <div class="lexis-fbody">
+              <div class="lexis-fbar">{{ _('The basket overrides the focused node.') }}</div>
+              <div id="lexisBasketChips" class="lexis-chips"></div>
+            </div>
+          </div>
+
+          <div class="lexis-fcard wide">
+            <div class="lexis-fhead">
+              <button type="button" class="lexis-ftog" data-card-toggle
+                      aria-expanded="true">
+                <span class="lexis-ftitle">{{ _('Saved views') }}</span>
+                <span id="lexisCntViews" class="lexis-fcnt"></span>
+                <span class="lexis-fcar" aria-hidden="true">&#9662;</span>
+              </button>
+              <button type="button" class="lexis-fclr" id="lexisSaveViewCard"
+                      title="{{ _('Save the current view') }}">{{ _('Save view') }}</button>
+            </div>
+            <div class="lexis-fbody">
+              <div id="lexisViewChips" class="lexis-chips"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="lexis-selbar">
+        <button type="button" id="lexisSelToggle">{{ _('Select all') }}</button>
+        <span id="lexisSelN" class="lexis-seln">{{ _('No selection') }}</span>
+        <span class="grow"></span>
+        <button type="button" id="lexisOpenSelected">{{ _('Open') }}</button>
+        <button type="button" id="lexisExportBtn">{{ _('Export…') }}</button>
+        <span class="dd">
+          <button type="button" id="lexisActBtn" aria-haspopup="menu" aria-expanded="false"
+                  title="{{ _('All file actions') }}">{{ _('Actions') }} &#9662;</button>
+          <div id="lexisActMenu" class="lexis-ddmenu" role="menu" hidden></div>
+        </span>
+      </div>
+
+      <div id="lexisPager" class="lexis-pager"></div>
+
+      <ul id="lexisList" class="lexis-list" aria-live="polite"></ul>
+
+      <div class="lexis-pfoot" id="lexisFoot">
+        {{ _('Click a file to open it · Shift-click for a range · Ctrl/⌘-click to toggle · ✎ on a card to edit it.') }}
+      </div>
+    </aside>
+  </div>
+
+  {# --------------------------------------------------------------- modals #}
+  <div id="lexisManage" class="lexis-modal" role="dialog" aria-modal="true"
+       aria-label="{{ _('Manage') }}">
+    <div class="lexis-sheet wide">
+      <button type="button" class="close" data-close-modal="lexisManage"
+              aria-label="{{ _('Close') }}">&times;</button>
+      <h3>{{ _('Manage') }}</h3>
+      <div id="lexisManageBody"></div>
+    </div>
+  </div>
+
+  <div id="lexisEditor" class="lexis-modal" role="dialog" aria-modal="true">
+    <div class="lexis-sheet narrow">
+      <button type="button" class="close" data-close-modal="lexisEditor"
+              aria-label="{{ _('Close') }}">&times;</button>
+      <h3 id="lexisEditorTitle"></h3>
+      <div id="lexisEditorBody"></div>
+    </div>
+  </div>
+
+  <div id="lexisViewer" class="lexis-modal" role="dialog" aria-modal="true">
+    <div class="lexis-sheet">
+      <button type="button" class="close" data-close-modal="lexisViewer"
+              aria-label="{{ _('Close') }}">&times;</button>
+      <h3 id="lexisViewerTitle">{{ _('Document') }}</h3>
+      <div id="lexisViewerBody"></div>
+    </div>
+  </div>
+
+  <div id="lexisExporter" class="lexis-modal" role="dialog" aria-modal="true"
+       aria-label="{{ _('Export the scope') }}">
+    <div class="lexis-sheet narrow">
+      <button type="button" class="close" data-close-modal="lexisExporter"
+              aria-label="{{ _('Close') }}">&times;</button>
+      <h3>{{ _('Export the scope') }}</h3>
+      <div id="lexisExportBody"></div>
+    </div>
+  </div>
+
+  <div id="lexisConfirm" class="lexis-modal" role="dialog" aria-modal="true">
+    <div class="lexis-sheet narrow">
+      <button type="button" class="close" data-close-modal="lexisConfirm"
+              aria-label="{{ _('Close') }}">&times;</button>
+      <h3 id="lexisConfirmTitle">{{ _('Please confirm') }}</h3>
+      <div id="lexisConfirmBody"></div>
+    </div>
+  </div>
+
+  <div id="lexisPrint" class="lexis-modal" role="dialog" aria-modal="true">
+    <div class="lexis-sheet narrow">
+      <button type="button" class="close" data-close-modal="lexisPrint"
+              aria-label="{{ _('Close') }}">&times;</button>
+      <h3>{{ _('Print the structure') }}</h3>
+      <div id="lexisPrintBody"></div>
+    </div>
+  </div>
+
+  <div id="lexisHelp" class="lexis-modal" role="dialog" aria-modal="true"
+       aria-label="{{ _('Keyboard shortcuts') }}">
+    <div class="lexis-sheet narrow">
+      <button type="button" class="close" data-close-modal="lexisHelp"
+              aria-label="{{ _('Close') }}">&times;</button>
+      <h3>{{ _('Keyboard shortcuts') }}</h3>
+      <div id="lexisHelpBody"></div>
+    </div>
+  </div>
+
+  <div id="lexisToast" class="lexis-toast" role="status" aria-live="polite"></div>
+
+  {# Off-screen print document: the browser's own dialog prints this page. #}
+  <div id="lexisPrintRoot" class="lexis-print-root" aria-hidden="true"></div>
+
+  <script type="application/json" id="lexis-page-data">{{ page_data | tojson }}</script>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/lexis-cosmos-page.js') }}?v=20261022b"
+        defer></script>
+{% endblock %}

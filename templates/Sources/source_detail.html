@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Source Details') }}{% endblock %}
+
+{% from 'components/breadcrumbs.html' import breadcrumbs %}
+{% block breadcrumb %}{{ breadcrumbs(parent='sources_list', current=source.name if source else none) }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-building me-2"></i>
+        {{ _('Source Details') }}
+    </h1>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-building"></i>
+        {{ _('Source Details Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('View comprehensive information about this source including statistics and metadata') }}</li>
+        <li>{{ _('See document count, file types, total size, and other key metrics') }}</li>
+        <li>{{ _('Explore files, categories, and keywords associated with this source') }}</li>
+        <li>{{ _('Edit source information or manage associations from this page') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-file-text"></i>
+        {{ _('Source Information') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('View source metadata including country, city, ownership, and access status') }}</li>
+        <li>{{ _('See all files originating from this source') }}</li>
+        <li>{{ _('Review categories and keywords most commonly associated with this source') }}</li>
+        <li>{{ _('Use this information to understand the origin and characteristics of your files') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="stat-card">
+            <h5 class="mb-3">{{ _('Source Information') }}</h5>
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="h4 text-primary mb-0">{{ source.doc_count|default(0) }}</div>
+                        <small class="text-muted">{{ _('Documents') }}</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="h4 text-success mb-0">{{ source.file_types|default(0) }}</div>
+                        <small class="text-muted">{{ _('File Types') }}</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="h4 text-warning mb-0">
+                            {% if source.total_size %}
+                                {% if source.total_size > 1073741824 %}
+                                    {{ (source.total_size / 1073741824)|round(1) }} {{ _('GB') }}
+                                {% else %}
+                                    {{ (source.total_size / 1048576)|round(1) }} {{ _('MB') }}
+                                {% endif %}
+                            {% else %}
+                                0 {{ _('MB') }}
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ _('Total Size') }}</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="h4 text-info mb-0">{{ (source.importance * 100)|round|int }}%</div>
+                        <small class="text-muted">{{ _('Importance') }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Source Name') }}</label>
+                        <p class="form-control-plaintext"><strong>{{ source.name }}</strong></p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Job/Type') }}</label>
+                        <p class="form-control-plaintext">{{ source.job }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Country') }}</label>
+                        <p class="form-control-plaintext">{{ source.country }}</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('City') }}</label>
+                        <p class="form-control-plaintext">{{ source.city or 'N/A' }}</p>
+                    </div>
+                </div>
+            </div>
+            {% if source.description %}
+            <div class="mb-3">
+                <label class="form-label">{{ _('Description') }}    </label>
+                <p class="form-control-plaintext">{{ source.description }}</p>
+            </div>
+            {% endif %}
+            {% if source.accounts %}
+            <div class="mb-3">
+                <label class="form-label">{{ _('Social Media Accounts') }}</label>
+                <p class="form-control-plaintext">{{ source.accounts }}</p>
+            </div>
+            {% endif %}
+            {% if source.attachments %}
+            <div class="mb-3">
+                <label class="form-label">{{ _('Attachments') }}</label>
+                <p class="form-control-plaintext">{{ source.attachments }}</p>
+            </div>
+            {% endif %}
+            {% if source.note %}
+            <div class="mb-3">
+                <label class="form-label">{{ _('Notes') }}</label>
+                <p class="form-control-plaintext">{{ source.note }}</p>
+            </div>
+            {% endif %}
+            {% if source.date_creation %}
+            <div class="mb-3">
+                <label class="form-label">{{ _('Created') }}</label>
+                <p class="form-control-plaintext">{{ source.date_creation.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            {% endif %}
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Ownership') }}</label>
+                        <p class="form-control-plaintext">{{ source.ownership or 'N/A' }}</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Access Status') }}</label>
+                        <p class="form-control-plaintext">{{ source.access_status or 'N/A' }}</p>
+                    </div>
+                </div>
+            </div>
+            {% if source.date_source_discovery %}
+            <div class="mb-3">
+                <label class="form-label">{{ _('Date of Source Discovery') }}</label>
+                <p class="form-control-plaintext">{{ source.date_source_discovery.strftime('%Y-%m-%d') }}</p>
+            </div>
+            {% endif %}
+            {% if source.category_name %}
+            <div class="mb-3">
+                <label class="form-label">{{ _('Category') }}</label>
+                <p class="form-control-plaintext">{{ source.category_name }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h5 class="mb-3">{{ _('Actions') }}</h5>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('source_categories_keywords', source_id=source.id) }}" class="btn btn-primary">
+                    <i class="bi bi-tags me-2"></i>{{ _('View Categories & Keywords') }}
+                </a>
+                <a href="{{ url_for('sources_list') }}?edit={{ source.id }}" class="btn btn-success">
+                    <i class="bi bi-pencil me-2"></i>{{ _('Edit Source') }}
+                </a>
+                <button type="button" class="btn btn-outline-danger" data-on-click='deleteSource({{ source.id }}, {{ source.name|tojson }})'>
+                    <i class="bi bi-trash me-2"></i>{{ _('Delete Source') }}
+                </button>
+            </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="source-detail-page-data">{{ {
+    "translations": {
+        "deleteSourceConfirm": _('Are you sure you want to delete this source?'),
+        "sourceDeletedSuccessfully": _('Source deleted successfully!'),
+        "error": _('Error')
+    },
+    "sources_list_url": url_for('sources_list', _external=False)
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/source-detail-page.js') }}"></script>
+{% endblock %}

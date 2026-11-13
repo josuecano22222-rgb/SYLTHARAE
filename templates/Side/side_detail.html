@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Side Details') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-diagram-3 me-2"></i>
+        {{ _('Side Details') }}
+    </h1>
+    <a href="{{ url_for('sides_list') }}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-left me-2"></i>
+        {{ _('Back to Sides') }}
+    </a>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-diagram-3"></i>
+        {{ _('Side Details Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('View comprehensive information about this side including statistics and associations') }}</li>
+        <li>{{ _('See document count, source count, total file size, and other key metrics') }}</li>
+        <li>{{ _('Explore files, categories, and keywords associated with this side') }}</li>
+        <li>{{ _('Edit side information or manage associations from this page') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-file-text"></i>
+        {{ _('Associated Data') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('View all files associated with this side in the files section') }}</li>
+        <li>{{ _('See categories and keywords linked to this side') }}</li>
+        <li>{{ _('Review statistics showing the distribution of data across this side') }}</li>
+        <li>{{ _('Use filters to find specific files or data within this side') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="stat-card">
+            <h5 class="mb-3">{{ _('Side Information') }}</h5>
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="h4 text-primary mb-0">{{ side.doc_count|default(0) }}</div>
+                        <small class="text-muted">{{ _('Documents') }}</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="h4 text-success mb-0">{{ side.source_count|default(0) }}</div>
+                        <small class="text-muted">{{ _('Sources') }}</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="h4 text-warning mb-0">
+                            {% if side.total_size %}
+                                {% if side.total_size > 1073741824 %}
+                                    {{ (side.total_size / 1073741824)|round(1) }} {{ _('GB') }}
+                                {% else %}
+                                    {{ (side.total_size / 1048576)|round(1) }} {{ _('MB') }}
+                                {% endif %}
+                            {% else %}
+                                0 {{ _('MB') }}
+                            {% endif %}
+                        </div>
+                        <small class="text-muted">{{ _('Total Size') }}</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center p-3 bg-light rounded">
+                        <div class="h4 text-info mb-0">{{ (side.importance * 100)|round|int }}%</div>
+                        <small class="text-muted">{{ _('Importance') }}</small>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ _('Side Name') }}</label>
+                <p class="form-control-plaintext"><strong>{{ side.name }}</strong></p>
+            </div>
+            {% if side.date_creation %}
+            <div class="mb-3">
+                <label class="form-label">{{ _('Created') }}</label>
+                <p class="form-control-plaintext text-muted">{{ side.date_creation.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h5 class="mb-3">{{ _('Actions') }}</h5>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('side_categories_keywords', side_id=side.id) }}" class="btn btn-primary">
+                    <i class="bi bi-tags me-2"></i>{{ _('View Categories & Keywords') }}
+                </a>
+                <a href="{{ url_for('sides_list') }}?edit={{ side.id }}" class="btn btn-success">
+                    <i class="bi bi-pencil me-2"></i>{{ _('Edit Side') }}
+                </a>
+                <button type="button" class="btn btn-outline-danger" data-on-click='deleteSide({{ side.id }}, {{ side.name|tojson }})'>
+                    <i class="bi bi-trash me-2"></i>{{ _('Delete Side') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="side-detail-page-data">{{ {
+    "translations": {
+        "deleteSideConfirm": _('Are you sure you want to delete this side?'),
+        "sideDeletedSuccessfully": _('Side deleted successfully!'),
+        "error": _('Error')
+    },
+    "sides_list_url": url_for('sides_list', _external=False)
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/side-detail-page.js') }}"></script>
+{% endblock %}

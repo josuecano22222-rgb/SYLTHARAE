@@ -1,0 +1,4 @@
+body {
+    background: linear-gradient(135deg, var(--alert-danger-bg) 0%, rgba(239, 68, 68, 0.2) 100%);
+}
+

@@ -1,0 +1,105 @@
+{# component: file_nav
+   purpose: Previous/next through the records the reader is working through,
+            and where this one sits in that set.
+   states: normal, empty
+   classes: file-nav, file-nav__text
+   notes: The position comes from the FileNavigation service; the component
+          does not count or query.
+#}
+{#-
+    Previous/Next control for the per-file pages.
+
+    Rendered from a FileNavigation object (Api/services/file_navigation.py):
+      * ``nav.previous_url`` / ``nav.next_url``
+      * ``nav.position`` / ``nav.total`` / ``nav.filtered``
+      * ``nav.previous.file_name`` / ``nav.next.file_name``
+
+    ``variant`` selects the button style for the surface it sits on:
+      * ``header``  - on the coloured File Detail header (light buttons)
+      * ``plain``   - on the white Reader header (outlined buttons)
+      * ``dock``    - persistent fixed file-set toolbar (File Detail workstation)
+
+    At the boundary the control stays visible but disabled: hiding it would
+    leave the operator unsure whether there is no next file or no control.
+    Keyboard: Alt+Left / Alt+Right (see static/js/file-nav.js).
+-#}
+{% macro file_nav(nav, variant='plain', include_script=true) -%}
+{%- if nav and (nav.navigable or nav.position) -%}
+{%- if variant == 'header' -%}
+{%- set button_class = 'btn-light' -%}
+{%- elif variant == 'dock' -%}
+{%- set button_class = 'btn-outline-primary' -%}
+{%- else -%}
+{%- set button_class = 'btn-outline-secondary' -%}
+{%- endif -%}
+<nav class="file-nav file-nav--{{ variant }}" aria-label="{{ _('File navigation') }}">
+    {% if nav.has_previous %}
+    <a class="btn btn-sm {{ button_class }} file-nav__button"
+       data-nav-dir="prev"
+       rel="prev"
+       href="{{ nav.previous_url }}"
+       title="{{ _('Previous file: %(name)s (Alt+Left)', name=nav.previous.file_name) }}">
+        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+        <span class="file-nav__text">{{ _('Previous') }}</span>
+    </a>
+    {% else %}
+    <span class="btn btn-sm {{ button_class }} file-nav__button is-disabled"
+          data-nav-dir="prev"
+          aria-disabled="true"
+          title="{{ _('This is the first file in the current view') }}">
+        <i class="bi bi-chevron-left" aria-hidden="true"></i>
+        <span class="file-nav__text">{{ _('Previous') }}</span>
+    </span>
+    {% endif %}
+
+    <span class="file-nav__position"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          title="{{ _('Position in the current view') }}{% if nav.filtered %} - {{ _('filtered') }}{% endif %}">
+        {%- if nav.position and nav.total -%}
+            {{ _('File') }} {{ nav.position }} {{ _('of') }} {{ nav.total }}
+        {%- elif nav.total -%}
+            {{ _('Not in the current view') }}
+        {%- else -%}
+            {{ _('Position unavailable') }}
+        {%- endif -%}
+    </span>
+
+    {% if nav.has_next %}
+    <a class="btn btn-sm {{ button_class }} file-nav__button"
+       data-nav-dir="next"
+       rel="next"
+       href="{{ nav.next_url }}"
+       title="{{ _('Next file: %(name)s (Alt+Right)', name=nav.next.file_name) }}">
+        <span class="file-nav__text">{{ _('Next') }}</span>
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </a>
+    {% else %}
+    <span class="btn btn-sm {{ button_class }} file-nav__button is-disabled"
+          data-nav-dir="next"
+          aria-disabled="true"
+          title="{{ _('This is the last file in the current view') }}">
+        <span class="file-nav__text">{{ _('Next') }}</span>
+        <i class="bi bi-chevron-right" aria-hidden="true"></i>
+    </span>
+    {% endif %}
+</nav>
+{%- if include_script -%}
+<script src="{{ url_for('static', filename='js/file-nav.js') }}" defer></script>
+{%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+
+{# Persistent fixed dock for the file analyst workstation (one per page). #}
+{% macro file_nav_dock(nav) -%}
+{%- if nav and (nav.navigable or nav.position) -%}
+<aside class="file-nav-dock" id="fileNavDock" data-file-nav-dock
+       aria-label="{{ _('File set navigation') }}">
+    <div class="file-nav-dock__surface">
+        {{ file_nav(nav, 'dock', false) }}
+    </div>
+</aside>
+<script src="{{ url_for('static', filename='js/file-nav.js') }}" defer></script>
+{%- endif -%}
+{%- endmacro %}

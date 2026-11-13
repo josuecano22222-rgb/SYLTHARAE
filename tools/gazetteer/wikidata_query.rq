@@ -1,0 +1,39 @@
+# Gazetteer seed query (Wikidata Query Service, https://query.wikidata.org/).
+# Data licence: Wikidata is CC0 1.0.
+#
+# One output row per place, as a single string, because the result was read
+# through a text renderer that loses XML/JSON structure:
+#
+#   @@<enwiki title>|<QID>|<P625 WKT>|<P17->P297 codes, comma-joined>|
+#     <label en>|<label ar>|<label he>|<label fa>|<label hr>|
+#     <P1705 native labels as text@lang, "/"-joined>~
+#
+# Replace TITLES with the titles of tools/gazetteer/titles.tsv, each as
+# "Title"@en (batches of <= 75 titles were used).
+#
+# Every aggregate is wrapped in COALESCE: an unbound aggregate inside CONCAT
+# makes the whole row unbound and WDQS silently drops it. Batches 0-2 were run
+# with COALESCE on the SAMPLEs only, which dropped 16 places lacking P17 or
+# P1705; batch 3 re-queried exactly those with this corrected form
+# (data/gazetteer/SOURCES.md).
+SELECT (CONCAT("@@", STR(?t), "|", STRAFTER(STR(?item), "entity/"), "|",
+        COALESCE(STR(SAMPLE(?co)), ""), "|",
+        COALESCE(GROUP_CONCAT(DISTINCT ?cc; separator=","), ""), "|",
+        COALESCE(STR(SAMPLE(?en)), ""), "|", COALESCE(STR(SAMPLE(?ar)), ""), "|",
+        COALESCE(STR(SAMPLE(?he)), ""), "|", COALESCE(STR(SAMPLE(?fa)), ""), "|",
+        COALESCE(STR(SAMPLE(?hr)), ""), "|",
+        COALESCE(GROUP_CONCAT(DISTINCT CONCAT(STR(?n), "@", LANG(?n)); separator="/"), ""),
+        "~") AS ?r)
+WHERE {
+  VALUES ?t { TITLES }
+  ?a schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>; schema:name ?t.
+  OPTIONAL { ?item wdt:P625 ?co }
+  OPTIONAL { ?item wdt:P17 ?c. ?c wdt:P297 ?cc }
+  OPTIONAL { ?item rdfs:label ?en FILTER(LANG(?en) = "en") }
+  OPTIONAL { ?item rdfs:label ?ar FILTER(LANG(?ar) = "ar") }
+  OPTIONAL { ?item rdfs:label ?he FILTER(LANG(?he) = "he") }
+  OPTIONAL { ?item rdfs:label ?fa FILTER(LANG(?fa) = "fa") }
+  OPTIONAL { ?item rdfs:label ?hr FILTER(LANG(?hr) = "hr") }
+  OPTIONAL { ?item wdt:P1705 ?n }
+}
+GROUP BY ?t ?item

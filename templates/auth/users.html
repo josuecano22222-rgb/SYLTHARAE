@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('User Management') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-people me-2" aria-hidden="true"></i>
+        {{ _('User Management') }}
+    </h1>
+    <button type="button" class="btn btn-primary" id="addUserButton">
+        <i class="bi bi-person-plus me-2" aria-hidden="true"></i>
+        {{ _('Add User') }}
+    </button>
+</div>
+
+<!-- Users Table -->
+<div class="section-card">
+    <div class="section-header">
+        <h5 class="mb-0" id="usersSectionTitle" tabindex="-1"><i class="bi bi-person-badge me-2" aria-hidden="true"></i>{{ _('Accounts') }}</h5>
+        <span class="badge bg-secondary" id="usersCount" aria-live="polite" aria-atomic="true">0</span>
+    </div>
+    <div class="section-content">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="usersTable">
+                <caption class="visually-hidden">{{ _('Accounts') }}</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">{{ _('ID') }}</th>
+                        <th scope="col">{{ _('Username') }}</th>
+                        <th scope="col">{{ _('Role') }}</th>
+                        <th scope="col">{{ _('Status') }}</th>
+                        <th scope="col">{{ _('Created') }}</th>
+                        <th scope="col" class="text-end">{{ _('Actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr><td colspan="6" class="text-center py-4 text-muted">
+                        <div class="spinner-border spinner-border-sm me-2" aria-hidden="true"></div><span role="status">{{ _('Loading users...') }}</span>
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Role Capability Matrix -->
+<div class="section-card mt-4">
+    <div class="section-header">
+        <h5 class="mb-0"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>{{ _('Role Capability Matrix') }}</h5>
+    </div>
+    <div class="section-content">
+        <div class="table-responsive">
+            <table class="table table-sm table-striped">
+                <caption class="visually-hidden">{{ _('Role Capability Matrix') }}</caption>
+                <thead>
+                    <tr>
+                        <th scope="col">{{ _('Capability') }}</th>
+                        <th scope="col" class="text-center">{{ _('Admin') }}</th>
+                        <th scope="col" class="text-center">{{ _('Analyst') }}</th>
+                        <th scope="col" class="text-center">{{ _('Viewer') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <th scope="row">{{ _('Browse and search files, words, keywords, categories') }}</th>
+                        <td class="text-center text-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('Yes') }}</span></td>
+                        <td class="text-center text-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('Yes') }}</span></td>
+                        <td class="text-center text-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('Yes') }}</span></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">{{ _('Manage sources, sides, words, keywords, categories') }}</th>
+                        <td class="text-center text-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('Yes') }}</span></td>
+                        <td class="text-center text-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('Yes') }}</span></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('No') }}</span></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">{{ _('Run analyses, ingest files, operate jobs and imports') }}</th>
+                        <td class="text-center text-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('Yes') }}</span></td>
+                        <td class="text-center text-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('Yes') }}</span></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('No') }}</span></td>
+                    </tr>
+                    <tr>
+                        <th scope="row">{{ _('System settings, backup import/restore, user administration') }}</th>
+                        <td class="text-center text-success"><i class="bi bi-check-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('Yes') }}</span></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('No') }}</span></td>
+                        <td class="text-center text-danger"><i class="bi bi-x-circle" aria-hidden="true"></i><span class="visually-hidden">{{ _('No') }}</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="createUserForm" novalidate>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createUserModalLabel">
+                        <i class="bi bi-person-plus me-2"></i>{{ _('Add User') }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="newUsername">{{ _('Username') }}</label>
+                        <input type="text" class="form-control" id="newUsername" required maxlength="64" autocomplete="off">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newUserPassword">{{ _('Password') }}</label>
+                        <input type="password" class="form-control" id="newUserPassword" required
+                               minlength="{{ password_min_length|default(12) }}" maxlength="256" autocomplete="new-password"
+                               data-minimum-message="{{ _('New password must be at least %(min)s characters.', min=password_min_length|default(12)) }}">
+                        <div class="form-text">{{ _('Minimum %(min)s characters.', min=password_min_length|default(12)) }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="newUserRole">{{ _('Role') }}</label>
+                        <select class="form-select" id="newUserRole">
+                            <option value="viewer">{{ _('Viewer') }}</option>
+                            <option value="analyst" selected>{{ _('Analyst') }}</option>
+                            <option value="admin">{{ _('Admin') }}</option>
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="newUserMustChange" checked>
+                        <label class="form-check-label" for="newUserMustChange">
+                            {{ _('Require password change at first sign-in') }}
+                        </label>
+                    </div>
+                    <div class="alert alert-danger d-none mt-3" id="createUserError" role="alert"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                    <button type="submit" class="btn btn-primary" id="createUserSubmit">
+                        <i class="bi bi-check-circle me-1"></i>{{ _('Create User') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete User Confirmation Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">
+                    <i class="bi bi-trash me-2"></i>{{ _('Delete User') }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">{{ _('Permanently delete') }} <strong id="deleteUserModalName"></strong>?
+                    {{ _('Their sessions are revoked immediately and this cannot be undone. The audit history is kept.') }}</p>
+                <div class="alert alert-danger d-none" id="deleteUserError" role="alert"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                <button type="button" class="btn btn-danger" id="deleteUserConfirm">{{ _('Delete User') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Result Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetPasswordModalLabel">
+                    <i class="bi bi-key me-2"></i>{{ _('Temporary Password') }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2" id="resetPasswordHelp">{{ _('Share this temporary password with the user. It is shown only once and all their sessions have been revoked.') }}</p>
+                <label class="form-label" for="resetPasswordValue">{{ _('Temporary Password') }}</label>
+                <input type="text" class="form-control font-monospace" id="resetPasswordValue" readonly
+                       aria-describedby="resetPasswordHelp" autocomplete="off">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">{{ _('Done') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="users-page-data">{{ {
+    "translations": {
+        "error": _('Error'),
+        "unknownError": _('Unknown error'),
+        "userCreated": _('User created successfully'),
+        "cannotChangeSelf": _('You cannot change your own role or status.'),
+        "confirmReset": _('Generate a new temporary password for this user? Their current sessions will be revoked.'),
+        "you": _('You'),
+        "temporaryPassword": _('Temporary Password'),
+        "role": _('Role'),
+        "status": _('Status'),
+        "role_admin": _('Admin'),
+        "role_analyst": _('Analyst'),
+        "role_viewer": _('Viewer'),
+        "resetPassword": _('Reset password'),
+        "deleteUser": _('Delete User'),
+        "noUsersFound": _('No users found.'),
+        "credentialsRequired": _('Username and password are required.'),
+        "createFailed": _('Failed to create user.'),
+        "deleteFailed": _('Failed to delete user.'),
+        "pleaseTryAgain": _('Please try again.'),
+        "userUpdated": _('User updated successfully.'),
+        "userDeleted": _('User deleted successfully.')
+    },
+    "currentUserId": current_user.id if current_user else None,
+    "currentUsername": current_user.username if current_user else None
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/users-page.js') }}"></script>
+{% endblock %}

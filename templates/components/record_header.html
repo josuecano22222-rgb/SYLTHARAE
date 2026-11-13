@@ -1,0 +1,88 @@
+{# component: record_header
+   purpose: The top of a record: what this record is, what state it is in, and
+            the one action that matters most. The same header for a file, a
+            source, a side, a category, an analysis or a report - it knows
+            nothing about what kind of record it is describing.
+   inputs: record_id (a stable id for the heading), eyebrow, title, subtitle,
+           status (rendered markup, e.g. status_badge), metadata (list of
+           {label, value, href?}), icon, actions (rendered markup, usually the
+           record action surface)
+   outputs: none - it renders, it does not decide
+   events: none. The page renders the actions it passes in; this header never
+           handles a click itself.
+   states: normal, empty, loading, unavailable, archived
+   slots: metadata items, status, actions
+   accessibility: the title is the page's h1; metadata is a real description
+           list (dt/dd) so a screen reader reads each label with its value; the
+           status is passed in already rendered with its own announcements; the
+           icon is decorative and hidden from assistive technology.
+   third_party: Bootstrap 5 utility classes only. No other dependency.
+   css: record-header, record-header-eyebrow, record-header-title,
+        record-header-subtitle, record-header-status, record-header-metadata,
+        record-header-actions - defined in static/css/design-system.css
+   boundary: presentation only. It does not fetch, authorise, or know which
+             action is which; a status is something the page already decided.
+#}
+{#
+   Usage:
+
+       {% from 'components/record_header.html' import record_header %}
+       {% from 'components/status_badge.html' import status_badge %}
+
+       {{ record_header(
+            record_id='fileHeader',
+            eyebrow=_('File'),
+            title=file.name,
+            subtitle=file.path,
+            status=status_badge(file.status),
+            icon='bi-file-earmark-text',
+            metadata=[
+                {'label': _('Size'), 'value': file.size_label},
+                {'label': _('Source'), 'value': file.source_name},
+            ],
+            actions=record_action_surface(...)) }}
+#}
+
+{%- macro record_header(record_id, title, eyebrow=None, subtitle=None,
+                        status=None, metadata=(), icon='bi-record-circle',
+                        actions=None, interface_id=None) -%}
+<header class="record-header" {% if record_id %}id="{{ record_id }}"{% endif %}
+        data-inspector-component="record_header" data-inspector-role="record_header"{% if interface_id %}
+        data-inspector-interface="{{ interface_id }}"{% endif %}>
+    <div class="record-header-main">
+        <div class="record-header-identity">
+            {% if eyebrow %}
+            <div class="record-header-eyebrow">{{ eyebrow }}</div>
+            {% endif %}
+            <h1 class="record-header-title">
+                {% if icon %}<i class="bi {{ icon }} me-2" aria-hidden="true"></i>{% endif %}{{ title }}
+            </h1>
+            {% if subtitle %}
+            <p class="record-header-subtitle">{{ subtitle }}</p>
+            {% endif %}
+            {% if status %}
+            <div class="record-header-status">{{ status }}</div>
+            {% endif %}
+            {% if metadata %}
+            <dl class="record-header-metadata">
+                {% for item in metadata %}
+                <div class="record-header-metadata-item">
+                    <dt>{{ item.label }}</dt>
+                    <dd>
+                        {%- if item.href -%}
+                        <a href="{{ item.href }}">{{ item.value }}</a>
+                        {%- else -%}
+                        {{ item.value }}
+                        {%- endif -%}
+                    </dd>
+                </div>
+                {% endfor %}
+            </dl>
+            {% endif %}
+        </div>
+        {% if actions %}
+        <div class="record-header-actions">{{ actions }}</div>
+        {% endif %}
+    </div>
+</header>
+{%- endmacro -%}

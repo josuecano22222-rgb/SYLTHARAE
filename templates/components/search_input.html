@@ -1,0 +1,53 @@
+{# component: search_input
+   purpose: The one search box: label, icon, placeholder, value, clear action,
+            a place for the loading state, and the ARIA that makes it a search
+            box rather than an empty text field.
+   states: normal, loading, filtered, unavailable
+   classes: search-input, search-input-wrapper, search-input-spinner, btn-clear-search,
+            form-control, form-text, filter-label, filter-group, filter-group-search, bi
+   notes: `disabled` is an input, not a state: a disabled box is the reader's
+          view of the §63 state `unavailable`. Presentation only. The component renders the box and the hooks; the
+          page owns what a search does - the query it sends, the endpoint it
+          calls, the results it renders. `on_input` and `on_clear` are the
+          page's own handlers, passed through, never invented here.
+          `value` is rendered back so a reloaded page shows the search that is
+          in effect, and `loading` shows that a search is in flight without
+          pretending it finished.
+#}
+{%- macro search_input(id, label=None, placeholder=None, value=None, on_input=None, on_clear=None,
+                       loading=false, disabled=false, icon='bi-search', autocomplete='off',
+                       hint=None, aria_label=None, extra_class=None, clear_label=None, name=None) -%}
+{%- if label %}
+<label for="{{ id }}" class="filter-label">
+    <i class="bi {{ icon }}" aria-hidden="true"></i> {{ label }}
+</label>
+{%- endif %}
+<div class="search-input-wrapper{{ ' ' ~ extra_class if extra_class }}" data-search-input>
+    <input type="text"
+           id="{{ id }}"
+           class="form-control search-input"
+           placeholder="{{ placeholder or label or '' }}"
+           {% if name %}name="{{ name }}"{% endif %}
+           {% if value is not none %}value="{{ value }}"{% endif %}
+           autocomplete="{{ autocomplete }}"
+           {% if aria_label or not label %}aria-label="{{ aria_label or placeholder or id }}"{% endif %}
+           {% if hint %}aria-describedby="{{ id }}-hint"{% endif %}
+           {% if on_input %}data-on-input="{{ on_input }}"{% endif %}
+           {% if disabled %}disabled aria-disabled="true"{% endif %}
+           {% if loading %}aria-busy="true"{% endif %}>
+    {%- if loading %}
+    <span class="search-input-spinner spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+    <span class="visually-hidden">{{ _('Searching') }}</span>
+    {%- endif %}
+    <button type="button" class="btn-clear-search"
+            {% if on_clear %}data-on-click="{{ on_clear }}"{% endif %}
+            aria-label="{{ clear_label or _('Clear search') }}"
+            title="{{ clear_label or _('Clear search') }}"
+            {% if disabled %}disabled{% endif %}>
+        <i class="bi bi-x" aria-hidden="true"></i>
+    </button>
+</div>
+{%- if hint %}
+<div id="{{ id }}-hint" class="form-text">{{ hint }}</div>
+{%- endif %}
+{%- endmacro -%}

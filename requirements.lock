@@ -1,0 +1,160 @@
+# The locked environment for the Round 22 verification runs.
+#
+# `pip freeze` of the virtualenv that produced the runs in
+# audit_report/r22_workbook/junit/. Rebuild with:
+#
+#     python3.11 -m venv /tmp/rv
+#     /tmp/rv/bin/pip install -r requirements.txt   # unpinned, resolves today
+#     /tmp/rv/bin/pip install pytest pgserver
+#     /tmp/rv/bin/pip install -r requirements.lock  # then pin exactly this set
+#
+# or, on a fresh interpreter, `pip install -r requirements.lock` alone.
+#
+# python: 3.11.2
+# packages: 117
+# set hash: 6d1421aeb8dd44ffd012d1a059553b0cd23bd901601fe526d8be9ecae7b2fe93
+#
+# The hash is over the sorted `name==version` lines, without this header, so it
+# can be recomputed from an installed environment by `tools/audit/env_lock.py`.
+# A run whose installed set hashes to something else is not reproducible and the
+# classifier refuses to label it; pass --environment-label to say so out loud.
+#
+# INSTALL WITH --no-deps. This file is a complete freeze, so every transitive
+# package is already listed; resolving dependencies again can only add something
+# this file does not contain. That is exactly how `cv2` broke: rapidocr declares
+# the GUI `opencv-python`, which unpacks into the same `cv2/` directory as
+# `opencv-python-headless` and needs libGL.so.1 - so a plain `pip install -r`
+# produced an environment where `import cv2` raised ImportError. The GUI build is
+# excluded from this file and `--no-deps` keeps it out:
+#
+#     python3.11 -m venv /tmp/rv
+#     /tmp/rv/bin/pip install --no-deps -r requirements.lock
+#     /tmp/rv/bin/python tools/audit/env_lock.py --check   # fails if cv2 cannot load
+#
+# or just `python3 tools/audit/rebuild_lock_env.py --venv /tmp/rv`, which does
+# both and refuses to leave a broken environment behind. The headless wheel
+# provides the same importable `cv2` and needs no system library.
+#
+# NOT captured by this file, and equally able to change a result (see
+#   * the native libraries a package may need at import time (this is why the
+#     GUI OpenCV build is NOT in this file: see below)
+#   * the `tesseract` binary (absent: pytesseract is installed and unusable)
+#   * an `ffmpeg` binary (absent: the media reader reports the dependency)
+#   * the PostgreSQL build that `pgserver` unpacks
+APScheduler==3.11.3
+Deprecated==1.3.1
+EbookLib==0.20
+Flask-Compress==1.25
+Flask-Limiter==4.1.1
+Flask-WTF==1.3.0
+Flask==3.1.3
+Jinja2==3.1.6
+MarkupSafe==3.0.4
+PyYAML==6.0.3
+Pygments==2.21.0
+RTFDE==0.1.2.2
+WTForms==3.3.1
+Werkzeug==3.1.9
+babel==2.18.0
+backports.zstd==1.8.0
+bandit==1.9.4
+beautifulsoup4==4.15.0
+blinker==1.9.0
+brotli==1.2.1
+certifi==2026.10.23
+cffi==2.1.1
+chardet==7.7.0
+charset-normalizer==3.5.2
+click==8.5.0
+colorclass==2.2.2
+compressed-rtf==1.0.7
+coverage==7.17.0
+cryptography==50.0.2
+defusedxml==0.7.1
+docx2txt==0.9
+easygui==0.98.3
+ebcdic==2.0.1
+et_xmlfile==2.0.0
+extract-msg==0.57.1
+fasteners==0.20
+flask-babel==4.0.0
+flatbuffers==25.12.19
+html2text==2025.4.15
+icalendar==7.3.0
+idna==3.20
+inflate64==1.0.4
+iniconfig==2.3.1
+itsdangerous==2.2.0
+lark==1.3.1
+limits==5.8.0
+loguru==0.7.3
+lxml==6.1.3
+markdown-it-py==4.2.0
+mdurl==0.1.2
+mobi==0.4.1
+msoffcrypto-tool==6.0.0
+multivolumefile==0.2.3
+mutagen==1.48.1
+networkx==3.6.1
+numpy==2.4.6
+odfpy==1.4.1
+olefile==0.47
+oletools==0.60.2
+onnxruntime==1.31.1
+opencv-python-headless==5.0.0.93
+openpyxl==3.1.5
+ordered-set==4.1.0
+packaging==26.3
+pcodedmp==1.2.6
+pgserver==0.1.4
+pillow==13.0.0
+platformdirs==4.14.0
+pluggy==1.7.0
+protobuf==7.36.2
+psutil==7.2.2
+psycopg2-binary==2.9.13
+py7zr==1.1.4
+pybcj==1.0.8
+pyclipper==1.4.0
+pycparser==3.12
+pycryptodomex==3.24.1
+pymupdf4llm==2.0
+pymupdf==2.0
+pymupdf_layout==2.0
+pyparsing==3.3.3
+pypdf==6.21.4
+pyppmd==1.3.1
+pytesseract==0.3.13
+pytest-cov==7.1.0
+pytest==9.2.0
+python-dateutil==3.0.0
+python-docx==1.2.0
+python-dotenv==1.2.4
+python-pptx==1.0.2
+pytz==2026.5
+pyxlsb==1.0.10
+pyzipper==0.4.0
+rapidocr-onnxruntime==1.4.4
+rarfile==4.5
+red-black-tree-mod==1.22
+requests==2.34.2
+rich==15.0.0
+rollbar==1.5.0
+ruff==0.17.3
+sentry-sdk==2.73.0
+shapely==2.2.0
+six==1.17.0
+soupsieve==2.10
+standard-imghdr==3.13.0
+stevedore==5.9.1
+striprtf==0.0.35
+tabulate==0.10.0
+texttable==1.7.2
+tqdm==4.70.1
+typing_extensions==4.16.0
+tzdata==2026.6
+tzlocal==5.4.5
+urllib3==2.8.0
+wrapt==2.5.1
+xlrd==2.0.2
+xlsxwriter==3.3.0

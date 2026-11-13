@@ -1,0 +1,107 @@
+{# component: screen_inspector
+   purpose: The panel that answers what an element on this screen is: which
+            interface owns it, which component renders it, which action it
+            presents, what scope and permission metadata that action declares,
+            where it is bound, and what it currently is. A diagnostic tool for
+            a developer or an operator, not a configuration editor.
+   inputs: id (element id of the panel root), enabled (whether the server
+           turned inspection on for this request), interface_id (the screen
+           whose elements will be inspected; the server resolved it from the
+           registry, never from the URL)
+   outputs: none - it renders fields, it does not write anything
+   events: none of its own. `static/js/modules/core/screen-inspector.js` owns
+           activation, targeting, fetching and focus.
+   states: normal, loading, empty, error, unavailable
+   presentation_states: neutral
+   slots: none
+   accessibility: the panel is a non-modal dialog (`role="dialog"`,
+           `aria-modal="false"`, `aria-labelledby`); the toggle is a real
+           button with `aria-pressed`; the target is highlighted with an
+           outline and announced in a polite live region; Escape leaves
+           targeting before it leaves the mode; focus returns to the element
+           that opened the panel.
+   third_party: Bootstrap utility classes only (position, spacing, border).
+           No Bootstrap JS: the panel is not a modal and never blocks the page.
+   css: inspector-root, inspector-panel, inspector-toggle, inspector-target,
+        inspector-header, inspector-title, inspector-body, inspector-empty,
+        inspector-problem, inspector-fields, inspector-field, inspector-label,
+        inspector-value, inspector-value-unknown, inspector-note,
+        inspector-problems - defined in static/css/design-system.css
+   notes: The states are the library's own. `disabled` belongs to an action,
+          not to this panel, and the panel declares no `filtered` or `selected`
+          state because it filters nothing and selecting is the whole
+          interaction. Nothing here decides anything. The server hands the panel values that
+          came from the interface registry, the action registry, the binding
+          scan and the component library; a value nobody declares says so
+          ("Not declared"), and the panel has no control that changes one. It
+          never shows a filesystem path, a credential or an exception: an
+          execution reference is an opaque name, and a failure carries the
+          correlation id the reader can quote and nothing technical.
+   boundary: the panel renders `fields` and nothing else. A field it does not
+          recognise is drawn by its label like any other, so the server can add
+          one without this component changing.
+#}
+{#-
+   Usage (the shell renders it once per page, when inspection is on):
+
+       {% from 'components/screen_inspector.html' import screen_inspector %}
+       {{ screen_inspector(enabled=inspector_enabled, interface_id=inspector_interface) }}
+-#}
+
+
+{%- macro inspector_field(field) -%}
+<div class="inspector-field" data-inspector-field="{{ field.key }}">
+    <span class="inspector-label">{{ field.label }}</span>
+    <span class="inspector-value{{ ' inspector-value-unknown' if field.status in ('unknown', 'not_declared', 'unavailable') }}"
+          {% if field.status %}data-inspector-status="{{ field.status }}"{% endif %}>{{ field.value }}</span>
+    {% if field.note %}<span class="inspector-note">{{ field.note }}</span>{% endif %}
+</div>
+{%- endmacro -%}
+
+
+{%- macro screen_inspector(id='screenInspector', enabled=False, interface_id=None) -%}
+<div class="inspector-root" id="{{ id }}"
+     data-screen-inspector data-inspector-component="screen_inspector"
+     data-inspector-role="panel"
+     {% if interface_id %}data-inspector-interface="{{ interface_id }}"{% endif %}
+     data-inspector-enabled="{{ 'true' if enabled else 'false' }}">
+
+    {#- The way in. The shell only renders the component when the installation
+        switched inspection on; this button is how the person using it moves
+        between inspecting and working. -#}
+    <button type="button" class="inspector-toggle" data-inspector-toggle
+            aria-pressed="false"
+            aria-controls="{{ id }}-panel"
+            title="{{ _('Inspect the interface: show which registry entry owns an element') }}">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <span class="visually-hidden">{{ _('Screen Inspector') }}</span>
+    </button>
+
+    {#- What is being inspected, announced rather than only outlined. -#}
+    <p class="visually-hidden" role="status" aria-live="polite" data-inspector-announce></p>
+
+    <section class="inspector-panel d-none" id="{{ id }}-panel"
+             role="dialog" aria-modal="false"
+             aria-labelledby="{{ id }}-title"
+             data-inspector-panel tabindex="-1">
+        <header class="inspector-header">
+            <h2 class="inspector-title" id="{{ id }}-title">{{ _('Screen Inspector') }}</h2>
+            <button type="button" class="btn-close" data-inspector-close
+                    aria-label="{{ _('Close the Screen Inspector') }}"></button>
+        </header>
+
+        <div class="inspector-body" data-inspector-body>
+            {#- The empty state, and the one the panel returns to whenever the
+                selection changes: a panel showing the last element's values
+                while a new element is being inspected would be worse than an
+                empty one. -#}
+            <p class="inspector-empty" data-inspector-empty>
+                {{ _('Select an element to inspect its SYLTHARAE contract.') }}
+            </p>
+            <p class="inspector-problem d-none" data-inspector-error role="alert"></p>
+            <div class="inspector-fields" data-inspector-fields></div>
+            <ul class="inspector-problems d-none" data-inspector-problems></ul>
+        </div>
+    </section>
+</div>
+{%- endmacro -%}

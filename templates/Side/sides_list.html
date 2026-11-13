@@ -1,0 +1,361 @@
+
+
+<!-- templates/sides_list.html -->
+{% extends "base.html" %}
+{% from 'components/table.html' import record_table %}
+
+{% block title %}{{ _('Sides Management') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/unified-table.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-diagram-3 me-2"></i>
+            {{ _('Sides Management') }} ({{ total_sides|default(0) }})
+        </h1>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-primary" data-on-click="openSideModal()">
+            <i class="bi bi-plus-circle me-2"></i>
+            {{ _('Add Side') }}
+        </button>
+        <button class="btn btn-outline-primary" data-on-click="refreshMainContent()">
+            <i class="bi bi-arrow-clockwise me-1"></i> {{ _('Refresh') }}
+        </button>
+    </div>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+{% from 'components/filter_bar.html' import filter_section, filter_grid, search_group %}
+{% from 'components/action_toolbar.html' import action_toolbar, action_group, action_button, bulk_action_button, selection_summary, select_toggle_button %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-diagram-3"></i>
+        {{ _('Understanding Sides') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Sides represent different parties, organizations, or entities in your file analysis system') }}</li>
+        <li>{{ _('Each side can be associated with multiple files, sources, categories, and keywords') }}</li>
+        <li>{{ _('Sides help organize files by the parties involved or referenced in documents') }}</li>
+        <li>{{ _('Use sides to track relationships and associations between different entities') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-plus-circle"></i>
+        {{ _('Managing Sides') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Click "Add Side" to create a new side with name, description, and optional metadata') }}</li>
+        <li>{{ _('Edit sides by clicking the edit icon on any side row') }}</li>
+        <li>{{ _('View detailed information for each side including associated files and statistics') }}</li>
+        <li>{{ _('Delete sides that are no longer needed, but check for associated files first') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-funnel"></i>
+        {{ _('Finding and Sorting') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Use the search box to quickly find sides by name') }}</li>
+        <li>{{ _('Sort sides by clicking a column heading - name, importance or creation date') }}</li>
+        <li>{{ _('Choose how many sides a page holds with the selector above the table') }}</li>
+        <li>{{ _('Select rows to export or edit several sides at once from the action bar') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-2">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-info-bg); color: var(--primary-color);">
+                <i class="bi bi-diagram-3"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Total Sides') }}</div>
+                <div class="stat-card-value">{{ total_sides|default(0) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-success-bg); color: var(--success-color);">
+                <i class="bi bi-eye"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('On This Page') }}</div>
+                <div class="stat-card-value">{{ sides|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-warning-bg); color: var(--warning-color);">
+                <i class="bi bi-table"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Page') }}</div>
+                <div class="stat-card-value">{{ page|default(1) }} / {{ total_pages|default(1) }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+{% call filter_section() %}
+    {% call filter_grid() %}
+        {{ search_group('sideSearch', _("Search Sides"), _("Search sides..."), value=search, onclear='clearSearch()') }}
+    {% endcall %}
+
+    <!-- Action Bar -->
+    {% call action_toolbar(id='sidesActionBar', label=_('Actions'), interface_id=inspector_interface) %}
+        {% call action_group(_('Selection:')) %}
+            {{ select_toggle_button(onclick='toggleAllSelection()', id='sidesSelectToggleBtn',
+                 interface_id=inspector_interface, action_id='sides.select_all') }}
+        {% endcall %}
+        {% call action_group(_('Bulk Actions:')) %}
+            {{ selection_summary(total_sides|default(0), _('sides'), _('side')) }}
+            {{ bulk_action_button(_('Export Selected'), icon='bi-download',
+                 onclick='bulkExport()', tone='outline-primary', id='bulkExportBtn', interface_id=inspector_interface, action_id='sides.export_selected',
+                 noun=_('sides')) }}
+            {{ bulk_action_button(_('Edit Selected'), icon='bi-pencil',
+                 onclick='bulkUpdate()', tone='outline-warning', id='bulkUpdateBtn', interface_id=inspector_interface, action_id='sides.edit_selected',
+                 noun=_('sides')) }}
+        {% endcall %}
+    {% endcall %}
+{% endcall %}
+
+{#- The list: one unit - toolbar, sortable headers, body, pager. A header
+    click re-asks the server for this view in the new order. -#}
+{% set showing_info -%}
+    {%- if sides -%}
+        {%- set start = (page - 1) * per_page + 1 -%}
+        {%- set end = start + sides|length - 1 -%}
+        {{ _('Showing') }} {{ start }}–{{ end }} {{ _('of') }} {{ total_sides }} {{ _('sides') }}
+    {%- else -%}
+        {{ _('No sides found') }}
+    {%- endif -%}
+{%- endset %}
+{% call record_table(
+        id='sidesTable',
+        columns=[
+            {'kind': 'select', 'width': '44px'},
+            {'kind': 'index', 'width': '70px'},
+            {'key': 'name', 'label': _('Name'), 'sortable': True, 'type': 'text',
+             'filter': {'kind': 'text', 'param': 'search',
+                        'value': search|default('')}},
+            {'key': 'importance', 'label': _('Importance'), 'sortable': True, 'type': 'number', 'width': '150px'},
+            {'key': 'sources', 'label': _('Sources'), 'type': 'number', 'align': 'end', 'width': '100px'},
+            {'key': 'documents', 'label': _('Documents'), 'type': 'number', 'align': 'end', 'width': '115px'},
+            {'key': 'created', 'label': _('Created'), 'sortable': True, 'type': 'date', 'width': '140px'},
+            {'kind': 'actions', 'width': '250px'}
+        ],
+        mode='server',
+        sort_key=sort_by|default('importance'),
+        sort_dir=sort_order|default('desc'),
+        info_text=showing_info,
+        per_page=per_page,
+        per_page_id='sidesPerPage',
+        on_per_page_change='changeSidesPageSize()',
+        select_all_id='selectAllCheckbox',
+        select_all_onchange='sidesSelectAll(this)',
+        empty_message=_('No sides found'),
+        empty_filtered=search|default('')|length > 0,
+        empty_action_label=_('Add First Side'),
+        empty_action_onclick='openSideModal()',
+        export_interface=export_interface_for(request.endpoint),
+        export_columns=[
+            {'key': 'id', 'label': _('Id')},
+        ],
+        page=page|default(1),
+        total_pages=total_pages|default(1),
+        total_count=total_sides|default(0),
+        rows_shown=sides|length,
+        append=True,
+        pager=True) %}
+    {% for side in sides %}
+    {% set stars = ((side.importance or 0) * 5)|round|int %}
+    <tr class="side-item" data-side-id="{{ side.id }}">
+        <td class="ut-col-select">
+            <input type="checkbox" class="form-check-input side-checkbox ut-row-check"
+                   value="{{ side.id }}"
+                   data-on-change="updateBulkButtons()"
+                   aria-label="{{ _('Select side') }}: {{ side.name }}">
+        </td>
+        <td class="ut-index-cell"><span class="ut-badge ut-badge-neutral">#{{ side.id }}</span></td>
+        <td data-ut-value="{{ side.name|lower }}">
+            <a class="ut-name" href="{{ url_for('side_detail', side_id=side.id) }}">{{ side.name }}</a>
+        </td>
+        <td data-ut-value="{{ side.importance or 0 }}">
+            <span class="ut-stars" aria-hidden="true">{% for i in range(5) %}<i class="bi {% if i < stars %}bi-star-fill{% else %}bi-star ut-stars-off{% endif %}"></i>{% endfor %}</span>
+            <span class="ut-muted ms-1">{{ ((side.importance or 0) * 100)|round|int }}%</span>
+        </td>
+        <td class="text-end" data-ut-value="{{ side.source_count }}">
+            <span class="ut-badge ut-badge-info">{{ side.source_count }}</span>
+        </td>
+        <td class="text-end" data-ut-value="{{ side.doc_count }}">
+            <span class="ut-badge ut-badge-primary">{{ side.doc_count }}</span>
+        </td>
+        <td data-ut-value="{{ side.date_creation or '' }}">{{ (side.date_creation or '')[:10] or '—' }}</td>
+        <td>
+            <div class="btn-group btn-group-sm ut-actions">
+                <a href="{{ url_for('side_detail', side_id=side.id) }}" class="btn btn-outline-primary" title="{{ _('View Details') }}">
+                    <i class="bi bi-eye"></i>
+                </a>
+                <button type="button" class="btn btn-outline-success" data-on-click="editSide({{ side.id }})" title="{{ _('Edit Side') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-outline-info" data-on-click="duplicateSide({{ side.id }})" title="{{ _('Duplicate Side') }}">
+                    <i class="bi bi-files"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-on-click="exportSide({{ side.id }})" title="{{ _('Export Data') }}">
+                    <i class="bi bi-download"></i>
+                </button>
+                <button type="button" class="btn btn-outline-primary" data-on-click="viewSideCategoriesKeywords({{ side.id }})" title="{{ _('View Categories & Keywords') }}">
+                    <i class="bi bi-tags"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger" data-on-click='deleteSide({{ side.id }}, {{ side.name|tojson }})' title="{{ _('Delete Side') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% endcall %}
+
+<!-- Pagination: the mount the server pager fills -->
+<div class="pagination-container mt-3" id="pagination">
+    {% if total_pages > 1 %}
+        {% from "components/unified_pagination.html" import unified_pagination %}
+        {% set pagination_params = {'per_page': per_page} %}
+        {% if search %}{% set extra_param = pagination_params.update({'search': search}) %}{% endif %}
+        {% if sort_by and sort_by != 'importance' %}{% set extra_param = pagination_params.update({'sort': sort_by, 'order': sort_order}) %}
+        {% elif sort_order != 'desc' %}{% set extra_param = pagination_params.update({'sort': 'importance', 'order': sort_order}) %}{% endif %}
+        {{ unified_pagination(page, total_pages, url_for, 'sides_list', pagination_params,
+            table_id='sidesTable', total_count=total_sides|default(0), rows_shown=sides|length, page_size=per_page) }}
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    {{ _('Confirm Deletion') }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p id="deleteConfirmMessage" class="mb-0"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>
+                    {{ _('Cancel') }}
+                </button>
+                <button type="button" class="btn btn-danger" id="deleteConfirmButton">
+                    <i class="bi bi-trash me-2"></i>
+                    {{ _('Delete') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Side Add/Edit Modal -->
+<div class="modal fade" id="sideModal" tabindex="-1" aria-labelledby="sideModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="sideModalLabel">
+                    <i class="bi me-2" id="modalIcon"></i>
+                    <span id="modalTitle">{{ _('Add New Side') }}</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="sideForm">
+                    <input type="hidden" id="sideId" name="side_id">
+                    <div class="mb-3">
+                        <label class="form-label" for="sideName">{{ _('Side Name') }} <span class="text-danger" aria-hidden="true">*</span></label>
+                        <input type="text" name="name" id="sideName" class="form-control"
+                               placeholder="{{ _('e.g., Government, Opposition Party') }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="importanceSlider">{{ _('Importance') }}</label>
+                        <input type="range" name="importance" class="form-range"
+                               min="0" max="1" step="0.01"
+                               value="0.5"
+                               id="importanceSlider">
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>{{ _('Low') }}</span>
+                            <span id="importanceValue">0.50</span>
+                            <span>{{ _('High') }}</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-2"></i>
+                    {{ _('Cancel') }}
+                </button>
+                <button type="button" class="btn btn-primary" data-on-click="submitSideForm()">
+                    <i class="bi bi-check-circle me-2"></i>
+                    <span id="submitButtonText">{{ _('Create Side') }}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="sides-list-page-data">{{ {
+    "translations": {
+        "createCopyOfSide": _('Create a copy of this side?'),
+        "deleteSideConfirm": _('Are you sure you want to delete this side? This action cannot be undone.'),
+        "sideDuplicatedSuccessfully": _('Side duplicated successfully!'),
+        "errorDuplicatingSide": _('Error duplicating side'),
+        "unknownError": _('Unknown error'),
+        "sideStatusUpdated": _('Side status updated!'),
+        "errorUpdatingStatus": _('Error updating status'),
+        "errorUpdatingSideStatus": _('Error updating side status'),
+        "areYouSureDeleteSide": _('Are you sure you want to delete the side'),
+        "actionCannotBeUndone": _('This action cannot be undone.'),
+        "sideDeleted": _('Side Deleted'),
+        "sideDeletedSuccessfully": _('Side deleted successfully!'),
+        "deleteFailed": _('Delete Failed'),
+        "errorDeletingSide": _('Error deleting side'),
+        "deleteError": _('Delete Error'),
+        "editSide": _('Edit Side'),
+        "updateSide": _('Update Side'),
+        "errorLoadingSide": _('Error loading side'),
+        "errorLoadingSideData": _('Error loading side data'),
+        "addNewSide": _('Add New Side'),
+        "createSide": _('Create Side'),
+        "pleaseFillInSideName": _('Please fill in the side name'),
+        "sideUpdatedSuccessfully": _('Side updated successfully!'),
+        "sideCreatedSuccessfully": _('Side created successfully!'),
+        "error": _('Error'),
+        "errorSavingSide": _('Error saving side')
+    }
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+<script type="module" src="{{ url_for('static', filename='js/pages/sides-list-page.js') }}"></script>
+{% endblock %}

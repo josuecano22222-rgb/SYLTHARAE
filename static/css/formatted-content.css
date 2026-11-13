@@ -1,0 +1,1187 @@
+/* Formatted Content Styles */
+
+/* Table Container - Enhanced with realistic borders and frames */
+.formatted-table-container {
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    border: 2px solid #212529;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background: #fff;
+    position: relative;
+}
+
+.formatted-table-container.nested-table {
+    margin: 0.5rem 0;
+    border: 1px solid #6c757d;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.formatted-content-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    font-size: 0.9rem;
+    min-width: 100%;
+    border: none;
+    /* Realistic table appearance */
+    border-spacing: 0;
+}
+
+.formatted-content-table th {
+    background: linear-gradient(to bottom, #e9ecef 0%, #dee2e6 100%);
+    font-weight: 600;
+    padding: 0.75rem;
+    text-align: left;
+    border: 1px solid #495057;
+    border-bottom: 2px solid #212529;
+    color: #212529;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    /* Realistic header appearance */
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.formatted-content-table th:first-child {
+    border-left: 2px solid #212529;
+}
+
+.formatted-content-table th:last-child {
+    border-right: 2px solid #212529;
+}
+
+.formatted-content-table th:not(:last-child) {
+    border-right: 1px solid #495057;
+}
+
+.formatted-content-table td {
+    padding: 0.75rem;
+    border: 1px solid #495057;
+    vertical-align: top;
+    word-wrap: break-word;
+    word-break: break-word;
+    background: #fff;
+    /* Realistic cell appearance */
+    border-left: 1px solid #dee2e6;
+    border-right: 1px solid #dee2e6;
+}
+
+.formatted-content-table td:first-child {
+    border-left: 2px solid #212529;
+}
+
+.formatted-content-table td:last-child {
+    border-right: 2px solid #212529;
+}
+
+.formatted-content-table td:not(:last-child) {
+    border-right: 1px solid #495057;
+}
+
+.formatted-content-table tr:not(:last-child) td {
+    border-bottom: 1px solid #495057;
+}
+
+.formatted-content-table tr:last-child td {
+    border-bottom: 2px solid #212529;
+}
+
+.formatted-content-table thead tr:first-child th {
+    border-top: 2px solid #212529;
+}
+
+.formatted-content-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.formatted-content-table tbody tr:nth-child(even) {
+    background: #fafafa;
+}
+
+.formatted-content-table tbody tr:nth-child(even):hover {
+    background: #f0f0f0;
+}
+
+/* Realistic table frame effect */
+.formatted-table-container::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Word Document Formatting - with RTL/LTR support */
+.formatted-word-content {
+    font-family: 'Times New Roman', serif;
+    line-height: 1.6;
+    color: #212529;
+}
+
+.formatted-word-content[dir="rtl"] {
+    text-align: right;
+    font-family: 'Arial', 'Tahoma', 'Times New Roman', serif;
+}
+
+.formatted-word-content[dir="ltr"] {
+    text-align: left;
+}
+
+.formatted-word-content .formatted-paragraph {
+    margin: 0.75rem 0;
+    padding: 0;
+    text-align: justify;
+}
+
+.formatted-paragraph[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+
+.formatted-paragraph[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+.formatted-word-content .formatted-paragraph:first-child {
+    margin-top: 0;
+}
+
+.formatted-word-content .formatted-paragraph:last-child {
+    margin-bottom: 0;
+}
+
+.formatted-word-content .formatted-heading {
+    font-weight: 600;
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.formatted-word-content .formatted-h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.formatted-word-content .formatted-h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.formatted-word-content .formatted-h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Table Header */
+.formatted-table-header {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    background: #e9ecef;
+    border-bottom: 2px solid #495057;
+    border-radius: 4px 4px 0 0;
+    font-weight: 600;
+}
+
+.formatted-table-number {
+    font-weight: 700;
+    color: #212529;
+    margin-right: 0.75rem;
+    font-size: 1rem;
+}
+
+.formatted-table-caption {
+    color: #495057;
+    font-style: italic;
+    font-weight: normal;
+}
+
+/* Sheet Header */
+.formatted-sheet-header {
+    margin-bottom: 0.5rem;
+    padding: 0.75rem;
+    background: #e7f3ff;
+    border: 1px solid #b3d9ff;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.formatted-sheet-name {
+    color: #0056b3;
+    margin-right: 1rem;
+}
+
+.formatted-sheet-meta {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: normal;
+}
+
+/* Excel Content - with RTL/LTR support */
+.formatted-excel-content {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.formatted-excel-content[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+
+.formatted-excel-content[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+/* Table RTL/LTR support */
+.formatted-table-container[dir="rtl"] {
+    direction: rtl;
+}
+
+.formatted-table-container[dir="rtl"] .formatted-content-table {
+    direction: rtl;
+    text-align: right;
+}
+
+.formatted-table-container[dir="ltr"] {
+    direction: ltr;
+}
+
+.formatted-table-container[dir="ltr"] .formatted-content-table {
+    direction: ltr;
+    text-align: left;
+}
+
+/* Image Content - Enhanced */
+.formatted-image-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.formatted-image-container {
+    text-align: center;
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    border: 2px solid #dee2e6;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.formatted-image {
+    max-width: 100%;
+    height: auto;
+    max-height: 600px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border: 1px solid #dee2e6;
+    background: #fff;
+    display: block;
+    margin: 0 auto;
+}
+
+.formatted-image-path {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border: 1px solid #dee2e6;
+    text-align: left;
+}
+
+.formatted-image-path code {
+    font-size: 0.85rem;
+    word-break: break-all;
+    color: #495057;
+}
+
+.image-load-error {
+    text-align: left;
+    font-size: 0.875rem;
+}
+
+.formatted-image-text {
+    margin-top: 1rem;
+}
+
+.formatted-image-text-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #495057;
+}
+
+/* Text Content - with RTL/LTR support */
+.formatted-text-content {
+    font-family: 'Courier New', monospace;
+}
+
+.formatted-text-content[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+    font-family: 'Courier New', 'Tahoma', monospace;
+}
+
+.formatted-text-content[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+.formatted-text {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+    padding: 1rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    overflow-x: auto;
+}
+
+/* PowerPoint Content - with RTL/LTR support */
+.formatted-powerpoint-content {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.formatted-powerpoint-content[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+
+.formatted-powerpoint-content[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+.formatted-slide {
+    margin: 2rem 0;
+    border: 2px solid #495057;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.formatted-slide-header {
+    padding: 1rem;
+    background: linear-gradient(to bottom, #e9ecef 0%, #dee2e6 100%);
+    border-bottom: 2px solid #495057;
+    font-weight: 600;
+}
+
+.formatted-slide-number {
+    font-weight: 700;
+    color: #212529;
+    margin-right: 1rem;
+}
+
+.formatted-slide-title {
+    color: #495057;
+    font-style: italic;
+}
+
+.formatted-slide-content {
+    padding: 1.5rem;
+    min-height: 200px;
+}
+
+/* PDF Content - with RTL/LTR support */
+.formatted-pdf-content {
+    font-family: 'Times New Roman', serif;
+}
+
+.formatted-pdf-content[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+    font-family: 'Arial', 'Tahoma', 'Times New Roman', serif;
+}
+
+.formatted-pdf-content[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+.formatted-page {
+    margin: 2rem 0;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    page-break-after: always;
+}
+
+.formatted-page-header {
+    padding: 0.75rem 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.formatted-page-number {
+    font-weight: 700;
+    color: #212529;
+    margin-right: 1rem;
+}
+
+.formatted-page-metadata {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.formatted-page-content {
+    padding: 1.5rem;
+    min-height: 300px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .formatted-content-table {
+        font-size: 0.8rem;
+    }
+    
+    .formatted-content-table th,
+    .formatted-content-table td {
+        padding: 0.5rem;
+    }
+    
+    .formatted-image {
+        max-height: 400px;
+    }
+    
+    .formatted-image-content {
+        gap: 1rem;
+    }
+}
+
+/* Email Content - with RTL/LTR support */
+.formatted-email-content {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.formatted-email-content[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+
+.formatted-email-content[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+.formatted-email-message {
+    margin: 2rem 0;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.formatted-email-header {
+    padding: 1rem 1.5rem;
+    background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid #dee2e6;
+}
+
+.formatted-email-header[dir="rtl"] {
+    text-align: right;
+}
+
+.formatted-email-header[dir="ltr"] {
+    text-align: left;
+}
+
+.formatted-email-index {
+    font-weight: 700;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.formatted-email-field {
+    margin: 0.5rem 0;
+    color: #495057;
+    font-size: 0.9rem;
+    word-break: break-word;
+}
+
+.formatted-email-subject {
+    margin: 0.75rem 0;
+    font-weight: 600;
+    color: #212529;
+    font-size: 1rem;
+    padding: 0.5rem;
+    background: #fff;
+    border-left: 3px solid #0d6efd;
+    border-radius: 4px;
+}
+
+.formatted-email-subject[dir="rtl"] {
+    border-left: none;
+    border-right: 3px solid #0d6efd;
+}
+
+.formatted-email-body {
+    padding: 1.5rem;
+    background: #fff;
+    color: #212529;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.formatted-email-body[dir="rtl"] {
+    text-align: right;
+    direction: rtl;
+}
+
+.formatted-email-body[dir="ltr"] {
+    text-align: left;
+    direction: ltr;
+}
+
+/* HTML Content - with RTL/LTR support */
+.formatted-html-content {
+    font-family: 'Courier New', monospace;
+}
+
+.formatted-html-content[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+
+.formatted-html-content[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+/* JSON Content - with RTL/LTR support */
+.formatted-json-content {
+    font-family: 'Courier New', monospace;
+}
+
+.formatted-json-content[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+
+.formatted-json-content[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+.formatted-json {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.formatted-json code {
+    color: #0d6efd;
+    font-size: 0.9rem;
+}
+
+/* XML Content - with RTL/LTR support */
+.formatted-xml-content {
+    font-family: 'Courier New', monospace;
+}
+
+.formatted-xml-content[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+
+.formatted-xml-content[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+.formatted-xml {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.formatted-xml code {
+    color: #198754;
+    font-size: 0.9rem;
+}
+
+/* Image Content RTL/LTR support */
+.formatted-image-content[dir="rtl"] {
+    direction: rtl;
+    text-align: right;
+}
+
+.formatted-image-content[dir="ltr"] {
+    direction: ltr;
+    text-align: left;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .formatted-table-container {
+        border-color: #495057;
+    }
+    
+    .formatted-content-table {
+        background: #212529;
+        color: #f8f9fa;
+    }
+    
+    .formatted-content-table th {
+        background: #343a40;
+        border-color: #495057;
+        color: #f8f9fa;
+    }
+    
+    .formatted-content-table td {
+        border-color: #495057;
+        color: #f8f9fa;
+    }
+    
+    .formatted-content-table tr:hover {
+        background: #343a40;
+    }
+    
+    .formatted-word-content {
+        color: #f8f9fa;
+    }
+    
+    .formatted-text {
+        background: #343a40;
+        border-color: #495057;
+        color: #f8f9fa;
+    }
+    
+    .formatted-image-container {
+        background: #343a40;
+        border-color: #495057;
+    }
+    
+    .formatted-image-text-title {
+        color: #dee2e6;
+    }
+    
+    .formatted-email-message {
+        background: #212529;
+        border-color: #495057;
+    }
+    
+    .formatted-email-header {
+        background: linear-gradient(to bottom, #343a40 0%, #495057 100%);
+        border-color: #495057;
+        color: #f8f9fa;
+    }
+    
+    .formatted-email-body {
+        background: #212529;
+        color: #f8f9fa;
+    }
+    
+    .formatted-email-subject {
+        background: #343a40;
+        color: #f8f9fa;
+        border-color: #0d6efd;
+    }
+    
+    .formatted-json,
+    .formatted-xml {
+        background: #343a40;
+        border-color: #495057;
+        color: #f8f9fa;
+    }
+}
+
+
+
+/* --------------------------------------------------------------------------
+   In-document search highlights (shared content-highlighter module)
+   --------------------------------------------------------------------------
+   Wrapped by a DOM-safe TreeWalker so the type-specific formatting above is
+   NEVER destroyed while searching. Loaded by every content interface.
+   -------------------------------------------------------------------------- */
+
+mark.content-hl {
+    background: #fde68a;
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+mark.content-hl.current {
+    background: #f59e0b;
+    color: #1f2937;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.45);
+}
+
+/* Ensure highlights stay visible in dark reader themes */
+.dark-theme mark.content-hl,
+.theme-dark mark.content-hl {
+    color: #111827;
+}
+
+
+/* --------------------------------------------------------------------------
+   Worksheet navigation (spreadsheets) - tab bar + anchored sections
+   -------------------------------------------------------------------------- */
+
+.sheet-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    border-bottom: 2px solid #dee2e6;
+    padding: 0 0.25rem;
+    margin-bottom: 0.75rem;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: inherit;
+}
+
+.sheet-tab {
+    border: 1px solid #dee2e6;
+    border-bottom: none;
+    border-radius: 0.45rem 0.45rem 0 0;
+    background: #f1f3f5;
+    color: #495057;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: background 140ms ease-out, color 140ms ease-out;
+}
+
+.sheet-tab:hover {
+    background: #e7eefc;
+    color: #1c3f94;
+}
+
+.sheet-tab.active {
+    background: #ffffff;
+    color: #0d5bd8;
+    border-color: #0d5bd8;
+    box-shadow: inset 0 -2px 0 #0d5bd8;
+}
+
+.sheet-section-anchored {
+    scroll-margin-top: 3.25rem;
+}
+
+.sheet-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #343a40;
+    margin: 0.35rem 0 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   Slide deck navigation (presentations)
+   -------------------------------------------------------------------------- */
+
+.slide-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.65rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 0.6rem;
+    margin-bottom: 0.9rem;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.slide-nav-btn {
+    border: 1px solid #ced4da;
+    background: #fff;
+    color: #343a40;
+    border-radius: 0.4rem;
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slide-nav-btn:hover {
+    background: #e7eefc;
+    border-color: #0d5bd8;
+    color: #0d5bd8;
+}
+
+.slide-nav-counter {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+    min-width: 3.5rem;
+    text-align: center;
+}
+
+.slide-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.slide-chip {
+    border: 1px solid #ced4da;
+    background: #fff;
+    color: #495057;
+    border-radius: 999px;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding: 0 0.45rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.slide-chip:hover {
+    border-color: #0d5bd8;
+    color: #0d5bd8;
+}
+
+.slide-chip-active,
+.slide-chip.slide-chip-active:hover {
+    background: #0d5bd8;
+    border-color: #0d5bd8;
+    color: #fff;
+}
+
+.formatted-slide {
+    scroll-margin-top: 4rem;
+}
+
+.formatted-slide.slide-active {
+    outline: 2px solid rgba(13, 91, 216, 0.35);
+    outline-offset: 0.25rem;
+}
+
+.slide-number-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.7rem;
+    height: 1.7rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: #7c3aed;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   PDF page dividers
+   -------------------------------------------------------------------------- */
+
+.formatted-page {
+    scroll-margin-top: 3rem;
+}
+
+.page-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.9rem 0 0.6rem;
+}
+
+.page-divider::before,
+.page-divider::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid #dbe2ea;
+}
+
+.page-number-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.7rem;
+    height: 1.7rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: #343a40;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   Log viewer - monospace with a line-number gutter
+   -------------------------------------------------------------------------- */
+
+.formatted-log-content {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 0.83rem;
+    line-height: 1.55;
+    background: #fbfcfe;
+    border: 1px solid #e3e8ef;
+    border-radius: 0.5rem;
+    padding: 0.6rem 0;
+    overflow-x: auto;
+}
+
+.log-line {
+    display: flex;
+    align-items: flex-start;
+    padding: 0 0.75rem 0 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.log-line:hover {
+    background: #f0f4fa;
+}
+
+.log-line-num {
+    flex: 0 0 auto;
+    min-width: 3.2rem;
+    padding: 0 0.6rem 0 0.9rem;
+    text-align: right;
+    color: #98a2b3;
+    user-select: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.log-line-text {
+    flex: 1 1 auto;
+}
+
+/* --------------------------------------------------------------------------
+   Rendered Markdown (README-style documents)
+   -------------------------------------------------------------------------- */
+
+.formatted-markdown-content {
+    line-height: 1.65;
+    color: #212529;
+    max-width: 52rem;
+}
+
+.formatted-markdown-content .md-heading {
+    font-weight: 700;
+    color: #101720;
+    margin: 1.35rem 0 0.55rem;
+    line-height: 1.25;
+}
+
+.formatted-markdown-content .md-h1 { font-size: 1.7rem; border-bottom: 1px solid #e3e8ef; padding-bottom: 0.3rem; }
+.formatted-markdown-content .md-h2 { font-size: 1.4rem; border-bottom: 1px solid #eef1f5; padding-bottom: 0.25rem; }
+.formatted-markdown-content .md-h3 { font-size: 1.2rem; }
+.formatted-markdown-content .md-h4 { font-size: 1.05rem; }
+.formatted-markdown-content .md-h5 { font-size: 0.95rem; }
+.formatted-markdown-content .md-h6 { font-size: 0.9rem; color: #5b6472; }
+
+.formatted-markdown-content .md-paragraph { margin: 0.65rem 0; }
+
+.formatted-markdown-content .md-hr {
+    border: none;
+    border-top: 2px solid #e3e8ef;
+    margin: 1.4rem 0;
+}
+
+.formatted-markdown-content .md-blockquote {
+    border-left: 4px solid #0d5bd8;
+    background: #f2f6ff;
+    color: #2c4a77;
+    padding: 0.6rem 0.95rem;
+    border-radius: 0 0.4rem 0.4rem 0;
+    margin: 0.7rem 0;
+}
+
+.formatted-markdown-content .md-list {
+    margin: 0.6rem 0;
+    padding-left: 1.6rem;
+}
+
+.formatted-markdown-content .md-list-nested {
+    margin: 0.25rem 0;
+}
+
+.formatted-markdown-content .md-list li { margin: 0.25rem 0; }
+
+.formatted-markdown-content .md-code-block {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.85rem 1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.8rem 0;
+}
+
+.formatted-markdown-content .md-code {
+    background: #eef1f5;
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.87em;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.formatted-markdown-content .md-link {
+    color: #0d5bd8;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.formatted-markdown-content .md-image-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: #eef1f5;
+    border: 1px solid #dbe2ea;
+    border-radius: 999px;
+    padding: 0.05rem 0.6rem;
+    font-size: 0.85em;
+    color: #495057;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.formatted-markdown-content .md-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.8rem 0;
+    font-size: 0.92em;
+}
+
+.formatted-markdown-content .md-table th,
+.formatted-markdown-content .md-table td {
+    border: 1px solid #dbe2ea;
+    padding: 0.45rem 0.7rem;
+    text-align: left;
+}
+
+.formatted-markdown-content .md-table thead th {
+    background: #f2f6ff;
+    font-weight: 700;
+}
+
+
+/* --------------------------------------------------------------------------
+   Spreadsheet address grid - exact cell locations (row/column)
+   Column-letter header (A, B, C...) + row-number gutter (1, 2, 3...);
+   every cell carries its address (data-cell-addr, title tooltip).
+   -------------------------------------------------------------------------- */
+
+.sheet-grid-container {
+    overflow-x: auto;
+}
+
+.sheet-grid-table {
+    border-collapse: collapse;
+    font-size: 0.87rem;
+}
+
+.sheet-grid-table th,
+.sheet-grid-table td {
+    border: 1px solid #dbe2ea;
+    padding: 0.32rem 0.6rem;
+    text-align: left;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.sheet-corner {
+    background: #f1f3f5 !important;
+    width: 2.6rem;
+    min-width: 2.6rem;
+}
+
+.sheet-col-letter {
+    background: #f1f3f5;
+    color: #5b6472;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-align: center !important;
+    letter-spacing: 0.03em;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.sheet-row-num {
+    background: #f1f3f5;
+    color: #5b6472;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-align: center !important;
+    user-select: none;
+    font-variant-numeric: tabular-nums;
+    position: sticky;
+    inset-inline-start: 0;
+    z-index: 1;
+}
+
+.sheet-grid-table .sheet-first-row td.sheet-cell {
+    background: #f7f9fc;
+    font-weight: 600;
+}
+
+.sheet-cell {
+    min-width: 4.5rem;
+}
+
+.sheet-cell:empty::after {
+    content: '\200b';
+}
+
+/* --------------------------------------------------------------------------
+   Email recipients - one sender, one or more recipients
+   -------------------------------------------------------------------------- */
+
+.recipient-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #eef4ff;
+    border: 1px solid #c7dbff;
+    color: #1c3f94;
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    font-size: 0.85em;
+    font-weight: 600;
+    margin: 0.1rem 0.15rem 0.1rem 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.recipient-badge.recipient-from {
+    background: #ede9fe;
+    border-color: #c4b5fd;
+    color: #4c1d95;
+}

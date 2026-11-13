@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Side Categories & Keywords') }}{% endblock %}
+
+{% from 'components/breadcrumbs.html' import breadcrumbs %}
+{% block breadcrumb %}{{ breadcrumbs(parent='sides_list', intermediate=[{'label': side.name, 'url': url_for('side_detail', side_id=side.id)}], current=_('Categories & Keywords')) }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-diagram-3 me-2"></i>
+        {{ _('Categories & Keywords') }} - {{ side.name }}
+    </h1>
+    <a href="{{ url_for('side_detail', side_id=side.id) }}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-left me-2"></i>
+        {{ _('Back to Side Details') }}
+    </a>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-tags"></i>
+        {{ _('Side Categories & Keywords Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('This page shows all categories and keywords associated with this side') }}</li>
+        <li>{{ _('View categories and keywords to understand the content and themes for this side') }}</li>
+        <li>{{ _('See statistics showing how many files are associated with each category or keyword') }}</li>
+        <li>{{ _('Use this information to understand the distribution of data across this side') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-graph-up"></i>
+        {{ _('Understanding Associations') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Categories show the main themes and classifications for files in this side') }}</li>
+        <li>{{ _('Keywords identify important terms and concepts associated with this side') }}</li>
+        <li>{{ _('File counts indicate how many files are linked to each category or keyword') }}</li>
+        <li>{{ _('Use this data to understand the content profile of this side') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="stat-card">
+            <h5 class="mb-3">
+                <i class="bi bi-tags me-2"></i>{{ _('Categories') }}
+            </h5>
+            <div id="categoriesContainer">
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ _('Loading...') }}</span>
+                    </div>
+                </div>
+            </div>
+            <nav aria-label="{{ _('Categories pagination') }}" id="categoriesPagination">
+                <!-- Pagination will be inserted here -->
+            </nav>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <h5 class="mb-3">
+                <i class="bi bi-key me-2"></i>{{ _('Keywords') }}
+            </h5>
+            <div id="keywordsContainer">
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ _('Loading...') }}</span>
+                    </div>
+                </div>
+            </div>
+            <nav aria-label="{{ _('Keywords pagination') }}" id="keywordsPagination">
+                <!-- Pagination will be inserted here -->
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="side-categories-keywords-page-data">{{ {
+    "side_id": side.id,
+    "side_name": side.name,
+    "translations": {
+        "loading": _('Loading...'),
+        "noCategories": _('No categories found'),
+        "noKeywords": _('No keywords found'),
+        "files": _('files'),
+        "viewFiles": _('View Files')
+    }
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/side-categories-keywords-page.js') }}"></script>
+{% endblock %}
+

@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Words Management') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/unified-table.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-book me-2"></i> {{ _('Words') }} ({{ total_words|default(0) }})</h1>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" data-on-click="openAddWordModal()"><i class="bi bi-plus-circle me-2"></i> {{ _('Add Word') }}</button>
+        <button class="btn btn-outline-primary" data-on-click="refreshMainContent()"><i class="bi bi-arrow-clockwise me-1"></i> {{ _('Refresh') }}</button>
+    </div>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+{% from 'components/filter_bar.html' import filter_section, filter_grid, filter_group, search_group %}
+{% from 'components/table.html' import record_table %}
+{% from 'components/status_badge.html' import status_badge %}
+{% from 'components/action_toolbar.html' import action_toolbar, action_group, action_button, bulk_action_button, selection_summary, select_toggle_button %}
+{% from "components/unified_pagination.html" import unified_pagination %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-book"></i>
+        {{ _('Understanding Words') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Words represent individual terms extracted from file content during analysis') }}</li>
+        <li>{{ _('The system tracks word frequency, usage across files, and associations with categories') }}</li>
+        <li>{{ _('Words help identify common themes, patterns, and important terminology in your documents') }}</li>
+        <li>{{ _('View word statistics to understand content distribution and identify frequently used terms') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-plus-circle"></i>
+        {{ _('Managing Words') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Click "Add Word" to manually add a word to the system') }}</li>
+        <li>{{ _('Words are typically added automatically during file analysis, but can be manually created') }}</li>
+        <li>{{ _('Edit words to update their associations with categories or modify their properties') }}</li>
+        <li>{{ _('View word details to see which files contain each word and their frequency') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-graph-up"></i>
+        {{ _('Word Statistics') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('View statistics showing total words, active words (used in files), and unused words') }}</li>
+        <li>{{ _('See word frequency counts to identify the most common terms in your documents') }}</li>
+        <li>{{ _('Filter words by usage count, category association, or search by name') }}</li>
+        <li>{{ _('Sort words by frequency, name, or creation date to find what you need') }}</li>
+    </ul>
+</div>
+<div class="tips-note">
+    <strong>{{ _('Note:') }}</strong> {{ _('Words with zero usage count are unused and may be candidates for cleanup.') }}
+</div>
+{% endcall %}
+
+<div class="row g-4 mb-2">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-info-bg); color: var(--primary-color);">
+                <i class="bi bi-book"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Total Words') }}</div>
+                <div class="stat-card-value" id="totalWordsStat">{{ total_words|default(0) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-success-bg); color: var(--success-color);">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Active') }}</div>
+                <div class="stat-card-value" id="activeCount">{{ words|selectattr('usage_count','gt',0)|list|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-danger-bg); color: var(--danger-color);">
+                <i class="bi bi-dash-circle"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Unused') }}</div>
+                <div class="stat-card-value" id="unusedCount">{{ words|selectattr('usage_count','eq',0)|list|length }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Section -->
+{#- Sorting lives in the table headers now (record_table); the filters that
+    remain are the ones that say *which* words are listed. -#}
+{% call filter_section() %}
+    <!-- Search and Main Filters -->
+    {% call filter_grid() %}
+        {{ search_group('searchWords', _("Search Words"), _("Search words..."), value=search, onclear='clearSearch()') }}
+
+        {% call filter_group('statusFilter', _('Status'), 'bi-check-circle') %}
+            <select class="form-select" id="statusFilter" data-on-change="applyFilters()">
+                <option value="">{{ _('All Status') }}</option>
+                <option value="active">{{ _('Active') }}</option>
+                <option value="unused">{{ _('Unused') }}</option>
+            </select>
+        {% endcall %}
+    {% endcall %}
+
+    <!-- Action Bar -->
+    {#-
+       Every action on this page, classified before it was rendered (§ action
+       audit). Word is not a page of bulk operations:
+
+         Select All / Select None as one toggle, page scope
+                                    (select every row when empty; clear when any
+                                    are selected — same control as Files)
+         Edit Selected              selection scope - it edits ONE word (the
+                                    first selected) and asks before doing it,
+                                    so it needs a scope but is not a bulk
+                                    operation; the definition layer carries
+                                    that distinction as requires_single_selection
+         Delete Selected            bulk + destructive
+         View / Edit / Delete       per record, in the row (record scope)
+
+       Nothing here is forced into the bulk primitive because it sits beside
+       bulk actions; the two selection-scoped ones use it because a scope is
+       what they need, and that is all the primitive claims.
+    -#}
+    {% call action_toolbar(id='wordsActionBar', label=_('Actions'), interface_id=inspector_interface) %}
+        {% call action_group(_('Selection:')) %}
+            {{ select_toggle_button(onclick='toggleAllSelection()', id='wordsSelectToggleBtn',
+                 interface_id=inspector_interface, action_id='words.select_all') }}
+        {% endcall %}
+        {% call action_group(_('Bulk Actions:')) %}
+            {{ selection_summary(total_words|default(0), _('words'), _('word')) }}
+            {{ bulk_action_button(_('Edit Selected'), icon='bi-pencil', onclick='bulkUpdate()',
+                 tone='outline-warning', id='bulkUpdateBtn', noun=_('words'),
+                 interface_id=inspector_interface, action_id='words.edit_selected') }}
+            {{ bulk_action_button(_('Delete Selected'), icon='bi-trash', onclick='bulkDelete()',
+                 tone='outline-danger', id='bulkDeleteBtn', noun=_('words'),
+                 interface_id=inspector_interface, action_id='words.delete_selected') }}
+        {% endcall %}
+    {% endcall %}
+{% endcall %}
+
+{#- The list: one unit - toolbar, sortable headers, body, pager. Sorting is
+    the table's own control: a header click asks the server for this page's
+    list in the new order. -#}
+{% set showing_info -%}
+    {%- if words -%}
+        {%- set start = (page - 1) * per_page + 1 -%}
+        {%- set end = start + words|length - 1 -%}
+        {{ _('Showing') }} {{ start }}–{{ end }} {{ _('of') }} {{ total_words }} {{ _('words') }}
+    {%- else -%}
+        {{ _('No words found') }}
+    {%- endif -%}
+{%- endset %}
+{% call record_table(
+        id='wordsTable',
+        columns=[
+            {'kind': 'select', 'width': '50px'},
+            {'kind': 'index', 'width': '70px'},
+            {'key': 'word', 'label': _('Word'), 'sortable': True, 'type': 'text',
+             'filter': {'kind': 'text', 'param': 'search',
+                        'value': search|default('')}},
+            {'key': 'usage_count', 'label': _('Usage Count'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '120px'},
+            {'key': 'status', 'label': _('Status'), 'sortable': True, 'width': '140px'},
+            {'kind': 'actions', 'width': '150px'}
+        ],
+        mode='server',
+        sort_key=sort_by|default('usage_count'),
+        sort_dir=sort_order|default('desc'),
+        info_text=showing_info,
+        info_id='searchResultsInfo',
+        per_page=per_page,
+        per_page_id='perPage',
+        on_per_page_change='changePageSize()',
+        select_all_id='selectAllCheckbox',
+        select_all_onchange='toggleSelectAll()',
+        empty_message=_('No words found.'),
+        empty_action_label=_('Add your first word'),
+        empty_action_onclick='openAddWordModal()',
+        export_interface=export_interface_for(request.endpoint),
+        export_columns=[
+            {'key': 'id', 'label': _('Id')},
+        ],
+        page=page|default(1),
+        total_pages=total_pages|default(1),
+        total_count=total_words|default(0),
+        rows_shown=words|length,
+        append=True,
+        pager=True) %}
+    {% for word in words %}
+    {% set row_number = (page - 1) * per_page + loop.index %}
+    <tr data-word-id="{{ word.id }}"
+        data-usage-count="{{ word.usage_count }}"
+        data-status="{{ 'active' if word.usage_count > 0 else 'unused' }}">
+        <td class="ut-col-select">
+            <input type="checkbox"
+                   class="word-checkbox ut-row-check"
+                   value="{{ word.id }}"
+                   data-on-change="updateBulkButtons()"
+                   aria-label="{{ _('Select word') }}: {{ word.word }}">
+        </td>
+        <td class="ut-index-cell"><span class="ut-badge ut-badge-neutral">{{ row_number }}</span></td>
+        <td>
+            <span class="ut-name" data-word-id="{{ word.id }}">{{ word.word }}</span>
+        </td>
+        <td class="text-end" data-ut-value="{{ word.usage_count }}">
+            {{ word.usage_count }}
+        </td>
+        <td data-ut-value="{{ 'active' if word.usage_count > 0 else 'unused' }}">
+            {{ status_badge(status='active' if word.usage_count > 0 else 'unused') }}
+        </td>
+        <td>
+            <div class="btn-group btn-group-sm ut-actions">
+                <a href="{{ url_for('word_detail', word_id=word.id) }}"
+                   class="btn btn-outline-primary"
+                   title="{{ _('View Details') }}">
+                    <i class="bi bi-eye"></i>
+                </a>
+                <button class="btn btn-outline-warning"
+                        data-on-click="editWord({{ word.id }})"
+                        title="{{ _('Edit') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn btn-outline-danger"
+                        data-on-click="deleteWord({{ word.id }})"
+                        title="{{ _('Delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% endcall %}
+
+<!-- Pagination: the mount the server pager fills, and the client pager refills -->
+<div class="pagination-container" id="pagination">
+    {% if total_pages > 1 %}
+        {{ unified_pagination(page, total_pages, url_for, 'words_list', {
+            'search': search,
+            'per_page': per_page,
+            'sort': sort_by|default('usage_count'),
+            'order': sort_order|default('desc')
+        }, table_id='wordsTable', total_count=total_words|default(0), rows_shown=words|length, page_size=per_page) }}
+    {% endif %}
+</div>
+
+<!-- Add/Edit Word Modal -->
+<div class="modal fade" id="wordModal" tabindex="-1" aria-labelledby="wordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="wordModalLabel"><i class="bi bi-book"></i> {{ _('Add Word') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="wordForm">
+                    <div class="mb-3">
+                        <label for="wordInput" class="form-label">{{ _('Word') }} *</label>
+                        <input type="text" class="form-control" id="wordInput" required>
+                        <div class="form-text">{{ _('Enter a single word. Words must be unique.') }}</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                <button type="button" class="btn btn-primary" data-on-click="submitWord()">{{ _('Save Word') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Page Data - Passed to JavaScript via JSON script tag -->
+<script type="application/json" id="words-list-page-data">{{ {
+    "api_url": url_for('api_words', _external=False),
+    "translations": {
+        "editWord": _('Edit Word'),
+        "addWord": _('Add Word'),
+        "deleteWord": _('Delete Word'),
+        "errorLoadingWords": _('Error loading words'),
+        "noWordsFound": _('No words found matching'),
+        "noWordsYet": _('No words yet — add your first word.'),
+        "active": _('Active'),
+        "unused": _('Unused'),
+        "deleteWordConfirm": _('Delete word #'),
+        "wordDeletedSuccessfully": _('Word deleted successfully!'),
+        "failedToDelete": _('Failed to delete'),
+        "error": _('Error'),
+        "showing": _('Showing'),
+        "page": _('Page'),
+        "of": _('of'),
+        "words": _('words'),
+        "errorUpdatingWord": _('Error updating word'),
+        "errorDeletingWords": _('Error deleting words'),
+        "deleteSelectedWords": _('Delete selected words?'),
+        "successfullyDeleted": _('Successfully deleted'),
+        "successfullyUpdated": _('Successfully updated'),
+        "wordUpdatedSuccessfully": _('Word updated successfully'),
+        "wordAddedSuccessfully": _('Word added successfully'),
+        "wordAlreadyExists": _('Word already exists'),
+        "wordRequired": _('Word is required'),
+        "viewDetails": _('View Details'),
+        "loading": _('Loading...')
+    }
+}|tojson }}</script>
+
+<!-- Page JavaScript - External file -->
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+<script type="module" src="{{ url_for('static', filename='js/pages/words-list-page.js') }}"></script>
+{% endblock %}
+

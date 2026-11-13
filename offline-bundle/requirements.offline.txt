@@ -1,0 +1,145 @@
+# SYLTHARAE — complete Python dependency manifest
+#
+# Supported baseline: CPython 3.10+ on 64-bit Windows (Windows 10/11), Linux,
+# and macOS. Install from a Visual Studio Developer PowerShell or a normal
+# PowerShell prompt with:
+#
+#   py -m pip install --upgrade pip
+#   py -m pip install -r requirements.txt
+#
+# Windows support legend used below:
+#   [WIN-NATIVE]  The Python package has a supported Windows wheel and does
+#                 not require a Unix-only runtime. It is safe for a native
+#                 Windows deployment.
+#   [WIN-BINARY]  Windows wheels are available, but the package contains native
+#                 compiled code. Use a supported CPython version and architecture.
+#   [WIN-EXTERNAL] Python support is Windows-compatible, but a separate Windows
+#                  executable/service/data package is required at runtime.
+#   [OPTIONAL]    Used only by an optional integration or file format.
+#
+# Important: “Windows-compatible” does not mean pip installs every external
+# executable. The complete Windows native-runtime list is at the bottom.
+
+# -----------------------------------------------------------------------------
+# Web application, API, forms, compression, and internationalisation
+# -----------------------------------------------------------------------------
+Flask>=3.0,<4                         # [WIN-NATIVE] web framework
+flask-babel>=4.0                     # [WIN-NATIVE] locale and translation support
+flask-limiter>=3.5                   # [WIN-NATIVE] request rate limiting
+flask-wtf>=1.2                       # [WIN-NATIVE] forms and CSRF protection
+flask-compress>=1.15                 # [WIN-NATIVE] HTTP compression
+Werkzeug>=3.0                        # [WIN-NATIVE] Flask WSGI/toolkit dependency
+Babel>=2.13                          # [WIN-NATIVE] translation catalog tooling
+
+# -----------------------------------------------------------------------------
+# Database, configuration, resource monitoring, serialization, and encoding
+# -----------------------------------------------------------------------------
+psycopg2-binary>=2.9                 # [WIN-BINARY] PostgreSQL client with Windows wheels
+python-dateutil>=2.8                 # [WIN-NATIVE] date parsing and timezone utilities
+python-dotenv>=1.0                   # [WIN-NATIVE] .env configuration loading
+psutil>=5.9                           # [WIN-BINARY] Windows process/system metrics
+PyYAML>=6.0                           # [WIN-BINARY] YAML configuration parsing
+chardet>=5.0                          # [WIN-NATIVE] character-set detection
+numpy>=1.26                           # [WIN-BINARY] numerical arrays used by OCR/image code
+
+# -----------------------------------------------------------------------------
+# PDF, office, rich text, email attachment, and spreadsheet readers
+# -----------------------------------------------------------------------------
+PyMuPDF>=1.24.3                       # [WIN-BINARY] PDF rendering and text extraction
+pypdf>=6.0                             # [WIN-NATIVE] PDF parsing (maintained successor of PyPDF2)
+python-docx>=1.1                      # [WIN-NATIVE] DOCX extraction
+openpyxl>=3.1                         # [WIN-NATIVE] XLSX extraction
+python-pptx>=0.6.23                   # [WIN-NATIVE] PPTX extraction
+xlrd>=2.0                             # [WIN-NATIVE] legacy XLS extraction
+odfpy>=1.4                            # [WIN-NATIVE] OpenDocument extraction
+striprtf>=0.0.26                      # [WIN-NATIVE] RTF text extraction
+docx2txt>=0.8                         # [WIN-NATIVE] DOCX text extraction
+RTFDE>=0.1                            # [WIN-NATIVE] compressed/embedded RTF support
+compressed-rtf>=1.0                   # [WIN-NATIVE] RTF compression decoding
+olefile>=0.47                         # [WIN-NATIVE] OLE container inspection
+
+# -----------------------------------------------------------------------------
+# Images and OCR
+# -----------------------------------------------------------------------------
+Pillow>=12.3.0                          # [WIN-BINARY] image decoding; >=12.3 fixes published CVEs
+pytesseract>=0.3.10                  # [WIN-NATIVE] Python wrapper; needs Tesseract below
+rapidocr-onnxruntime>=1.4             # [WIN-BINARY] ONNX OCR fallback with Windows wheels
+opencv-python-headless>=4.9            # [WIN-BINARY] image preprocessing; Windows wheels
+
+# -----------------------------------------------------------------------------
+# Audio and video
+# -----------------------------------------------------------------------------
+mutagen>=1.47                         # [WIN-NATIVE] audio metadata extraction
+moviepy>=1.0.3                        # [WIN-NATIVE] media processing API; needs FFmpeg
+
+# -----------------------------------------------------------------------------
+# Archives and ebooks
+# -----------------------------------------------------------------------------
+rarfile>=4.2                          # [WIN-NATIVE] Python RAR interface; needs UnRAR/bsdtar
+py7zr>=0.21                           # [WIN-NATIVE] 7z extraction through Python libraries
+ebooklib>=0.18                        # [WIN-NATIVE] EPUB extraction
+beautifulsoup4>=4.12                  # [WIN-NATIVE] HTML/XML parsing
+mobi>=0.3                             # [WIN-NATIVE] MOBI extraction
+
+# -----------------------------------------------------------------------------
+# Email and calendar
+# -----------------------------------------------------------------------------
+extract-msg>=0.47                     # [WIN-NATIVE] MSG/OLE email extraction
+html2text>=2024.2.26                  # [WIN-NATIVE] HTML-to-text conversion
+icalendar>=5.0                        # [WIN-NATIVE] calendar/ICS parsing
+# [OPTIONAL][NOT FULL-WINDOWS-NATIVE] libpff-python provides the pypff module
+# used for PST files. Its upstream libpff bindings may require a source build,
+# libpff development headers, and platform-specific tooling; wheels are not
+# consistently available for Windows/Python versions. Keep this dependency
+# available only when PST support is required and verify it on the target host.
+# libpff-python   <- uncomment only on hosts that can build it (see above); a hard
+#                    requirement here made `pip install -r` fail everywhere else.
+
+# -----------------------------------------------------------------------------
+# Observability integrations (imported optionally by the error-monitoring code)
+# -----------------------------------------------------------------------------
+rollbar>=1.3                         # [WIN-NATIVE][OPTIONAL] error reporting
+sentry-sdk>=2.0                      # [WIN-NATIVE][OPTIONAL] error/performance reporting
+
+# -----------------------------------------------------------------------------
+# Development, testing, quality, and local database test tooling
+# -----------------------------------------------------------------------------
+pytest>=8.0                           # [WIN-NATIVE] test runner
+pytest-cov>=4.1                       # [WIN-NATIVE] coverage plugin
+ruff>=0.4                             # [WIN-NATIVE] linting/formatting
+bandit>=1.7                           # [WIN-NATIVE] security linting
+pgserver>=0.1                         # [WIN-NATIVE*] disposable PostgreSQL test helper
+
+# -----------------------------------------------------------------------------
+# Windows native-runtime requirements that pip cannot supply
+# -----------------------------------------------------------------------------
+# These are still required for complete functionality on Windows:
+#
+# 1. Tesseract OCR for pytesseract:
+#      Install a Windows Tesseract distribution, then set TESSERACT_CMD when
+#      tesseract.exe is not on PATH. Install language data for every declared
+#      language: eng, heb, and ara. Missing language data is a retryable OCR
+#      failure; it must not be silently replaced with English.
+#
+# 2. UnRAR.exe or bsdtar.exe for rarfile:
+#      Install a Windows build and put it on PATH, or configure rarfile's
+#      executable path. py7zr does not replace the external RAR requirement.
+#
+# 3. FFmpeg.exe for moviepy and video readers:
+#      Install a Windows FFmpeg build, put ffmpeg.exe/ffprobe.exe on PATH, or
+#      configure the application's FFmpeg path. This is required for media
+#      formats that MoviePy delegates to FFmpeg.
+#
+# 4. PostgreSQL server:
+#      Install a supported Windows PostgreSQL server and create/configure the
+#      application's database. psycopg2-binary is only the client driver.
+#
+# 5. PST/libpff support:
+#      libpff/libpff-python is not guaranteed to have native Windows wheels.
+#      Treat PST support as unavailable until the pypff import and a real PST
+#      extraction test pass on the target Windows installation; preserve the
+#      file record and report the dependency failure otherwise.
+#
+# [WIN-BINARY] packages above are native Windows wheels, not Unix-only
+# packages. Pin versions for production after testing the chosen CPython
+# version, because wheel availability varies by Python release and CPU arch.

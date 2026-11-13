@@ -1,0 +1,435 @@
+{% extends 'base.html' %}
+{#
+  Single ingestion interface.
+
+  This page replaces two competing upload screens (/operations/input and the
+  CLI-styled /upload): one interface, one pipeline (ingestion jobs), all of the
+  capabilities either of them had - browser file and folder upload, large files
+  by chunked staging, server paths inside the configured roots, source/side
+  classification with inline creation, dry run, worker/checkpoint/monitoring
+  options, and live progress.
+
+  Structure: a numbered step rail on the left (Source -> Classification ->
+  Processing -> Launch) so the operator always knows where they are and what is
+  still missing, a work column in the middle, and a telemetry column that shows
+  what the engine is doing right now. The launch dock at the bottom is sticky:
+  the readiness summary, the single blocking reason (when there is one) and the
+  two actions stay in reach no matter how long the file list grows.
+#}
+
+{% block title %}{{ _('Input / Ingestion') }}{% endblock %}
+{% block page_type %}default{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ingestion.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="ing" id="ingestionStudio" data-csrf="{{ csrf_token() }}">
+
+  {# ---------------------------------------------------------------- head -- #}
+  <header class="ing-head">
+    <div class="ing-head-text">
+      <h1>{{ _('Ingestion') }}</h1>
+      <p>{{ _('Everything that brings files into the system — in one place. Each finished intake has its own printable batch report.') }}</p>
+    </div>
+    <div class="ing-head-actions">
+      <a class="ing-ghost-btn" href="/operations/jobs"><i class="bi bi-clock-history"></i> {{ _('Jobs') }}</a>
+      <a class="ing-ghost-btn" href="/operations/import"><i class="bi bi-box-arrow-in-down"></i> {{ _('Import center') }}</a>
+    </div>
+  </header>
+
+  {# Every fact below is reported by /api/input/options-info - nothing here is
+     decoration: it tells the operator exactly what the engine will do. #}
+  <div class="ing-capabilities" id="capabilities" aria-live="polite">
+    <span class="ing-cap ing-cap-loading"><span class="ing-spinner"></span> {{ _('Reading engine capabilities…') }}</span>
+  </div>
+
+  <div class="ing-grid">
+    {# ------------------------------------------------------------ rail -- #}
+    <nav class="ing-rail" aria-label="{{ _('Ingestion steps') }}">
+      <ol id="stepRail">
+        <li class="ing-step is-current" data-step="source">
+          <button type="button" class="ing-step-btn" data-goto="panelSource">
+            <span class="ing-step-dot"><span class="ing-step-num">1</span><i class="bi bi-check-lg"></i></span>
+            <span class="ing-step-body">
+              <strong>{{ _('Source') }}</strong>
+              <small id="railSourceState">{{ _('Choose what to ingest') }}</small>
+            </span>
+          </button>
+        </li>
+        <li class="ing-step" data-step="classify">
+          <button type="button" class="ing-step-btn" data-goto="panelClassify">
+            <span class="ing-step-dot"><span class="ing-step-num">2</span><i class="bi bi-check-lg"></i></span>
+            <span class="ing-step-body">
+              <strong>{{ _('Classification') }}</strong>
+              <small id="railClassifyState">{{ _('Source and side') }}</small>
+            </span>
+          </button>
+        </li>
+        <li class="ing-step" data-step="processing">
+          <button type="button" class="ing-step-btn" data-goto="panelProcessing">
+            <span class="ing-step-dot"><span class="ing-step-num">3</span><i class="bi bi-check-lg"></i></span>
+            <span class="ing-step-body">
+              <strong>{{ _('Processing') }}</strong>
+              <small id="railProcessingState">{{ _('Engine defaults') }}</small>
+            </span>
+          </button>
+        </li>
+        <li class="ing-step" data-step="launch">
+          <button type="button" class="ing-step-btn" data-goto="panelLaunch">
+            <span class="ing-step-dot"><span class="ing-step-num">4</span><i class="bi bi-check-lg"></i></span>
+            <span class="ing-step-body">
+              <strong>{{ _('Launch') }}</strong>
+              <small id="railLaunchState">{{ _('Preflight, then start') }}</small>
+            </span>
+          </button>
+        </li>
+      </ol>
+      <div class="ing-rail-facts">
+        <span class="ing-kbd-hint"><kbd>Ctrl</kbd><kbd>Enter</kbd> {{ _('start') }}</span>
+        <span class="ing-kbd-hint"><kbd>Ctrl</kbd><kbd>D</kbd> {{ _('dry run') }}</span>
+      </div>
+    </nav>
+
+    {# --------------------------------------------------------- work area -- #}
+    <div class="ing-work">
+
+      {# ---------------------------------------------------------- step 1 -- #}
+      <section class="ing-card" id="panelSource" aria-labelledby="panelSourceTitle">
+        <div class="ing-card-head">
+          <span class="ing-card-index">1</span>
+          <div>
+            <h2 id="panelSourceTitle">{{ _('What should be ingested?') }}</h2>
+            <p>{{ _('Upload from this computer — files or whole folders — or point the engine at a folder already on the server.') }}</p>
+          </div>
+        </div>
+
+        <div class="ing-mode" role="tablist" aria-label="{{ _('Input mode') }}" id="modeSwitch">
+          <button type="button" class="ing-mode-btn is-active" role="tab" aria-selected="true"
+                  data-mode="upload" id="modeUpload">
+            <i class="bi bi-cloud-arrow-up"></i>
+            <span>
+              <strong>{{ _('This computer') }}</strong>
+              <small>{{ _('Any size: large files stream in chunks') }}</small>
+            </span>
+          </button>
+          <button type="button" class="ing-mode-btn" role="tab" aria-selected="false"
+                  data-mode="server" id="modeServer">
+            <i class="bi bi-hdd-network"></i>
+            <span>
+              <strong>{{ _('Server path') }}</strong>
+              <small id="serverModeNote">{{ _('Folders reachable by the server') }}</small>
+            </span>
+          </button>
+        </div>
+
+        {# ---- upload mode ---- #}
+        <div class="ing-pane" id="paneUpload">
+          <div class="ing-drop" id="dropZone" tabindex="0" role="button"
+               aria-label="{{ _('Add files, or drop them here') }}">
+            <div class="ing-drop-inner">
+              <i class="bi bi-box-arrow-in-down"></i>
+              <p class="ing-drop-title">{{ _('Drop files or folders here') }}</p>
+              <p class="ing-drop-sub">{{ _('or choose them from this computer') }}</p>
+              <div class="ing-drop-actions">
+                <button type="button" class="ing-soft-btn" id="pickFilesBtn">
+                  <i class="bi bi-file-earmark-plus"></i> {{ _('Choose files') }}
+                </button>
+                <button type="button" class="ing-soft-btn" id="pickFolderBtn">
+                  <i class="bi bi-folder-plus"></i> {{ _('Choose folder') }}
+                </button>
+              </div>
+            </div>
+            <div class="ing-drop-veil" id="dropVeil"><span>{{ _('Release to add') }}</span></div>
+          </div>
+          <input type="file" id="fileInput" multiple class="d-none">
+          <input type="file" id="folderInput" webkitdirectory directory multiple class="d-none">
+
+          <div class="ing-queue d-none" id="queueBlock">
+            <div class="ing-queue-head">
+              <span id="queueSummary" class="ing-queue-summary"></span>
+              <div class="ing-queue-tools">
+                <button type="button" class="ing-link-btn" id="clearQueueBtn">
+                  <i class="bi bi-x-circle"></i> {{ _('Clear all') }}
+                </button>
+              </div>
+            </div>
+            <ul class="ing-queue-list" id="fileList" aria-live="polite"></ul>
+          </div>
+        </div>
+
+        {# ---- server path mode ---- #}
+        <div class="ing-pane d-none" id="paneServer">
+          <label class="ing-label" for="serverPath">{{ _('File or folder on the server') }}</label>
+          <div class="ing-input-row">
+            <input type="text" id="serverPath" class="ing-input" spellcheck="false"
+                   placeholder="{{ _('for example /data/inbox') }}" autocomplete="off">
+            <button type="button" class="ing-soft-btn" id="checkPathBtn">
+              <i class="bi bi-search"></i> {{ _('Check') }}
+            </button>
+          </div>
+          <div class="ing-roots" id="rootsBox" aria-live="polite"></div>
+          <label class="ing-switch">
+            <input type="checkbox" id="recursive" checked>
+            <span class="ing-switch-track"><span class="ing-switch-thumb"></span></span>
+            <span>{{ _('Include subdirectories') }}</span>
+          </label>
+        </div>
+      </section>
+
+      {# ---------------------------------------------------------- step 2 -- #}
+      <section class="ing-card" id="panelClassify" aria-labelledby="panelClassifyTitle">
+        <div class="ing-card-head">
+          <span class="ing-card-index">2</span>
+          <div>
+            <h2 id="panelClassifyTitle">{{ _('Where does it belong?') }}</h2>
+            <p>{{ _('Source and side travel with every file and become part of its identity.') }}</p>
+          </div>
+        </div>
+
+        <div class="ing-classify">
+          <div class="ing-slot" id="slotSource">
+            <div class="ing-slot-head">
+              <span class="ing-slot-label">{{ _('Source') }} <em>*</em></span>
+              <button type="button" class="ing-link-btn" data-open-form="sourceForm">
+                <i class="bi bi-plus-lg"></i> {{ _('New') }}
+              </button>
+            </div>
+            <div class="ing-slot-value" id="sourceDisplay" data-empty="true">{{ _('Not selected') }}</div>
+            <input type="search" class="ing-input ing-filter" id="sourceFilter"
+                   placeholder="{{ _('Filter sources…') }}" aria-label="{{ _('Filter sources') }}">
+            <ul class="ing-pick-list" id="sourceList" role="listbox"
+                aria-label="{{ _('Sources') }}"></ul>
+
+            <div class="ing-inline-form d-none" id="sourceForm">
+              <div class="ing-inline-title">{{ _('New source') }}</div>
+              <div class="ing-inline-grid">
+                <div class="ing-option">
+                  <label class="ing-label" for="nsName">{{ _('Name') }} <span aria-hidden="true">*</span></label>
+                  <input id="nsName" class="ing-input" placeholder="{{ _('Source name') }}" required>
+                </div>
+                <div class="ing-option">
+                  <label class="ing-label" for="nsJob">{{ _('Job / role') }} <span aria-hidden="true">*</span></label>
+                  <input id="nsJob" class="ing-input" placeholder="{{ _('Job or role') }}" required>
+                </div>
+                <div class="ing-option">
+                  <label class="ing-label" for="nsCountry">{{ _('Country') }} <span aria-hidden="true">*</span></label>
+                  <input id="nsCountry" class="ing-input" placeholder="{{ _('Country') }}" required>
+                </div>
+                <div class="ing-option">
+                  <label class="ing-label" for="nsCity">{{ _('City') }}</label>
+                  <input id="nsCity" class="ing-input" placeholder="{{ _('City') }}">
+                </div>
+                <div class="ing-option">
+                  <label class="ing-label" for="nsImportance">{{ _('Importance (0–1)') }}</label>
+                  <input id="nsImportance" class="ing-input" type="number" step="0.1" min="0" max="1" value="0.5">
+                </div>
+                <div class="ing-option">
+                  <label class="ing-label" for="nsDesc">{{ _('Description') }}</label>
+                  <input id="nsDesc" class="ing-input" placeholder="{{ _('Description') }}">
+                </div>
+              </div>
+              <div class="ing-inline-actions">
+                <button type="button" class="ing-primary-btn ing-small" id="btnCreateSource">{{ _('Create source') }}</button>
+                <button type="button" class="ing-link-btn" data-close-form="sourceForm">{{ _('Cancel') }}</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="ing-slot" id="slotSide">
+            <div class="ing-slot-head">
+              <span class="ing-slot-label">{{ _('Side') }} <em>*</em></span>
+              <button type="button" class="ing-link-btn" data-open-form="sideForm">
+                <i class="bi bi-plus-lg"></i> {{ _('New') }}
+              </button>
+            </div>
+            <div class="ing-slot-value" id="sideDisplay" data-empty="true">{{ _('Not selected') }}</div>
+            <input type="search" class="ing-input ing-filter" id="sideFilter"
+                   placeholder="{{ _('Filter sides…') }}" aria-label="{{ _('Filter sides') }}">
+            <ul class="ing-pick-list" id="sideList" role="listbox"
+                aria-label="{{ _('Sides') }}"></ul>
+
+            <div class="ing-inline-form d-none" id="sideForm">
+              <div class="ing-inline-title">{{ _('New side') }}</div>
+              <div class="ing-inline-grid">
+                <div class="ing-option">
+                  <label class="ing-label" for="nsdName">{{ _('Name') }} <span aria-hidden="true">*</span></label>
+                  <input id="nsdName" class="ing-input" placeholder="{{ _('Side name') }}" required>
+                </div>
+                <div class="ing-option">
+                  <label class="ing-label" for="nsdImportance">{{ _('Importance (0–1)') }}</label>
+                  <input id="nsdImportance" class="ing-input" type="number" step="0.1" min="0" max="1" value="0.5">
+                </div>
+              </div>
+              <div class="ing-inline-actions">
+                <button type="button" class="ing-primary-btn ing-small" id="btnCreateSide">{{ _('Create side') }}</button>
+                <button type="button" class="ing-link-btn" data-close-form="sideForm">{{ _('Cancel') }}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <p class="ing-note">
+          <i class="bi bi-fingerprint"></i>
+          {{ _('Duplicates are decided by content hash + source + side: the same file can exist under a different source without being a duplicate.') }}
+        </p>
+      </section>
+
+      {# ---------------------------------------------------------- step 3 -- #}
+      <section class="ing-card" id="panelProcessing" aria-labelledby="panelProcessingTitle">
+        <div class="ing-card-head">
+          <span class="ing-card-index">3</span>
+          <div>
+            <h2 id="panelProcessingTitle">{{ _('How should it be processed?') }}</h2>
+            <p>{{ _('Leave the defaults unless this run needs something specific.') }}</p>
+          </div>
+        </div>
+
+        <div class="ing-options">
+          <div class="ing-option">
+            <label class="ing-label" for="optWorkers">{{ _('Workers') }}</label>
+            <div class="ing-stepper">
+              <button type="button" class="ing-step-btn-sm" data-step-target="optWorkers" data-delta="-1"
+                      aria-label="{{ _('One worker fewer') }}">−</button>
+              <input type="number" id="optWorkers" class="ing-input" value="0" min="0" max="64">
+              <button type="button" class="ing-step-btn-sm" data-step-target="optWorkers" data-delta="1"
+                      aria-label="{{ _('One worker more') }}">+</button>
+            </div>
+            <div class="ing-help">{{ _('0 = use the system default (bounded by CPU and the database pool).') }}</div>
+          </div>
+
+          <div class="ing-option">
+            <span class="ing-label">{{ _('Checkpoints') }}</span>
+            <div class="ing-segment" id="optCheckpoint" role="radiogroup"
+                 aria-label="{{ _('Checkpoint handling') }}">
+              <button type="button" class="is-active" role="radio" aria-checked="true" data-value="auto">
+                {{ _('Resume') }}
+              </button>
+              <button type="button" role="radio" aria-checked="false" data-value="fresh">{{ _('Start fresh') }}</button>
+              <button type="button" role="radio" aria-checked="false" data-value="off">{{ _('Off') }}</button>
+            </div>
+            <div class="ing-help" id="checkpointHelp">
+              {{ _('Resume continues an interrupted run; finished files are not processed twice.') }}
+            </div>
+          </div>
+
+          <div class="ing-option">
+            <span class="ing-label">{{ _('Monitoring') }}</span>
+            <label class="ing-switch">
+              <input type="checkbox" id="optMonitoring" checked>
+              <span class="ing-switch-track"><span class="ing-switch-thumb"></span></span>
+              <span>{{ _('Record throughput and phases for this job') }}</span>
+            </label>
+          </div>
+        </div>
+
+        {# The pipeline is not a set of switches the operator may flip - it is
+           what the engine does. Stating it as facts beats disabled checkboxes. #}
+        <details class="ing-spec" id="pipelineSpec">
+          <summary>{{ _('What this pipeline always does') }}</summary>
+          <dl>
+            <dt>{{ _('Duplicate detection') }}</dt><dd>{{ _('SHA-256 of the content, streamed') }}</dd>
+            <dt>{{ _('Identity') }}</dt><dd>{{ _('content hash + source + side') }}</dd>
+            <dt>{{ _('Containers') }}</dt><dd>{{ _('archives, compressed files, e-mail attachments, embedded objects — extracted with parent/child links') }}</dd>
+            <dt>{{ _('Archives') }}</dt><dd>{{ _('zip/tar/gz and more, with path-traversal protection') }}</dd>
+            <dt>{{ _('Text & metadata') }}</dt><dd>{{ _('extracted and indexed for search') }}</dd>
+            <dt>{{ _('OCR') }}</dt><dd>{{ _('used when an engine is available; a missing engine never fails the file') }}</dd>
+            <dt>{{ _('Failure handling') }}</dt><dd>{{ _('per file: one unreadable object never stops the run') }}</dd>
+          </dl>
+        </details>
+      </section>
+
+      {# ---------------------------------------------------------- step 4 -- #}
+      <section class="ing-card" id="panelLaunch" aria-labelledby="panelLaunchTitle">
+        <div class="ing-card-head">
+          <span class="ing-card-index">4</span>
+          <div>
+            <h2 id="panelLaunchTitle">{{ _('Preflight, then start') }}</h2>
+            <p>{{ _('A dry run walks the input and reports what would happen — it writes nothing.') }}</p>
+          </div>
+        </div>
+
+        <div class="ing-preflight d-none" id="preflight" aria-live="polite">
+          <div class="ing-preflight-head">
+            <span class="ing-preflight-title"><i class="bi bi-clipboard-check"></i> {{ _('Preflight result') }}</span>
+            <button type="button" class="ing-link-btn" id="closePreflight" aria-label="{{ _('Hide preflight') }}">
+              <i class="bi bi-x-lg"></i>
+            </button>
+          </div>
+          <div class="ing-tiles" id="preflightTiles"></div>
+          <div class="ing-preflight-notes" id="preflightNotes"></div>
+        </div>
+
+        <div class="ing-launch-notes" id="launchNotes"></div>
+      </section>
+    </div>
+
+    {# -------------------------------------------------------- telemetry -- #}
+    <aside class="ing-telemetry" aria-label="{{ _('Live state') }}">
+      <div class="ing-live">
+        <div class="ing-live-head">
+          <span><i class="bi bi-activity"></i> {{ _('Running now') }}</span>
+          <a href="/operations/jobs" class="ing-link-btn">{{ _('All jobs') }}</a>
+        </div>
+        <div id="liveSummary" class="ing-live-summary">{{ _('Reading…') }}</div>
+        <ul class="ing-live-list" id="liveJobs" aria-live="polite"></ul>
+        <div class="ing-live-empty d-none" id="liveEmpty">{{ _('Nothing is running.') }}</div>
+      </div>
+
+      <div class="ing-live">
+        <div class="ing-live-head">
+          <span><i class="bi bi-clock"></i> {{ _('Recently finished') }}</span>
+        </div>
+        <ul class="ing-live-list" id="recentJobs" aria-live="polite"></ul>
+      </div>
+
+      <div class="ing-live">
+        <div class="ing-live-head">
+          <span><i class="bi bi-cpu"></i> {{ _('This run') }}</span>
+        </div>
+        <dl class="ing-run-facts" id="runFacts"></dl>
+      </div>
+    </aside>
+  </div>
+
+  {# -------------------------------------------------------------- dock -- #}
+  <div class="ing-dock" id="launchDock">
+    <div class="ing-dock-readiness">
+      <span class="ing-dock-dot" id="dockDot"></span>
+      <div>
+        <strong id="dockHeadline">{{ _('Nothing selected yet') }}</strong>
+        <small id="dockDetail">{{ _('Start with step 1 — add files or a server path.') }}</small>
+      </div>
+    </div>
+    <div class="ing-dock-actions">
+      <button type="button" class="ing-soft-btn" id="btnDryRun">
+        <i class="bi bi-clipboard-check"></i> {{ _('Dry run') }}
+      </button>
+      <button type="button" class="ing-primary-btn" id="btnStart" disabled>
+        <span class="ing-primary-label"><i class="bi bi-play-fill"></i> {{ _('Start Analysis') }}</span>
+        <span class="ing-primary-progress d-none" id="startProgress"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="ing-msg" id="inputMsg" role="status" aria-live="polite"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{# Endpoints and page links are data, not hard-coded strings in the module, so
+   a deployment that mounts the API elsewhere only has to change this map. #}
+<script type="application/json" id="ingestionPageData">{{ {
+    "optionsInfoUrl": "/api/input/options-info",
+    "sourcesUrl": "/api/input/sources",
+    "sidesUrl": "/api/input/sides",
+    "uploadsUrl": "/api/input/uploads",
+    "chunkedUrl": "/api/input/uploads/chunked",
+    "jobsUrl": "/api/input/jobs",
+    "jobsListUrl": "/api/jobs",
+    "jobsSummaryUrl": "/api/jobs/summary",
+    "jobsPageUrl": "/operations/jobs/",
+    "batchReportUrl": "/operations/input/reports/"
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/ingestion-studio-page.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,437 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('File Library') }}{% endblock %}
+
+{% block page_type %}files-list{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/unified-table.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/file-manger.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/multi-select-dropdown.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/document-analysis.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/structured-export.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title"><i class="bi bi-book me-2"></i> {{ _('File Library') }} ({{ total_files|default(0)  }})</h1>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('files.file_types_page') }}" class="btn btn-outline-primary"><i class="bi bi-file-earmark-break me-1" aria-hidden="true"></i>{{ _('Browse by type') }}</a>
+        <a href="{{ url_for('operations_input_page') }}" class="btn btn-outline-primary"><i class="bi bi-plus-circle" aria-hidden="true"></i>{{ _('Upload Files') }}</a>
+        <button type="button" class="btn btn-outline-primary" data-on-click="refreshMainContent()"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i>{{ _('Refresh') }}</button>
+    </div>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+{% from 'components/filter_bar.html' import filter_section, filter_grid, filter_group, search_group %}
+{% from 'components/file_library_table.html' import file_library_table %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-folder2-open"></i>
+        {{ _('File Library Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('The File Library displays all files in your system with their status, metadata, and analysis results') }}</li>
+        <li>{{ _('View statistics showing total files, analyzed files, and pending files') }}</li>
+        <li>{{ _('Use filters to find files by type, status, source, category, or date range') }}</li>
+        <li>{{ _('Select multiple files to perform batch operations like export or delete') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-eye"></i>
+        {{ _('Viewing and Managing Files') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Click on any file to view detailed information, content preview, and analysis results') }}</li>
+        <li>{{ _('Use the search box to quickly find files by name or content') }}</li>
+        <li>{{ _('Sort files by name, date, size, or status using the column headers') }}</li>
+        <li>{{ _('Export selected files or view them in different formats') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-upload"></i>
+        {{ _('File Operations') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Upload new files using the "Upload Files" button or drag and drop files') }}</li>
+        <li>{{ _('Files are automatically analyzed after upload to extract text, metadata, and keywords') }}</li>
+        <li>{{ _('Monitor processing status in the statistics cards and file list') }}</li>
+        <li>{{ _('Delete files that are no longer needed, but be aware this action cannot be undone') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<div class="page-container">
+
+    <!-- Statistics Cards -->
+    <div class="file-stats-grid">
+        <div class="stat-card stat-card-total">
+            <div class="stat-card-icon">
+                <i class="bi bi-folder2-open"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Total Files') }}</div>
+                <div class="stat-card-value" id="totalFiles">{{ total_files|default(0) }}</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-analyzed">
+            <div class="stat-card-icon">
+                <i class="bi bi-check-circle"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Analyzed') }}</div>
+                <div class="stat-card-value" id="analyzedCount">{{ total_analyzed|default(0) }}</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-pending">
+            <div class="stat-card-icon">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Pending') }}</div>
+                <div class="stat-card-value" id="pendingCount">{{ total_pending|default(0) }}</div>
+            </div>
+        </div>
+        <div class="stat-card stat-card-selected">
+            <div class="stat-card-icon">
+                <i class="bi bi-check-square"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Selected') }}</div>
+                <div class="stat-card-value" id="selectedCount">0</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    {#- Sorting lives in the table headers now (record_table); the filters
+        remain the ones that say *which* files are listed. -#}
+    {% call filter_section() %}
+        <!-- Search and Main Filters -->
+        {% call filter_grid() %}
+        {{ search_group('smartSearch', _("Search Files"), _("Search by name, content..."), value=search, onclear='clearFileSearch()') }}
+
+            {% call filter_group('sourceFilter', _('Source'), 'bi-building') %}
+                <select id="sourceFilter" class="form-select">
+                    <option value="">{{ _('All Sources') }}</option>
+                    {% for sid, sname in sources.items() %}
+                    <option value="{{ sid }}" {% if source_filter == sid|string %}selected{% endif %}>
+                        {{ sname }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endcall %}
+
+            {% call filter_group('sideFilter', _('Side'), 'bi-diagram-3') %}
+                <select id="sideFilter" class="form-select">
+                    <option value="">{{ _('All Sides') }}</option>
+                    {% for sid, sname in sides.items() %}
+                    <option value="{{ sid }}" {% if side_filter == sid|string %}selected{% endif %}>
+                        {{ sname }}
+                    </option>
+                    {% endfor %}
+                </select>
+            {% endcall %}
+
+            {% call filter_group('fileTypeFilter', _('File Type'), 'bi-file-earmark') %}
+                <select id="fileTypeFilter" class="form-select msdd-enhance" multiple
+                        data-compact-multi="type" data-placeholder="{{ _('All types') }}"
+                        title="{{ _('Filter by one or more file types') }}"
+                        aria-label="{{ _('Filter by one or more file types') }}">
+                    {% if file_types %}
+                        {% set selected_types = (file_type_filter or '')|string %}
+                        {% for ft_key, ft_value in file_types.items() %}
+                        <option value="{{ ft_key }}" {% if ft_key in selected_types.split(',') %}selected{% endif %}>
+                            {{ ft_value }}
+                        </option>
+                        {% endfor %}
+                    {% endif %}
+                </select>
+            {% endcall %}
+
+            {% call filter_group('statusFilter', _('Status'), 'bi-check-circle') %}
+                <select id="statusFilter" class="form-select">
+                    <option value="">{{ _('All Status') }}</option>
+                    <option value="Read" {% if status_filter == 'Read' %}selected{% endif %}>{{ _('Analyzed') }}</option>
+                    <option value="Unread" {% if status_filter == 'Unread' %}selected{% endif %}>{{ _('Pending') }}</option>
+                </select>
+            {% endcall %}
+        {% endcall %}
+
+        <!-- Action Bar -->
+        <div class="action-bar">
+            <div class="action-group">
+                <span class="action-label">{{ _('Selection:') }}</span>
+                <button class="btn-action btn-select-toggle btn-action-icon-only" id="selectToggleBtn" type="button"
+                        data-on-click="toggleAllFilesSelection()" aria-pressed="false"
+                        title="{{ _('Select All') }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-check-square-fill select-toggle-icon" aria-hidden="true"></i>
+                    <span class="visually-hidden select-toggle-label">{{ _('Select All') }}</span>
+                    <span class="select-toggle-count" id="selectToggleCount" hidden>0</span>
+                </button>
+            </div>
+            <div class="action-group">
+                <span class="action-label">{{ _('Bulk Actions:') }}</span>
+                <button class="btn-action btn-primary btn-action-icon-only" id="bulkAnalyzeBtn" data-on-click="bulkAnalyze()" disabled
+                        title="{{ _('Analyze selected files') }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-lightning-charge" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Analyze') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-primary btn-action-icon-only" data-doc-action="view-analysis" id="bulkViewAnalysisBtn" disabled
+                        title="{{ _('View categories, category terms, and keywords for the selection') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-tags" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Analysis') }}</span>
+                </button>
+                <button class="btn-action btn-outline-primary btn-action-icon-only" id="bulkContentBtn" data-doc-action="export-text" disabled
+                        title="{{ _('Export the extracted content of the selection as one archive') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-file-earmark-arrow-down" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Export Content') }}</span>
+                </button>
+                <button class="btn-action btn-outline-primary btn-action-icon-only" id="bulkOriginalsBtn" data-doc-action="export-originals" disabled
+                        title="{{ _('Export the original files of the selection as one ZIP') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-file-zip" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Export Originals') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-primary btn-action-icon-only" id="bulkNamesCsvBtn" data-doc-action="export-names-csv" disabled
+                        title="{{ _('Export selected filenames to CSV') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-filetype-csv" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Filenames CSV') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-primary btn-action-icon-only" id="bulkNamesExcelBtn" data-doc-action="export-names-excel" disabled
+                        title="{{ _('Export selected filenames to Excel') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-file-earmark-excel" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Filenames Excel') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-primary btn-action-icon-only" data-doc-action="export-text-folder" disabled id="bulkTextFolderBtn"
+                        title="{{ _('Choose a folder (or create a subfolder) for extracted text') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-folder-plus" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Text to folder') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-primary btn-action-icon-only" data-doc-action="export-originals-folder" disabled id="bulkOriginalsFolderBtn"
+                        title="{{ _('Choose a folder (or create a subfolder) for original files') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-folder-symlink" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Originals to folder') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-primary btn-action-icon-only" data-doc-action="export-rename" id="bulkRenameExportBtn" disabled
+                        title="{{ _('Review and rename files before export') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-pencil-square" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Rename…') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-primary btn-action-icon-only" data-doc-action="open-original" id="bulkOpenOriginalBtn" disabled
+                        title="{{ _('Open the original file in its native application') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Open') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-primary btn-action-icon-only" data-doc-action="locate" id="bulkLocateBtn" disabled
+                        title="{{ _('Locate the containing folder') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-folder2-open" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Locate') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-primary btn-action-icon-only" data-doc-action="export-details" id="bulkDetailsBtn"
+                        title="{{ _('Export names and displayed details with column choice') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-table" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Details…') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-secondary btn-action-icon-only" data-doc-action="export-structured-folder" id="bulkStructuredExportBtn"
+                        title="{{ _('Export into a folder tree organized by category, source, and other metadata') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-diagram-3" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Structured Export') }}</span>
+                </button>
+                <button type="button" class="btn-action btn-outline-secondary btn-action-icon-only" data-doc-action="export-loaded-names" id="bulkAllNamesBtn"
+                        title="{{ _('Export names of documents loaded on this page') }}"
+                        data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-collection" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Loaded names') }}</span>
+                </button>
+                <button class="btn-action btn-outline-danger btn-action-icon-only" id="bulkDeleteBtn" data-on-click="bulkDelete()" disabled
+                        title="{{ _('Delete selected files') }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-trash" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Delete') }}</span>
+                </button>
+                {% if current_user.is_authenticated and current_user.has_role('admin', 'analyst') %}
+                <button class="btn-action btn-outline-warning btn-action-icon-only" id="removeSameContextDuplicatesBtn" data-on-click="removeSameContextDuplicates()"
+                        title="{{ _('Remove exact repeats: same name, content and details in the same source and side (keeps one)') }}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body">
+                    <i class="bi bi-files" aria-hidden="true"></i>
+                    <span class="visually-hidden">{{ _('Remove exact repeats') }}</span>
+                </button>
+                {% endif %}
+            </div>
+            <div class="action-group">
+                <span class="action-label">{{ _('View:') }}</span>
+                <div class="view-mode-toggle">
+                    <button class="view-mode-btn active" data-view="list" title="{{ _('List View') }}">
+                        <i class="bi bi-list-ul"></i>
+                    </button>
+                    <button class="view-mode-btn" data-view="grid" title="{{ _('Grid View') }}">
+                        <i class="bi bi-grid-3x3"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    {% endcall %}
+
+    <!-- Files Display Container -->
+    <div class="files-display-container">
+        <!-- List View (Default): the file library's table, through the one
+             shared rendering (components/file_library_table.html) - the same
+             table the type/keyword/category panels embed. -->
+        <div class="files-view files-view-list active" data-view="list">
+        {% set library_type_options -%}
+            [{%- for value in (file_types or {}).keys() -%}
+            {%- if value -%}{'value': value, 'label': value|upper}{% if not loop.last %}, {% endif %}{% endif %}
+            {%- endfor -%}]
+        {%- endset %}
+        {{ file_library_table(
+                files,
+                id='filesTable',
+                info_id='filesResultsInfo',
+                start_position=start_position|default(1),
+                total_files_count=total_files|default(0),
+                page=page|default(1),
+                total_pages=total_pages|default(1),
+                limit=limit|default(10),
+                sort_by=sort_by|default('date'),
+                sort_order=sort_order|default('desc'),
+                search=search or '',
+                name_search_param='search',
+                nav_params=nav_params or {},
+                type_options=library_type_options,
+                per_page_onchange='changeFilesPageSize()',
+                select_all_onchange='toggleSelectAll(this)',
+                show_per_page=True,
+                delete_handler=True) }}
+        </div>
+
+        <!-- Grid View -->
+        <div class="files-view files-view-grid" data-view="grid" style="display: none;">
+            <div class="files-grid" id="filesGrid">
+                {% for file in files %}
+                <div class="file-card" 
+                     data-file-id="{{ file[0] }}" 
+                     data-size="{{ file[3] }}"
+                     data-type="{{ file[4] }}"
+                     data-status="{{ file[5] }}">
+                    <input type="checkbox" 
+                           class="file-checkbox file-card-checkbox" 
+                           value="{{ file[0] }}" 
+                           data-on-click="event.stopPropagation(); updateBulkToolbar();">
+                    <div class="file-card-icon">
+                        <i class="bi bi-file-earmark-text"></i>
+                    </div>
+                    <h6 class="file-card-title">{{ file[1][:30] }}{% if file[1]|length > 30 %}...{% endif %}</h6>
+                    <div class="file-card-badges">
+                        <span class="badge badge-type">{{ file[4]|upper if file[4] else '' }}</span>
+                        {% if file[5] == 'Read' %}
+                            <span class="badge badge-success" title="{{ _('Read') }}" aria-label="{{ _('Read') }}"><i class="bi bi-check-lg" aria-hidden="true"></i></span>
+                        {% endif %}
+                    </div>
+                    <div class="file-card-stats">
+                        <div class="file-stat">
+                            <i class="bi bi-hdd"></i>
+                            <span>{{ (file[3] / 1024)|round|int }} KB</span>
+                        </div>
+                        <div class="file-stat">
+                            <i class="bi bi-calendar"></i>
+                            <span>{{ file[7].strftime('%m/%d') if file[7] else 'N/A' }}</span>
+                        </div>
+                    </div>
+                    <div class="file-card-actions">
+                        {#- The "quick preview" eye button called a placeholder that only
+                            logged to the console (and was not even loaded here); the
+                            file page below is the preview. -#}
+                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                data-file-menu-button
+                                data-file-id="{{ file[0] }}"
+                                data-file-name="{{ file[1] }}"
+                                title="{{ _('File Actions') }}"
+                                aria-haspopup="menu">
+                            <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
+                        </button>
+                        <a href="{{ url_for('files.file_detail', file_id=file[0], **nav_params) }}"
+                           class="btn btn-sm btn-outline-primary btn-action-icon-only"
+                           title="{{ _('Open Full View in New Tab') }}"
+                           data-bs-toggle="tooltip" data-bs-placement="top" data-bs-container="body"
+                           data-on-click="event.stopPropagation();">
+                            <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                            <span class="visually-hidden">{{ _('Full View') }}</span>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+
+<!-- Page Data - Passed to JavaScript via JSON script tag -->
+<script type="application/json" id="page-data">{{ {
+    "totalFiles": total_files|default(0),
+    "limit": limit|default(10),
+    "startPosition": start_position|default(1),
+    "currentPage": page|default(1),
+    "totalPages": total_pages|default(1),
+    "search": search,
+    "sourceFilter": source_filter,
+    "sideFilter": side_filter,
+    "statusFilter": status_filter,
+    "fileTypeFilter": file_type_filter
+}|tojson }}</script>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="files-list-page-data">{{ {
+    "translations": {
+        "selectAll": _('Select All'),
+        "deselectAll": _('Select None'),
+        "pleaseSelectFilesToAnalyze": _('Please select files to analyze'),
+        "analysisStartedFor": _('Analysis started for'),
+        "files": _('files'),
+        "errorStartingAnalysis": _('Error starting analysis'),
+        "pleaseSelectFilesToExport": _('Please select files to export'),
+        "filenameExportPrompt": _('Name this filename export (leave blank for an automatic name):'),
+        "filenameExportReady": _('Filename export ready.'),
+        "filenameExportFailed": _('Could not export the filename list.'),
+        "filenameExportLimit": _('The selected filename list is too large to export in one file.'),
+        "pleaseSelectFilesToDelete": _('Please select files to delete'),
+        "deleteFilesConfirm": _('Delete files? This cannot be undone.'),
+        "deletedFiles": _('Deleted'),
+        "errorDeletingFiles": _('Error deleting files'),
+        "deleteFileConfirm": _('Delete this file? This cannot be undone.'),
+        "fileDeleted": _('File deleted'),
+        "errorDeletingFile": _('Error deleting file')
+    }
+}|tojson }}</script>
+<script type="application/json" id="structured-export-i18n">{% include 'components/structured_export_i18n.json.jinja' %}</script>
+
+
+{% from 'components/confirm_dialog.html' import confirm_dialog %}
+{{ confirm_dialog(id='sameContextDuplicatesDialog',
+                  title=_('Remove exact repeats in the same source and side?'),
+                  message=_('Records with the same name, content and details, in the same source and the same side, are removed; one record is kept. Records with another name, source or side are not touched. Original files on disk are not deleted.'),
+                  scope_label=_('Exact repeats'),
+                  confirm_label=_('Remove exact repeats'),
+                  cancel_label=_('Keep them'),
+                  dangerous=True) }}
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+{#- files-list-page.js is loaded by universal-initializer.js (full load + soft-nav). -#}
+{% endblock %}

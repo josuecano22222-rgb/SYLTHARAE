@@ -1,0 +1,293 @@
+/* Page Tips/Documentation Component Styles */
+
+.page-tips-container {
+    margin-bottom: 1.5rem;
+    /* Hide by default until JavaScript initializes to prevent flash */
+    visibility: hidden;
+    opacity: 0;
+    /* No transition on initial load to prevent flash */
+    transition: none;
+}
+
+/* Show container once JavaScript has initialized it - enable transitions after initialization */
+.page-tips-container.tips-initialized {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.page-tips-container[data-tips-hidden="true"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+.page-tips-card {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #fbbf24;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.page-tips-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.page-tips-header {
+    background: rgba(251, 191, 36, 0.2);
+    padding: 1rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.page-tips-header h5 {
+    color: #92400e;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.page-tips-header .btn-link {
+    color: #92400e !important;
+    text-decoration: none;
+    transition: transform 0.2s ease;
+}
+
+.page-tips-header .btn-link:hover {
+    transform: scale(1.1);
+    color: #78350f !important;
+}
+
+.page-tips-content {
+    padding: 1.25rem;
+    color: #78350f;
+    max-height: 600px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    /* Custom scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(251, 191, 36, 0.5) rgba(251, 191, 36, 0.1);
+}
+
+/* Webkit scrollbar styling (Chrome, Safari, Edge) */
+.page-tips-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.page-tips-content::-webkit-scrollbar-track {
+    background: rgba(251, 191, 36, 0.1);
+    border-radius: 4px;
+}
+
+.page-tips-content::-webkit-scrollbar-thumb {
+    background: rgba(251, 191, 36, 0.5);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.page-tips-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(251, 191, 36, 0.7);
+}
+
+.page-tips-content.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+}
+
+.page-tips-content .tips-section {
+    margin-bottom: 1.25rem;
+}
+
+.page-tips-content .tips-section:last-child {
+    margin-bottom: 0;
+}
+
+.page-tips-content .tips-section-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #92400e;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.page-tips-content .tips-section-title i {
+    font-size: 1.1rem;
+}
+
+.page-tips-content .tips-list {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+}
+
+.page-tips-content .tips-list li {
+    padding: 0.5rem 0 0.5rem 1.75rem;
+    position: relative;
+    line-height: 1.6;
+}
+
+.page-tips-content .tips-list li::before {
+    content: "→";
+    position: absolute;
+    left: 0;
+    color: #f59e0b;
+    font-weight: bold;
+}
+
+.page-tips-content .tips-list li:first-child {
+    padding-top: 0;
+}
+
+.page-tips-content .tips-list li:last-child {
+    padding-bottom: 0;
+}
+
+.page-tips-content .tips-note {
+    background: rgba(255, 255, 255, 0.5);
+    border-left: 3px solid #f59e0b;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+}
+
+.page-tips-content .tips-warning {
+    background: rgba(254, 226, 226, 0.7);
+    border-left: 3px solid #ef4444;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+    color: #991b1b;
+}
+
+.page-tips-content .tips-info {
+    background: rgba(219, 234, 254, 0.7);
+    border-left: 3px solid #3b82f6;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+    color: #1e40af;
+}
+
+.page-tips-content .tips-success {
+    background: rgba(209, 250, 229, 0.7);
+    border-left: 3px solid #10b981;
+    padding: 0.75rem 1rem;
+    margin: 1rem 0;
+    border-radius: 0.375rem;
+    font-size: 0.95rem;
+    color: #065f46;
+}
+
+/* Dark mode support */
+[data-theme="dark"] .page-tips-card,
+.dark-mode .page-tips-card {
+    background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+    border-color: #f59e0b;
+}
+
+[data-theme="dark"] .page-tips-header,
+.dark-mode .page-tips-header {
+    background: rgba(251, 191, 36, 0.15);
+    border-bottom-color: rgba(251, 191, 36, 0.3);
+}
+
+[data-theme="dark"] .page-tips-header h5,
+.dark-mode .page-tips-header h5 {
+    color: #fde68a;
+}
+
+[data-theme="dark"] .page-tips-content,
+.dark-mode .page-tips-content {
+    color: #fde68a;
+}
+
+[data-theme="dark"] .page-tips-content .tips-section-title,
+.dark-mode .page-tips-content .tips-section-title {
+    color: #fbbf24;
+}
+
+[data-theme="dark"] .page-tips-content .tips-list li::before,
+.dark-mode .page-tips-content .tips-list li::before {
+    color: #fbbf24;
+}
+
+/* Dark mode scrollbar styling */
+[data-theme="dark"] .page-tips-content,
+.dark-mode .page-tips-content {
+    scrollbar-color: rgba(251, 191, 36, 0.6) rgba(251, 191, 36, 0.15);
+}
+
+[data-theme="dark"] .page-tips-content::-webkit-scrollbar-track,
+.dark-mode .page-tips-content::-webkit-scrollbar-track {
+    background: rgba(251, 191, 36, 0.15);
+}
+
+[data-theme="dark"] .page-tips-content::-webkit-scrollbar-thumb,
+.dark-mode .page-tips-content::-webkit-scrollbar-thumb {
+    background: rgba(251, 191, 36, 0.6);
+}
+
+[data-theme="dark"] .page-tips-content::-webkit-scrollbar-thumb:hover,
+.dark-mode .page-tips-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(251, 191, 36, 0.8);
+}
+
+/* RTL support */
+[dir="rtl"] .page-tips-content .tips-list li {
+    padding-right: 1.75rem;
+    padding-left: 0;
+}
+
+[dir="rtl"] .page-tips-content .tips-list li::before {
+    right: 0;
+    left: auto;
+}
+
+[dir="rtl"] .page-tips-content .tips-note,
+[dir="rtl"] .page-tips-content .tips-warning,
+[dir="rtl"] .page-tips-content .tips-info,
+[dir="rtl"] .page-tips-content .tips-success {
+    border-right: 3px solid;
+    border-left: none;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .page-tips-header {
+        padding: 0.875rem 1rem;
+    }
+    
+    .page-tips-header h5 {
+        font-size: 1rem;
+    }
+    
+    .page-tips-content {
+        padding: 1rem;
+        max-height: 500px; /* Slightly smaller on mobile */
+    }
+    
+    .page-tips-content .tips-section {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Animation for toggle icon */
+#tipsToggleIcon {
+    transition: transform 0.3s ease;
+}
+
+#tipsToggleIcon.rotated {
+    transform: rotate(180deg);
+}
+

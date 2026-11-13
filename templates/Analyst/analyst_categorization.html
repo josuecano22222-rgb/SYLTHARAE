@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Analyst Categorization') }} - {{ _('File Analysis System') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/analyst-categorization.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/structured-export.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<!-- ================================================================
+     ANALYST CATEGORIZATION VIEW (FR-4)
+     Dedicated interface for the analyst-driven MANUAL categorization
+     layer. Deliberately visually and structurally distinct from the
+     smart-classification interfaces (FR-4.3): different layout blocks,
+     different accent color, separate data namespace. It displays ONLY
+     analyst-assigned categories - smart (system-generated)
+     classification is never shown or editable here (FR-1.4).
+     ================================================================ -->
+<div class="page-container analyst-view">
+
+    <!-- Distinct banner (FR-4.3) -->
+    <div class="analyst-banner">
+        <div class="analyst-banner-icon">
+            <i class="bi bi-person-badge"></i>
+        </div>
+        <div class="analyst-banner-text">
+            <h1 class="analyst-banner-title">{{ _('Analyst Categorization') }}</h1>
+            <p class="analyst-banner-subtitle">
+                {{ _('Manual, analyst-driven categorization layer — fully separate from system-generated smart categorization.') }}
+            </p>
+        </div>
+        <div class="analyst-banner-actions">
+            <a href="{{ url_for('search_advanced') }}" class="btn btn-analyst-outline">
+                <i class="bi bi-search me-1"></i>{{ _('Categorize from Search') }}
+            </a>
+            <button type="button" class="btn btn-analyst-outline" data-on-click="openStructuredExport()" title="{{ _('Export into a folder tree organized by category, source, and other metadata') }}">
+                <i class="bi bi-diagram-3 me-1"></i>{{ _('Structured Export') }}
+            </button>
+            <button type="button" class="btn btn-analyst" data-on-click="exportAnalystCsv()">
+                <i class="bi bi-download me-1"></i>{{ _('Export CSV') }}
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="analyst-stats-grid">
+        <div class="analyst-stat-card">
+            <div class="analyst-stat-icon"><i class="bi bi-person-badge"></i></div>
+            <div>
+                <div class="analyst-stat-value" id="statCategoryCount">{{ stats.category_count }}</div>
+                <div class="analyst-stat-label">{{ _('Analyst Categories') }}</div>
+            </div>
+        </div>
+        <div class="analyst-stat-card">
+            <div class="analyst-stat-icon"><i class="bi bi-files"></i></div>
+            <div>
+                <div class="analyst-stat-value" id="statCategorizedFiles">{{ stats.categorized_files }}</div>
+                <div class="analyst-stat-label">{{ _('Categorized Files') }}</div>
+            </div>
+        </div>
+        <div class="analyst-stat-card">
+            <div class="analyst-stat-icon"><i class="bi bi-link-45deg"></i></div>
+            <div>
+                <div class="analyst-stat-value" id="statAssignments">{{ stats.assignment_count }}</div>
+                <div class="analyst-stat-label">{{ _('Assignments') }}</div>
+            </div>
+        </div>
+        <div class="analyst-stat-card">
+            <div class="analyst-stat-icon"><i class="bi bi-person-check"></i></div>
+            <div>
+                <div class="analyst-stat-value" id="statAnalysts">{{ stats.analyst_count }}</div>
+                <div class="analyst-stat-label">{{ _('Analysts') }}</div>
+            </div>
+        </div>
+        <div class="analyst-stat-card">
+            <div class="analyst-stat-icon"><i class="bi bi-file-earmark-minus"></i></div>
+            <div>
+                <div class="analyst-stat-value" id="statUncategorized">{{ stats.total_files - stats.categorized_files }}</div>
+                <div class="analyst-stat-label">{{ _('Uncategorized Files Remaining') }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Assignments (left, main column) -->
+        <div class="col-lg-8">
+            <div class="analyst-panel">
+                <div class="analyst-panel-header">
+                    <h5 class="analyst-panel-title">
+                        <i class="bi bi-table me-2"></i>{{ _('Categorized Files') }}
+                    </h5>
+                    <span class="analyst-badge-soft" id="assignmentsTotal">{{ stats.assignment_count }}</span>
+                </div>
+
+                <!-- Filters (FR-4.2) -->
+                <div class="analyst-filters">
+                    <div class="analyst-filter-group">
+                        <label class="analyst-filter-label" for="filterCategory">{{ _('Analyst Category') }}</label>
+                        <select class="form-select form-select-sm" id="filterCategory">
+                            <option value="">{{ _('All Categories') }}</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.file_count }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="analyst-filter-group">
+                        <label class="analyst-filter-label" for="filterAnalyst">{{ _('Analyst') }}</label>
+                        <select class="form-select form-select-sm" id="filterAnalyst">
+                            <option value="">{{ _('All Analysts') }}</option>
+                            {% for analyst in analysts %}
+                            <option value="{{ analyst.id }}">{{ analyst.username }} ({{ analyst.assignment_count }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="analyst-filter-group">
+                        <label class="analyst-filter-label" for="filterDateFrom">{{ _('Categorized From') }}</label>
+                        <input type="date" class="form-control form-control-sm" id="filterDateFrom">
+                    </div>
+                    <div class="analyst-filter-group">
+                        <label class="analyst-filter-label" for="filterDateTo">{{ _('Categorized To') }}</label>
+                        <input type="date" class="form-control form-control-sm" id="filterDateTo">
+                    </div>
+                    <div class="analyst-filter-group analyst-filter-grow">
+                        <label class="analyst-filter-label" for="filterQuery">{{ _('Originating Search Query') }}</label>
+                        <input type="text" class="form-control form-control-sm" id="filterQuery"
+                               placeholder="{{ _('Filter by the query that surfaced the files…') }}">
+                    </div>
+                    <div class="analyst-filter-group">
+                        <label class="analyst-filter-label" for="filterFile">{{ _('File Name / Path') }}</label>
+                        <input type="text" class="form-control form-control-sm" id="filterFile"
+                               placeholder="{{ _('File name or path…') }}">
+                    </div>
+                    <div class="analyst-filter-group analyst-filter-actions">
+                        <button type="button" class="btn btn-sm btn-analyst" data-on-click="loadAssignments(1)">
+                            <i class="bi bi-funnel me-1"></i>{{ _('Apply Filters') }}
+                        </button>
+                        <button type="button" class="btn btn-sm btn-analyst-outline" data-on-click="resetFilters()">
+                            <i class="bi bi-x-circle me-1"></i>{{ _('Reset') }}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Assignments table -->
+                <div class="table-responsive analyst-table-wrap">
+                    <table class="table table-hover align-middle analyst-table">
+                        <thead>
+                            <tr>
+                                <th>{{ _('File') }}</th>
+                                <th>{{ _('Source / Side') }}</th>
+                                <th>{{ _('Analyst Category') }}</th>
+                                <th>{{ _('Assigned By') }}</th>
+                                <th>{{ _('Assigned At') }}</th>
+                                <th>{{ _('Originating Query') }}</th>
+                                <th class="text-end">{{ _('Actions') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assignmentsTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">{{ _('Loading…') }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination: the shared bar, drawn by the shared renderer -->
+                <div class="analyst-pagination">
+                    <span class="text-muted small" id="assignmentsPageInfo"></span>
+                    <div id="assignmentsPagination"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column: category management + audit log -->
+        <div class="col-lg-4">
+            <!-- Category management (analyst-defined namespace only) -->
+            <div class="analyst-panel mb-4">
+                <div class="analyst-panel-header">
+                    <h5 class="analyst-panel-title">
+                        <i class="bi bi-tags me-2"></i>{{ _('Manage Analyst Categories') }}
+                    </h5>
+                </div>
+                <div class="analyst-panel-body">
+                    <p class="small text-muted">
+                        {{ _('These labels belong exclusively to the analyst (manual) taxonomy. They are never shared with smart categories.') }}
+                    </p>
+                    {% if current_user.is_authenticated and current_user.has_role('admin', 'analyst') %}
+                    <div class="input-group input-group-sm mb-3">
+                        <input type="text" class="form-control" id="newCategoryName"
+                               placeholder="{{ _('New analyst category name…') }}" maxlength="255">
+                        <button type="button" class="btn btn-analyst" data-on-click="createAnalystCategory()">
+                            <i class="bi bi-plus-lg"></i>
+                        </button>
+                    </div>
+                    {% endif %}
+                    <ul class="analyst-category-list list-unstyled mb-0" id="analystCategoryList">
+                        {% for cat in categories %}
+                        <li class="analyst-category-item" data-category-id="{{ cat.id }}" data-category-name="{{ cat.name }}">
+                            <div class="d-flex justify-content-between align-items-center w-100">
+                                <div class="analyst-category-name">
+                                    <i class="bi bi-person-badge me-2"></i>
+                                    <span class="analyst-category-label">{{ cat.name }}</span>
+                                    <span class="analyst-badge-soft">{{ cat.file_count }}</span>
+                                </div>
+                                <div class="analyst-category-actions btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                                            data-on-click="filterByCategory({{ cat.id }})"
+                                            title="{{ _('Show files in this category') }}">
+                                        <i class="bi bi-funnel"></i>
+                                    </button>
+                                    {% if current_user.is_authenticated and current_user.has_role('admin', 'analyst') %}
+                                    {# SECURITY: never inline the category name into the onclick
+                                       JS string - HTML-entity escaping does not protect a JS
+                                       string literal inside an HTML attribute. The handler
+                                       resolves the name from this element's data attribute. #}
+                                    <button type="button" class="btn btn-sm btn-outline-danger"
+                                            data-on-click="deleteAnalystCategory(this)"
+                                            title="{{ _('Delete category (files return to uncategorized)') }}">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        {% else %}
+                        <li class="text-muted small py-2">{{ _('No analyst categories yet — create one from a search or above.') }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Audit log (FR-1.5 traceability) -->
+            <div class="analyst-panel">
+                <div class="analyst-panel-header">
+                    <h5 class="analyst-panel-title">
+                        <i class="bi bi-clock-history me-2"></i>{{ _('Audit Log') }}
+                    </h5>
+                </div>
+                <div class="analyst-panel-body">
+                    <p class="small text-muted">
+                        {{ _('Every categorization action with analyst, timestamp, category, originating query and affected files.') }}
+                    </p>
+                    <ul class="analyst-audit-list list-unstyled mb-0" id="analystAuditList">
+                        <li class="text-muted small py-2">{{ _('Loading…') }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="analyst-categorization-page-data">{{ {
+    "canCategorize": current_user.is_authenticated and current_user.has_role('admin', 'analyst'),
+    "isAdmin": current_user.is_authenticated and current_user.has_role('admin'),
+    "exportColumns": [
+        {"key": "assignment_id", "label": _("Assignment ID")},
+        {"key": "file_id", "label": _("File ID")},
+        {"key": "file_name", "label": _("File name")},
+        {"key": "file_path", "label": _("File path")},
+        {"key": "file_type", "label": _("File type")},
+        {"key": "source", "label": _("Source")},
+        {"key": "side", "label": _("Side")},
+        {"key": "analyst_category", "label": _("Analyst Category")},
+        {"key": "analyst_category_id", "label": _("Analyst Category ID")},
+        {"key": "category_color", "label": _("Category color")},
+        {"key": "assigned_by", "label": _("Assigned By")},
+        {"key": "assigned_by_id", "label": _("Assigned by (user ID)")},
+        {"key": "assigned_at", "label": _("Assigned At")},
+        {"key": "originating_search_query", "label": _("Originating Search Query")}
+    ],
+    "translations": {
+        "exportCsvTitle": _("Export analyst categorizations"),
+        "exportCsvHint": _("Exports respect the filters on this page. Choose which columns to include in the CSV."),
+        "chooseColumns": _("Columns to include"),
+        "chooseColumnsWarning": _("Choose at least one column"),
+        "selectAll": _("Select All"),
+        "deselectAll": _("Select None"),
+        "exportDefaultColumns": _("Default set"),
+        "fileName": _("File name"),
+        "cancel": _("Cancel"),
+        "export": _("Export"),
+        "close": _("Close"),
+        "exportCsvReady": _("CSV export ready."),
+        "exportFailed": _("Export failed"),
+        "confirmDeleteCategory": _('Delete analyst category "{name}"? Its assignments are removed and affected files return to uncategorized status.'),
+        "confirmRemove": _('Remove analyst category from this file? It returns to uncategorized status for search scope.'),
+        "removeFailed": _('Remove failed'),
+        "createFailed": _('Could not create category'),
+        "deleteFailed": _('Could not delete category'),
+        "noAssignments": _('No analyst-categorized files match the current filters.'),
+        "pageOf": _('Page {page} of {pages} ({total} assignments)'),
+        "never": _('(no query)'),
+        "sourceLabel": _('Source'),
+        "sideLabel": _('Side'),
+        "noOrigin": _('—'),
+        "unknownAnalyst": _('unknown'),
+        "categoryCreated": _('Analyst category created'),
+        "categoryDeleted": _('Analyst category deleted'),
+        "assignmentRemoved": _('Assignment removed'),
+        "loading": _('Loading…'),
+        "failedToLoadAssignments": _('Failed to load assignments'),
+        "failedAuditLog": _('Failed to load audit log.'),
+        "noActionsYet": _('No categorization actions recorded yet.'),
+        "fileCount": _('{count} file(s)'),
+        "allCategories": _('All Categories'),
+        "allAnalysts": _('All Analysts'),
+        "noCategoriesYet": _('No analyst categories yet — create one from a search or above.'),
+        "showFilesInCategory": _('Show files in this category'),
+        "deleteCategoryTitle": _('Delete category (files return to uncategorized)')
+    }
+}|tojson }}</script>
+<script type="application/json" id="structured-export-i18n">{% include 'components/structured_export_i18n.json.jinja' %}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/analyst-categorization-page.js') }}"></script>
+{% endblock %}

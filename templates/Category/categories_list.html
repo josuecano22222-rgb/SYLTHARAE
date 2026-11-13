@@ -1,0 +1,479 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Categories Management') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/unified-table.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='css/file-type-workspace.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='dist/css/select2.min.css') }}" rel="stylesheet" />
+{% endblock %}
+
+{% from 'components/breadcrumbs.html' import breadcrumbs %}
+{% block breadcrumb %}{{ breadcrumbs() }}{% endblock %}
+
+{% from 'components/documents_panel.html' import documents_panel %}
+{% from 'components/table.html' import record_table %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-tags me-2"></i>
+            {{ _('Categories Management') }} ({{ total_categories|default(0) }})
+        </h1>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-primary" data-on-click="openCategoryModal()">
+            <i class="bi bi-plus-circle me-2"></i>
+            {{ _('Add Category') }}
+        </button>
+        <a href="{{ url_for('categories_tree_page') }}" class="btn btn-outline-primary">
+            <i class="bi bi-diagram-3 me-1"></i> {{ _('Hierarchy') }}
+        </a>
+        <button type="button" class="btn btn-warning" data-on-click="findDuplicates()">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            {{ _('Find Duplicates') }}
+        </button>
+        <button class="btn btn-outline-primary" data-on-click="refreshMainContent()">
+            <i class="bi bi-arrow-clockwise me-1"></i> {{ _('Refresh') }}
+        </button>
+    </div>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+{% from 'components/filter_bar.html' import filter_section, filter_grid, search_group %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-tags"></i>
+        {{ _('Managing Categories') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Categories help organize and classify your files for easier management and retrieval') }}</li>
+        <li>{{ _('Click "Add Category" to create a new category with a name and optional description') }}</li>
+        <li>{{ _('Click a category name to view and manage the words in it') }}</li>
+        <li>{{ _('Delete categories that are no longer needed, but be aware this may affect file classifications') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-funnel"></i>
+        {{ _('Finding and Filtering') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Use the search box to quickly find categories by name') }}</li>
+        <li>{{ _('Sort categories by clicking a column heading - name, files, words or id') }}</li>
+        <li>{{ _('Choose how many categories a page holds with the selector above the table') }}</li>
+        <li>{{ _('Use "Find Duplicates" to identify and merge duplicate categories') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-graph-up"></i>
+        {{ _('Category Statistics') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('The Files column counts the files classified into each category') }}</li>
+        <li>{{ _('The Words column counts the words associated with each category') }}</li>
+        <li>{{ _('Sort by either count to see the most used categories first') }}</li>
+    </ul>
+</div>
+<div class="tips-warning">
+    <strong>{{ _('Warning:') }}</strong> {{ _('Deleting a category will remove it from all associated files. Consider merging categories instead of deleting them.') }}
+</div>
+{% endcall %}
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-2">
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-info-bg); color: var(--primary-color);">
+                <i class="bi bi-tags"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Total Categories') }}</div>
+                <div class="stat-card-value">{{ total_categories|default(0) }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-success-bg); color: var(--success-color);">
+                <i class="bi bi-eye"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('On This Page') }}</div>
+                <div class="stat-card-value">{{ categories|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <div class="stat-card-icon" style="background: var(--alert-warning-bg); color: var(--warning-color);">
+                <i class="bi bi-table"></i>
+            </div>
+            <div class="stat-card-content">
+                <div class="stat-card-label">{{ _('Page') }}</div>
+                <div class="stat-card-value">{{ page|default(1) }} / {{ total_pages|default(1) }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+{% call filter_section() %}
+    {% call filter_grid() %}
+        {{ search_group('categorySearch', _("Search Categories"), _("Search categories..."), value=search, onclear='clearSearch()') }}
+    {% endcall %}
+{% endcall %}
+
+{#- The list: one unit - toolbar, sortable headers, body, pager. A header
+    click re-asks the server for this view in the new order. -#}
+{% set showing_info -%}
+    {%- if categories -%}
+        {%- set start = (page - 1) * per_page + 1 -%}
+        {%- set end = start + categories|length - 1 -%}
+        {{ _('Showing') }} {{ start }}–{{ end }} {{ _('of') }} {{ total_categories }} {{ _('categories') }}
+    {%- else -%}
+        {{ _('No categories found') }}
+    {%- endif -%}
+{%- endset %}
+{% call record_table(
+        id='categoriesTable',
+        columns=[
+            {'kind': 'index', 'width': '70px'},
+            {'key': 'name', 'label': _('Category Name'), 'sortable': True, 'type': 'text',
+             'filter': {'kind': 'text', 'param': 'search',
+                        'value': search|default('')}},
+            {'key': 'files', 'label': _('Files'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '110px'},
+            {'key': 'words', 'label': _('Words'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '110px'},
+            {'kind': 'actions', 'width': '260px'}
+        ],
+        mode='server',
+        sort_key=sort_by|default('files'),
+        sort_dir=sort_order|default('desc'),
+        info_text=showing_info,
+        per_page=per_page,
+        per_page_id='categoriesTablePerPage',
+        on_per_page_change='changeCategoriesPageSize()',
+        empty_message=_('No categories found'),
+        empty_filtered=search|default('')|length > 0,
+        empty_action_label=_('Add First Category'),
+        empty_action_onclick='openCategoryModal()',
+        export_interface=export_interface_for(request.endpoint),
+        export_columns=[
+            {'key': 'id', 'label': _('Id')},
+        ],
+        page=page|default(1),
+        total_pages=total_pages|default(1),
+        total_count=total_categories|default(0),
+        rows_shown=categories|length,
+        append=True,
+        pager=True) %}
+    {% for category in categories %}
+    {#- The name in the reader's language. ``source`` says where it came from
+        (translated / base-language / default-language / canonical) so a name
+        that has not been translated yet is marked rather than passed off as
+        translated. -#}
+    {%- set label = (term_labels or {}).get(category.id) -%}
+    {%- set display_name = label.name if label else category.name -%}
+    {%- set name_source = label.source if label else 'canonical' -%}
+    <tr class="category-item{% if category.parent_id %} subcategory{% endif %}"
+        data-category-id="{{ category.id }}"
+        data-name="{{ display_name|lower }}"
+        data-term-source="{{ name_source }}"
+        data-parent-id="{{ category.parent_id or '' }}">
+        <td class="ut-index-cell"><span class="ut-badge ut-badge-neutral">#{{ category.id }}</span></td>
+        <td data-ut-value="{{ display_name|lower }}">
+            {% if category.parent_id %}
+            <span class="text-muted" style="margin-right: 8px;">
+                <i class="bi bi-arrow-right-short"></i>
+            </span>
+            {% endif %}
+            {#- A name that fell back to another language is muted and says so.
+                ``Missing`` is used because it is the one msgid the catalogs
+                already carry for this idea (Arabic: "غير مترجم"); ``Original``
+                has no Hebrew or Persian translation, so it would have rendered
+                in English on an Arabic page. -#}
+            {%- set untranslated = name_source not in ('translated', 'base-language') -%}
+            <a class="ut-name{% if untranslated %} text-muted{% endif %}"
+               href="{{ url_for('category_words', category_id=category.id) }}"
+               dir="auto"
+               {% if untranslated %}title="{{ _('Missing') }}"
+               data-term-marker="missing"{% endif %}>{{ display_name }}</a>
+        </td>
+        <td data-ut-value="{{ category.parent_id or '' }}">
+            {% if category.parent_id %}
+                {#- ``selectattr(...)|first.name`` is not a filter chain Jinja
+                    understands: it looks for a filter called ``first.name`` and
+                    raised TemplateRuntimeError, which the route turned into an
+                    empty table. A ``set`` names the row first. -#}
+                {%- set parent_row = categories|selectattr('id', 'equalto', category.parent_id)|first -%}
+                {%- set parent_name = parent_row.name if parent_row
+                                        else (parent_names or {}).get(category.parent_id, '') -%}
+                {% if parent_name %}
+                <a href="{{ url_for('categories_list') }}?search={{ parent_name }}" class="text-muted small">
+                    <i class="bi bi-tag"></i> {{ parent_name }}
+                </a>
+                {% else %}
+                {#- A parent outside the page and unknown to the name lookup:
+                    say the id rather than render a search with no term. -#}
+                <span class="text-muted small">
+                    <i class="bi bi-tag"></i> {{ _('Parent') }} #{{ category.parent_id }}
+                </span>
+                {% endif %}
+            {% else %}
+                <span class="text-muted small">{{ _('Main Category') }}</span>
+            {% endif %}
+        </td>
+        <td class="text-end" data-ut-value="{{ category.file_count }}">
+            <span class="ut-badge ut-badge-primary">{{ category.file_count }}</span>
+        </td>
+        <td class="text-end" data-ut-value="{{ category.word_count }}">
+            <span class="ut-badge ut-badge-info">{{ category.word_count }}</span>
+        </td>
+        <td>
+            <div class="btn-group btn-group-sm ut-actions">
+                <a href="{{ url_for('category_words', category_id=category.id) }}" class="btn btn-outline-primary" title="{{ _('View Words') }}">
+                    <i class="bi bi-eye"></i> {{ _('View') }}
+                </a>
+                <a href="{{ url_for('category_names', category_id=category.id) }}" class="btn btn-outline-secondary" title="{{ _('Name') }}">
+                    <i class="bi bi-translate"></i>
+                </a>
+                <button type="button" class="btn btn-outline-secondary"
+                        data-panel-open
+                        data-panel-url="{{ url_for('category_documents', category_id=category.id) }}"
+                        data-panel-label="{{ category.name }}"
+                        title="{{ _('Documents in this category') }}">
+                    <i class="bi bi-files"></i>
+                </button>
+                <button type="button" class="btn btn-outline-success add-word-btn"
+                        data-category-id="{{ category.id }}"
+                        data-category-name="{{ category.name }}"
+                        title="{{ _('Add Word') }}">
+                    <i class="bi bi-plus"></i> {{ _('Add Word') }}
+                </button>
+                <button type="button" class="btn btn-outline-danger"
+                        data-category-name="{{ category.name }}"
+                        data-on-click="deleteCategory({{ category.id }}, this.getAttribute('data-category-name'))"
+                        title="{{ _('Delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% endcall %}
+
+{{ documents_panel(id='documentsPanel') }}
+
+<!-- Pagination: the mount the server pager fills -->
+<div class="pagination-container" id="pagination">
+    {% if total_pages > 1 %}
+        {% from "components/unified_pagination.html" import unified_pagination %}
+        {% set pagination_params = {'per_page': per_page} %}
+        {% if search %}{% set extra_param = pagination_params.update({'search': search}) %}{% endif %}
+        {% if sort_by and sort_by != 'files' %}{% set extra_param = pagination_params.update({'sort': sort_by, 'order': sort_order}) %}
+        {% elif sort_order != 'desc' %}{% set extra_param = pagination_params.update({'sort': 'files', 'order': sort_order}) %}{% endif %}
+        {{ unified_pagination(page, total_pages, url_for, 'categories_list', pagination_params,
+            table_id='categoriesTable', total_count=total_categories|default(0), rows_shown=categories|length, page_size=per_page) }}
+    {% endif %}
+</div>
+
+<!-- Category Modal -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="categoryModalLabel">{{ _('Add Category') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="categoryForm">
+                    <input type="hidden" id="categoryId" name="category_id">
+                    <div class="mb-3" id="categoryModeGroup">
+                        <label class="form-label d-block">{{ _('Placement') }}</label>
+                        <div role="radiogroup" aria-label="{{ _('Placement') }}">
+                            <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="categoryMode"
+                                       id="categoryModeRoot" value="root" checked>
+                                <span class="form-check-label">{{ _('Top level') }}</span>
+                            </label>
+                            <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="categoryMode"
+                                       id="categoryModeChild" value="child">
+                                <span class="form-check-label">{{ _('Inside another category') }}</span>
+                            </label>
+                            <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="categoryMode"
+                                       id="categoryModeAbove" value="parent-above">
+                                <span class="form-check-label">{{ _('As a new parent above existing categories') }}</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoryName" class="form-label">{{ _('Category Name') }}</label>
+                        <input type="text" class="form-control" id="categoryName" name="category_name"
+                               required maxlength="255">
+                    </div>
+                    <div class="mb-3" id="categoryParentGroup" style="display:none;">
+                        <label for="categoryParentSelect" class="form-label">{{ _('Parent Category') }}</label>
+                        <select class="form-select" id="categoryParentSelect"></select>
+                        <div class="form-text">{{ _('Type to search the tree; the indent shows the level.') }}</div>
+                    </div>
+                    <div class="mb-3" id="categoryChildrenGroup">
+                        <label for="categoryChildren" class="form-label">
+                            {{ _('Child categories (one per line)') }}
+                        </label>
+                        <textarea class="form-control" id="categoryChildren" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3" id="categoryAdoptGroup" style="display:none;">
+                        <label for="categoryAdoptSelect" class="form-label">
+                            {{ _('Categories on this page to move under the new parent') }}
+                        </label>
+                        <select class="form-select" id="categoryAdoptSelect" multiple size="6"></select>
+                        <div class="form-text">
+                            <a href="{{ url_for('categories_tree_page') }}">{{ _('Open the hierarchy view') }}</a>
+                            {{ _('to group categories from anywhere in the tree.') }}
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                <button type="button" class="btn btn-primary" data-on-click="saveCategory()">{{ _('Save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Word to Category Modal -->
+<div class="modal fade" id="addWordToCategoryModal" tabindex="-1" aria-labelledby="addWordToCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addWordToCategoryModalLabel">{{ _('Add Word to Category') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addWordToCategoryForm">
+                    <input type="hidden" id="targetCategoryId" name="category_id">
+                    <div class="mb-3">
+                        <label for="wordSelect" class="form-label">{{ _('Select Word') }}</label>
+                        <select class="form-control" id="wordSelect" name="word_id" style="width: 100%;" required>
+                            <option value="">{{ _('Search for a word...') }}</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                <button type="button" class="btn btn-primary" data-on-click="saveWordToCategory()">{{ _('Add Word') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Duplicate Categories Modal -->
+<div class="modal fade" id="duplicatesModal" tabindex="-1" aria-labelledby="duplicatesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="duplicatesModalLabel">
+                    <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                    {{ _('Duplicate Categories') }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <div id="duplicatesLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ _('Loading...') }}</span>
+                    </div>
+                    <p class="mt-2">{{ _('Searching for duplicates...') }}</p>
+                </div>
+                <div id="duplicatesContent" style="display: none;">
+                    <div id="duplicatesSummary" class="alert alert-info mb-3"></div>
+                    <div id="duplicatesList" class="list-group"></div>
+                </div>
+                <div id="duplicatesEmpty" class="text-center py-4" style="display: none;">
+                    <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                    <p class="mt-3 text-muted">{{ _('No duplicate categories found!') }}</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close') }}</button>
+                <button type="button" class="btn btn-danger" id="removeDuplicatesBtn" data-on-click="removeDuplicates()" style="display: none;">
+                    <i class="bi bi-trash me-2"></i>
+                    {{ _('Remove Duplicates') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="categories-page-data">{{ {
+    "translations": {
+        "addCategory": _('Add Category'),
+        "editCategory": _('Edit Category'),
+        "categoryAdded": _('Category added successfully'),
+        "categoryUpdated": _('Category updated successfully'),
+        "categoryDeleted": _('Category deleted successfully'),
+        "error": _('Error'),
+        "confirmDelete": _('Are you sure you want to delete this category?'),
+        "deleteCategory": _('Delete'),
+        "wordAdded": _('Word added to category successfully'),
+        "wordRemoved": _('Word removed from category successfully'),
+        "loading": _('Loading...'),
+        "noWords": _('No words in this category'),
+        "remove": _('Remove'),
+        "categories": _('categories'),
+        "noCategoriesFound": _('No categories found'),
+        "category": _('Category'),
+        "actions": _('Actions'),
+        "searchWord": _('Search for a word...'),
+        "addWordToCategory": _('Add Word to Category'),
+        "totalCategories": _('Total Categories'),
+        "page": _('Page'),
+        "showing": _('Showing'),
+        "of": _('of'),
+        "view": _('View'),
+        "addWord": _('Add Word'),
+        "files": _('Files'),
+        "words": _('Words'),
+        "findDuplicates": _('Find Duplicates'),
+        "duplicateCategories": _('Duplicate Categories'),
+        "noDuplicatesFound": _('No duplicate categories found!'),
+        "searchingDuplicates": _('Searching for duplicates...'),
+        "removeDuplicates": _('Remove Duplicates'),
+        "duplicatesRemoved": _('Duplicates removed successfully'),
+        "errorFindingDuplicates": _('Error finding duplicates'),
+        "errorRemovingDuplicates": _('Error removing duplicates'),
+        "keep": _('Keep'),
+        "duplicateGroup": _('Duplicate Group'),
+        "totalDuplicates": _('Total Duplicates'),
+        "totalToRemove": _('Total to Remove'),
+        "confirmRemoveDuplicates": _('Are you sure you want to remove all duplicate categories? This action cannot be undone.'),
+        "removing": _('Removing...'),
+        "merged": _('merged'),
+        "placement": _('Placement'),
+        "topLevel": _('Top level'),
+        "insideAnother": _('Inside another category'),
+        "asNewParent": _('As a new parent above existing categories'),
+        "parentCategory": _('Parent Category'),
+        "parentRequired": _('Choose a parent category'),
+        "adoptRequired": _('Choose at least one category to move'),
+        "childrenLines": _('Child categories (one per line)'),
+        "hierarchy": _('Hierarchy'),
+        "none": _('None')
+    }
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/modules/core/select2-loader.js') }}"
+        data-select2-src="{{ url_for('static', filename='dist/js/select2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+<script src="{{ url_for('static', filename='js/pages/categories-list-page.js') }}"></script>
+{% endblock %}

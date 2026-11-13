@@ -1,0 +1,312 @@
+
+
+
+<!-- templates/search.html -->
+{% extends "base.html" %}
+
+{% from 'components/table.html' import record_table %}
+{% from 'components/documents_panel.html' import documents_panel %}
+
+{% block title %}{{ _('Search') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-search me-2"></i>
+        {{ _('Search Files') }}
+    </h1>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-search"></i>
+        {{ _('Basic Search') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Enter keywords or phrases in the search box to find files containing those terms') }}</li>
+        <li>{{ _('Search looks through file names, content, metadata, and associated keywords') }}</li>
+        <li>{{ _('Results are displayed in order of relevance, with the most relevant matches first') }}</li>
+        <li>{{ _('Click on any result to view detailed information about that file') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-funnel"></i>
+    {{ _('Advanced Search Options') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Use the Advanced Search tab for more specific filtering options') }}</li>
+        <li>{{ _('Filter by file type, date range, source, side, category, or keyword') }}</li>
+        <li>{{ _('Combine multiple filters to narrow down your search results') }}</li>
+        <li>{{ _('Save your search criteria for quick access later') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-search-heart"></i>
+        {{ _('Enhanced Search Features') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Enhanced Search provides intelligent suggestions and auto-complete') }}</li>
+        <li>{{ _('Use search history to quickly repeat previous searches') }}</li>
+        <li>{{ _('Export search results to various formats (CSV, Excel, JSON)') }}</li>
+        <li>{{ _('Bookmark important searches for future reference') }}</li>
+    </ul>
+</div>
+<div class="tips-note">
+    <strong>{{ _('Tip:') }}</strong> {{ _('Use quotation marks to search for exact phrases, e.g., "exact phrase"') }}
+</div>
+{% endcall %}
+
+<!-- Search View Navigation -->
+<div class="search-view-navigation section-card">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('search_page') }}" class="btn btn-outline-primary search-view-btn {% if request.endpoint == 'search_page' %}active{% endif %}" data-view="search">
+            <i class="bi bi-search"></i> {{ _('Search') }}
+        </a>
+        <a href="{{ url_for('search_advanced') }}" class="btn btn-outline-primary search-view-btn {% if request.endpoint == 'search_advanced' %}active{% endif %}" data-view="advanced">
+            <i class="bi bi-funnel"></i> {{ _('Advanced Search') }}
+        </a>
+        <a href="{{ url_for('search_enhanced_page') }}" class="btn btn-outline-primary search-view-btn {% if request.endpoint == 'search_enhanced_page' %}active{% endif %}" data-view="enhanced">
+            <i class="bi bi-search-heart"></i> {{ _('Enhanced Search') }}
+        </a>
+    </div>
+</div>
+
+    <div class="section-card mb-4">
+    <form method="GET" action="{{ url_for('search_page') }}" id="searchForm">
+        <div class="row g-3">
+            <div class="col-md-8">
+                <label for="searchQuery" class="visually-hidden">{{ _('Search files') }}</label>
+                <input type="text" name="q" id="searchQuery" class="form-control form-control-lg"
+                       placeholder="{{ _('Search files...') }}" value="{{ query }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-search me-2"></i>
+                    {{ _('Search') }}
+                </button>
+            </div>
+        </div>
+
+        <!-- Search Scope (FR-2.2): explicit analyst-categorization scope
+             selector. Filters ONLY on analyst (manual) categorization status;
+             smart categorization status is never consulted (FR-2.4). -->
+        <div class="row g-2 mt-2 align-items-center">
+            <div class="col-auto">
+                <label for="scopeSelect" class="form-label mb-0 fw-semibold">
+                    <i class="bi bi-funnel me-1"></i>{{ _('Search Scope') }}:
+                </label>
+            </div>
+            <div class="col-md-5">
+                <select class="form-select form-select-sm" id="scopeSelect" name="scope">
+                    <option value="uncategorized" {% if analyst_scope != 'all' and analyst_scope != 'categorized' %}selected{% endif %}>
+                        {{ _('Uncategorized Files Only') }} ({{ _('default') }})
+                    </option>
+                    <option value="all" {% if analyst_scope == 'all' %}selected{% endif %}>
+                        {{ _('All Files') }}
+                    </option>
+                    <option value="categorized" {% if analyst_scope == 'categorized' %}selected{% endif %}>
+                        {{ _('Analyst-Categorized Files Only') }}
+                    </option>
+                </select>
+            </div>
+            <div class="col">
+                <small class="text-muted">{{ _('by analyst categorization status - independent of smart categorization') }}</small>
+            </div>
+        </div>
+
+        <!-- Advanced Search Options -->
+        <div id="advancedSearchOptions" class="mt-3">
+            <div class="card">
+                <div class="card-header py-2">
+                    <button class="btn btn-link p-0 text-decoration-none w-100 text-start" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#advancedOptionsCollapse"
+                            aria-expanded="false">
+                        <i class="bi bi-gear me-2"></i>
+                        <strong>{{ _('Advanced Search Options') }}</strong>
+                        <i class="bi bi-chevron-down float-end"></i>
+                    </button>
+                </div>
+                <div id="advancedOptionsCollapse" class="collapse">
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="useBM25" checked>
+                                    <label class="form-check-label" for="useBM25">
+                                        <i class="bi bi-graph-up me-1"></i>
+                                        {{ _('BM25 Ranking') }}
+                                        <small class="d-block text-muted">{{ _('Better relevance scoring') }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="useExpansion" checked>
+                                    <label class="form-check-label" for="useExpansion">
+                                        <i class="bi bi-arrows-angle-expand me-1"></i>
+                                        {{ _('Query Expansion') }}
+                                        <small class="d-block text-muted">{{ _('Include synonyms') }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="useFuzzy" checked>
+                                    <label class="form-check-label" for="useFuzzy">
+                                        <i class="bi bi-search me-1"></i>
+                                        {{ _('Fuzzy Matching') }}
+                                        <small class="d-block text-muted">{{ _('Typo tolerance') }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="useAdvanced" checked>
+                                    <label class="form-check-label" for="useAdvanced">
+                                        <i class="bi bi-magic me-1"></i>
+                                        {{ _('Advanced Algorithms') }}
+                                        <small class="d-block text-muted">{{ _('Enable all features') }}</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                <strong>{{ _('Tip:') }}</strong> {{ _('Use quotes for exact phrases, e.g., "financial report"') }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% if query %}
+{% set per_page = per_page|default(10) %}
+<div class="section-card">
+    <div class="section-header">
+        <h5 class="mb-0">{{ _('Search Results') }}</h5>
+        <div class="action-group ms-auto" id="searchBulkBar">
+            <span class="action-label">
+                <span id="selectedResultCount">0</span> {{ _('selected') }}
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="bulkResultContentBtn" disabled>
+                <i class="bi bi-file-earmark-text me-1" aria-hidden="true"></i>{{ _('Export Content') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="bulkResultOriginalsBtn" disabled>
+                <i class="bi bi-file-zip me-1" aria-hidden="true"></i>{{ _('Export Originals') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="bulkResultNamesBtn" disabled>
+                <i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>{{ _('Filenames CSV') }}
+            </button>
+        </div>
+    </div>
+    {#- The results are readable text: a reader may select a file name or an
+        excerpt and ask for its translation (data-translatable). -#}
+    <div class="section-content" id="searchResults" data-translatable>
+    {% if results %}
+    {#- The results are the unified table: the same headers, the same
+        column filters, the same selection, the same Load More as the File
+        Library - and the reader's term rides along to the viewer. -#}
+    {% call record_table(
+            id='searchResultsTable',
+            columns=[
+                {'kind': 'select', 'width': '44px'},
+                {'key': 'name', 'label': _('File Name'), 'sortable': True, 'type': 'text'},
+                {'key': 'type', 'label': _('Type'), 'width': '110px'},
+                {'key': 'size', 'label': _('Size'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '110px'},
+                {'key': 'source', 'label': _('Source'), 'width': '150px'},
+                {'key': 'side', 'label': _('Side'), 'width': '150px'},
+                {'key': 'date', 'label': _('Date'), 'sortable': True, 'type': 'date', 'width': '130px'},
+                {'kind': 'actions', 'width': '110px'}
+            ],
+            mode='server',
+            sort_key=sort|default(''),
+            sort_dir=order|default('desc'),
+            info_text=_('%(count)d results for "%(query)s"', count=total_results, query=query),
+            per_page=per_page,
+            per_page_id='perPageSearch',
+            on_per_page_change='changeSearchPageSize()',
+            select_all_onchange='',
+            empty_message=_('No results found for "%(query)s"', query=query),
+            empty_filtered=False,
+            export_interface=export_interface_for(request.endpoint),
+            export_columns=[
+                {'key': 'path', 'label': _('Path')},
+                {'key': 'status', 'label': _('Status')},
+                {'key': 'created', 'label': _('Created')},
+            ],
+            page=page,
+            total_pages=total_pages,
+            total_count=total_results,
+            rows_shown=results|length,
+            append=True,
+            pager=True) %}
+        {% for result in results %}
+        <tr class="file-row ut-row-hit" data-file-id="{{ result.id }}" data-file-name="{{ result.file_name }}">
+            <td class="ut-col-select">
+                <input type="checkbox" class="file-checkbox ut-row-check result-checkbox"
+                       value="{{ result.id }}" aria-label="{{ _('Select result') }}: {{ result.file_name }}">
+            </td>
+            <td data-ut-value="{{ result.file_name|lower }}">
+                <a class="ut-name" href="{{ url_for('files.file_full_content', file_id=result.id, q=query) }}"
+                   title="{{ result.file_name }}">{{ result.file_name }}</a>
+            </td>
+            <td><span class="badge badge-type">{{ result.file_type|upper if result.file_type else '' }}</span></td>
+            <td class="text-end" data-ut-value="{{ result.file_size|default(0) }}">
+                {{ (result.file_size / 1024)|round|int }} KB
+            </td>
+            <td class="ut-muted">{{ result.source_name }}</td>
+            <td class="ut-muted">{{ result.side_name }}</td>
+            <td data-ut-value="{{ result.date_creation or '' }}">
+                {{ result.date_creation if result.date_creation else '—' }}
+            </td>
+            <td>
+                <div class="ut-actions">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-file-menu-button data-file-id="{{ result.id }}" data-file-name="{{ result.file_name }}"
+                            aria-label="{{ _('File actions') }}: {{ result.file_name }}">
+                        <i class="bi bi-three-dots"></i>
+                    </button>
+                    <a href="{{ url_for('files.file_full_content', file_id=result.id, q=query) }}"
+                       class="btn btn-sm btn-outline-primary" title="{{ _('Open at the first match') }}">
+                        <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    {% endcall %}
+    {#- The numbered pager and the table's Load More: one control. The reader's
+        term and page size ride along in the query string. -#}
+    {% if total_pages > 1 %}
+        {% from "components/unified_pagination.html" import unified_pagination %}
+        {% set search_pager_params = {'q': query, 'limit': per_page} %}
+        {% if sort %}{% set _sort_params = search_pager_params.update({'sort': sort, 'order': order}) %}{% endif %}
+        <div class="pagination-container mt-3" id="searchPagination">
+            {{ unified_pagination(page, total_pages, url_for, 'search_page', search_pager_params,
+                table_id='searchResultsTable', total_count=total_results, rows_shown=results|length, page_size=per_page) }}
+        </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-search"></i>
+        <p>{{ _('No results found for') }} "{{ query }}"</p>
+    </div>
+    {% endif %}
+    </div>
+</div>
+{% endif %}
+{% include 'Translation/_selection_panel.html' %}
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+{% endblock %}

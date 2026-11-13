@@ -1,0 +1,820 @@
+<!-- templates/search_advanced.html -->
+{% extends "base.html" %}
+
+{% block title %}{{ _('Advanced Search') }}{% endblock %}
+{% block page_type %}search-advanced{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/search-advanced.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/multi-select-dropdown.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<!-- ============================================================ -->
+<!-- Page header (slim, theme-aware — the search bar below is the  -->
+<!-- visual hero, not this banner).                                -->
+<!-- ============================================================ -->
+<div class="search-page-shell">
+<div class="search-page-top">
+<header class="search-header">
+    <div class="search-header-content">
+        <h1 class="search-logo">
+            <i class="bi bi-search-heart" aria-hidden="true"></i>
+            {{ _('Advanced Search') }}
+        </h1>
+        <p class="search-subtitle">{{ _('Find exactly what you need with powerful filters and intelligent algorithms') }}</p>
+    </div>
+</header>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+{% call page_tips() %}
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-funnel"></i>
+        {{ _('Advanced Search Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Use quotes for exact phrases: "exact phrase"') }}</li>
+        <li>{{ _('Use AND, OR, NOT operators: term1 AND term2 OR term3 NOT term4') }}</li>
+        <li>{{ _('Filters work together to narrow results precisely') }}</li>
+        <li>{{ _('Search suggestions appear as you type') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<!-- Search View Navigation (shared across the three search views) -->
+<div class="search-view-navigation section-card">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('search_page') }}" class="btn btn-outline-primary search-view-btn {% if request.endpoint == 'search_page' %}active{% endif %}" data-view="search">
+            <i class="bi bi-search"></i> {{ _('Search') }}
+        </a>
+        <a href="{{ url_for('search_advanced') }}" class="btn btn-outline-primary search-view-btn {% if request.endpoint == 'search_advanced' %}active{% endif %}" data-view="advanced">
+            <i class="bi bi-funnel"></i> {{ _('Advanced Search') }}
+        </a>
+        <a href="{{ url_for('search_enhanced_page') }}" class="btn btn-outline-primary search-view-btn {% if request.endpoint == 'search_enhanced_page' %}active{% endif %}" data-view="enhanced">
+            <i class="bi bi-search-heart"></i> {{ _('Enhanced Search') }}
+        </a>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Search command card — ONE surface for the whole search        -->
+<!-- intent: query bar (action inside), scope, syntax help.        -->
+<!-- The previous layout scattered this across four stacked boxes  -->
+<!-- (hero banner, "Search Within" panel, search bar, scope box).  -->
+<!-- ============================================================ -->
+<section class="search-command-card" aria-label="{{ _('Advanced Search') }}">
+
+    <!-- Query bar with the search action inside it -->
+    <div class="search-box-wrapper">
+        <div class="search-box">
+            <i class="bi bi-search search-icon" aria-hidden="true"></i>
+            <input type="text"
+                   class="search-input-main"
+                   id="mainSearchInput"
+                   placeholder="{{ _('Search files, content, categories... (supports multiple words, quotes, AND/OR/NOT)') }}"
+                   autocomplete="off"
+                   spellcheck="false"
+                   aria-label="{{ _('Search files, content, categories... (supports multiple words, quotes, AND/OR/NOT)') }}"
+                   aria-controls="suggestionsList" aria-expanded="false">
+            <button type="button" class="btn-clear-search-main" id="clearSearchBtn" style="display: none;"
+                    title="{{ _('Clear') }}" aria-label="{{ _('Clear') }}">
+                <i class="bi bi-x-circle" aria-hidden="true"></i>
+            </button>
+            <span class="search-box-divider" aria-hidden="true"></span>
+            <button type="button" class="btn btn-primary btn-search-main" data-on-click="executeAdvancedSearch()">
+                <i class="bi bi-search me-1" aria-hidden="true"></i>{{ _('Search') }}
+            </button>
+        </div>
+
+        <!-- Search Suggestions Dropdown -->
+        <div class="search-suggestions-dropdown" id="searchSuggestions">
+            <div class="suggestions-header">
+                <i class="bi bi-clock-history me-2" aria-hidden="true"></i>
+                <span id="suggestionsHeader">{{ _('Suggestions') }}</span>
+            </div>
+            <div class="suggestions-list" id="suggestionsList" aria-labelledby="suggestionsHeader"></div>
+        </div>
+    </div>
+
+    <!-- Toolbar: scope (left) + lucky (right) -->
+    <div class="search-toolbar">
+
+        <!-- ======================================================== -->
+        <!-- Search Scope Control (FR-2.2 / FR-3.2)                    -->
+        <!-- Explicit, first-class control over the analyst-           -->
+        <!-- categorization scope. Operates ONLY on analyst (manual)   -->
+        <!-- categorization status - smart categorization is never     -->
+        <!-- consulted (FR-2.4). Rendered as a compact segmented       -->
+        <!-- control tightly coupled to the query.                     -->
+        <!-- ======================================================== -->
+        <div class="scope-selector-container" id="analystScopeSelector">
+            <span class="scope-selector-header" id="analystScopeLabel">
+                <i class="bi bi-funnel-fill me-1" aria-hidden="true"></i>{{ _('Search Scope') }}
+            </span>
+            <div class="scope-options" role="radiogroup" aria-labelledby="analystScopeLabel"
+                 aria-label="{{ _('Analyst categorization search scope') }}">
+                <label class="scope-option" title="{{ _('Files that have not yet been assigned an analyst category') }}">
+                    <input type="radio" name="analystScope" value="uncategorized"
+                           {% if analyst_scope != 'all' and analyst_scope != 'categorized' %}checked{% endif %}>
+                    <span class="scope-option-label">
+                        <i class="bi bi-file-earmark-minus me-1" aria-hidden="true"></i>{{ _('Uncategorized Files Only') }}
+                    </span>
+                    <span class="scope-option-tag">{{ _('default') }}</span>
+                </label>
+                <label class="scope-option" title="{{ _('Search the entire dataset regardless of analyst categorization') }}">
+                    <input type="radio" name="analystScope" value="all"
+                           {% if analyst_scope == 'all' %}checked{% endif %}>
+                    <span class="scope-option-label">
+                        <i class="bi bi-collection me-1" aria-hidden="true"></i>{{ _('All Files') }}
+                    </span>
+                </label>
+                <label class="scope-option" title="{{ _('Only files already assigned an analyst category') }}">
+                    <input type="radio" name="analystScope" value="categorized"
+                           {% if analyst_scope == 'categorized' %}checked{% endif %}>
+                    <span class="scope-option-label">
+                        <i class="bi bi-person-check me-1" aria-hidden="true"></i>{{ _('Analyst-Categorized Files Only') }}
+                    </span>
+                </label>
+            </div>
+        </div>
+
+        <div class="search-toolbar-side">
+            <!-- Saved searches: re-run any stored search with one click -->
+            <div class="saved-search-container">
+                <button type="button" class="btn btn-saved-searches" id="savedSearchBtn"
+                        data-on-click="toggleSavedSearchMenu()"
+                        title="{{ _('Saved searches') }}"
+                        aria-haspopup="true" aria-expanded="false">
+                    <i class="bi bi-bookmarks me-1" aria-hidden="true"></i>{{ _('Saved') }}
+                </button>
+                <div class="saved-search-menu" id="savedSearchMenu" style="display: none;">
+                    <div class="ssm-header">
+                        <span><i class="bi bi-bookmarks me-1" aria-hidden="true"></i>{{ _('Saved searches') }}</span>
+                        <a href="{{ url_for('saved_searches_page') }}">{{ _('Manage all') }}</a>
+                    </div>
+                    <div class="ssm-list" id="savedSearchMenuList"><!-- populated by JS --></div>
+                </div>
+            </div>
+            <button type="button" class="btn btn-lucky" data-on-click="feelingLucky()" title="{{ _('I\'m Feeling Lucky') }}">
+                <i class="bi bi-stars me-1" aria-hidden="true"></i>{{ _('Lucky') }}
+            </button>
+        </div>
+    </div>
+
+    <p class="scope-note">
+        <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+        {{ _('This scope filters on analyst (manual) categorization only. It is completely independent of smart categorization.') }}
+    </p>
+
+    <!-- Search syntax help (progressive disclosure — one line until opened) -->
+    <div class="search-help-text">
+        <button class="search-help-toggle" type="button" data-bs-toggle="collapse"
+                data-bs-target="#syntaxHelp" aria-expanded="false" aria-controls="syntaxHelp">
+            <i class="bi bi-lightbulb me-1" aria-hidden="true"></i>{{ _('Tips') }}
+            <i class="bi bi-chevron-down search-help-chevron" aria-hidden="true"></i>
+        </button>
+        <div class="collapse" id="syntaxHelp">
+            <div class="syntax-help-content">
+                <span class="syntax-help-item">{{ _('Use quotes for exact phrases: "exact phrase"') }}</span>
+                <span class="syntax-help-item">{{ _('Multiple words: word1 word2 (searches for both)') }}</span>
+                <span class="syntax-help-item">{{ _('Operators: word1 AND word2 OR word3 NOT word4') }}</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Active Filters Chips -->
+<div class="filters-chips-container" id="filtersChipsContainer" style="display: none;">
+    <div class="filters-chips-header">
+        <i class="bi bi-funnel me-2" aria-hidden="true"></i>
+        <span>{{ _('Active Filters') }}:</span>
+        <button type="button" class="btn-clear-all-filters" data-on-click="clearAllFilters()">
+            <i class="bi bi-x-circle me-1" aria-hidden="true"></i>{{ _('Clear All') }}
+        </button>
+    </div>
+    <div class="filters-chips" id="filtersChips"></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- Advanced Filters Panel (Collapsible) — the single home for   -->
+<!-- every filter. The former separate "Search Within" block      -->
+<!-- duplicated the Sources/Sides filters below.                   -->
+<!-- ============================================================ -->
+<div class="advanced-filters-panel">
+    <div class="filters-panel-header" data-on-click="toggleFiltersPanel()" role="button" tabindex="0"
+         aria-expanded="false" aria-controls="filtersPanelContent"
+         data-on-keydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleFiltersPanel();}">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-sliders me-2" aria-hidden="true"></i>
+            <span>{{ _('Advanced Filters') }}</span>
+            <span class="badge bg-primary ms-2" id="activeFiltersCount">0</span>
+        </div>
+        <i class="bi bi-chevron-down" id="filtersToggleIcon" aria-hidden="true"></i>
+    </div>
+
+    <div class="filters-panel-content" id="filtersPanelContent">
+        <p class="filters-perf-note">
+            <i class="bi bi-database-gear me-1" aria-hidden="true"></i>
+            {{ _('Selecting a source or side limits search to that scope, improving performance') }}
+        </p>
+
+        <div class="filters-grid">
+            <!-- File Type Filter -->
+            <div class="filter-group">
+                <label class="filter-label" for="fileType">
+                    <i class="bi bi-filetype-pdf me-1" aria-hidden="true"></i>
+                    {{ _('File Type') }}
+                </label>
+                <select class="form-select filter-select msdd-enhance" id="fileType" multiple
+                        data-compact-multi="type" data-placeholder="{{ _('All Types') }}"
+                        title="{{ _('Filter by one or more file types') }}"
+                        aria-label="{{ _('Filter by one or more file types') }}">
+                    <option value="">{{ _('All Types') }}</option>
+                    <option value="pdf">PDF</option>
+                    <option value="docx">Word Document</option>
+                    <option value="xlsx">Excel</option>
+                    <option value="txt">{{ _('Text') }}</option>
+                    <option value="html">HTML</option>
+                    <option value="jpg">Image (JPG)</option>
+                    <option value="png">Image (PNG)</option>
+                </select>
+            </div>
+
+            <!-- Smart Categories Filter (system-generated taxonomy) -->
+            <div class="filter-group">
+                <label class="filter-label" for="categoriesSelect">
+                    <i class="bi bi-tags me-1" aria-hidden="true"></i>
+                    {{ _('Smart Categories') }}
+                    <small class="filter-sublabel">{{ _('system-generated') }}</small>
+                </label>
+                <select class="form-select filter-select msdd-enhance" id="categoriesSelect" multiple
+                        data-compact-multi="category" data-placeholder="{{ _('All categories') }}"
+                        title="{{ _('Filter by smart categories') }}"
+                        aria-label="{{ _('Smart Categories') }}">
+                    <!-- Will be populated dynamically -->
+                </select>
+            </div>
+
+            <!-- Analyst Categories Filter (manual taxonomy - separate namespace, FR-1.4) -->
+            <div class="filter-group">
+                <label class="filter-label" for="analystCategoriesFilter">
+                    <i class="bi bi-person-check me-1" aria-hidden="true"></i>
+                    {{ _('Analyst Categories') }}
+                    <small class="filter-sublabel">{{ _('manually assigned') }}</small>
+                </label>
+                <select class="form-select filter-select msdd-enhance" id="analystCategoriesFilter" multiple
+                        data-compact-multi="analyst-category" data-placeholder="{{ _('All analyst categories') }}"
+                        title="{{ _('Filter by analyst categories') }}"
+                        aria-label="{{ _('Analyst Categories') }}">
+                    <!-- Will be populated dynamically from /api/analyst/categories -->
+                </select>
+            </div>
+
+            <!-- Sources Filter (also the performance scope — see note above) -->
+            <div class="filter-group">
+                <label class="filter-label" for="sourcesSelect">
+                    <i class="bi bi-building me-1" aria-hidden="true"></i>
+                    {{ _('Sources') }}
+                </label>
+                <select class="form-select filter-select msdd-enhance" id="sourcesSelect" multiple
+                        data-compact-multi="source" data-placeholder="{{ _('All sources') }}"
+                        title="{{ _('Filter by sources') }}"
+                        aria-label="{{ _('Sources') }}">
+                    <!-- Will be populated dynamically -->
+                </select>
+            </div>
+
+            <!-- Sides Filter (also the performance scope — see note above) -->
+            <div class="filter-group">
+                <label class="filter-label" for="sidesSelect">
+                    <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>
+                    {{ _('Sides') }}
+                </label>
+                <select class="form-select filter-select msdd-enhance" id="sidesSelect" multiple
+                        data-compact-multi="side" data-placeholder="{{ _('All sides') }}"
+                        title="{{ _('Filter by sides') }}"
+                        aria-label="{{ _('Sides') }}">
+                    <!-- Will be populated dynamically -->
+                </select>
+            </div>
+
+            <!-- Date Range Filter -->
+            <div class="filter-group">
+                <label class="filter-label" for="dateFrom">
+                    <i class="bi bi-calendar-range me-1" aria-hidden="true"></i>
+                    {{ _('Date Range') }}
+                </label>
+                <div class="date-range-inputs">
+                    <input type="date" class="form-control filter-date" id="dateFrom" placeholder="{{ _('From') }}"
+                           aria-label="{{ _('From') }}">
+                    <span class="date-separator" aria-hidden="true">{{ _('to') }}</span>
+                    <input type="date" class="form-control filter-date" id="dateTo" placeholder="{{ _('To') }}"
+                           aria-label="{{ _('To') }}">
+                </div>
+            </div>
+
+            <!-- File Status Filter -->
+            <div class="filter-group">
+                <span class="filter-label" id="statusFilterLabel">
+                    <i class="bi bi-check-circle me-1" aria-hidden="true"></i>
+                    {{ _('Status') }}
+                </span>
+                <div class="status-checkboxes" role="group" aria-labelledby="statusFilterLabel">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="Read" id="statusRead" checked>
+                        <label class="form-check-label" for="statusRead">
+                            <i class="bi bi-check-circle-fill text-success me-1" aria-hidden="true"></i>{{ _('Analyzed') }}
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="Unread" id="statusUnread" checked>
+                        <label class="form-check-label" for="statusUnread">
+                            <i class="bi bi-hourglass-split text-warning me-1" aria-hidden="true"></i>{{ _('Pending') }}
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search Options -->
+            <div class="filter-group">
+                <span class="filter-label" id="searchOptionsLabel">
+                    <i class="bi bi-gear me-1" aria-hidden="true"></i>
+                    {{ _('Search Options') }}
+                </span>
+                <div class="search-options" role="group" aria-labelledby="searchOptionsLabel">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="caseSensitive">
+                        <label class="form-check-label" for="caseSensitive">
+                            {{ _('Case Sensitive') }}
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="wholeWord">
+                        <label class="form-check-label" for="wholeWord">
+                            {{ _('Whole Words Only') }}
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="useFuzzy" checked>
+                        <label class="form-check-label" for="useFuzzy">
+                            {{ _('Fuzzy Matching') }}
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Actions -->
+        <div class="filter-actions-bar">
+            <button type="button" class="btn btn-outline-primary" data-on-click="resetAllFilters()">
+                <i class="bi bi-arrow-counterclockwise me-1" aria-hidden="true"></i>{{ _('Reset') }}
+            </button>
+            <button type="button" class="btn btn-primary" data-on-click="executeAdvancedSearch()">
+                <i class="bi bi-search me-1" aria-hidden="true"></i>{{ _('Apply Filters') }}
+            </button>
+        </div>
+    </div>
+</div>
+
+</div><!-- /.search-page-top -->
+
+<!-- Search Results Section -->
+<div id="searchResultsSection" class="search-results-section" style="display: none;">
+    <div class="results-header">
+        <div class="results-info">
+            <!-- Select-all control (FR-1.2): selects every result on the page -->
+            <div class="form-check select-all-check">
+                <input class="form-check-input" type="checkbox" id="selectAllResults"
+                       data-on-change="toggleSelectAllResults(this.checked)" title="{{ _('Select all results on this page') }}">
+                <label class="form-check-label" for="selectAllResults"><span class="visually-hidden">{{ _('Select all results on this page') }}</span></label>
+            </div>
+            <span id="resultsCount" class="results-count">0</span>
+            <span class="results-label">{{ _('results found') }}</span>
+            <span class="results-time" id="searchTime"></span>
+            <label class="form-check form-switch duplicate-filter" for="hideDuplicates">
+                <input class="form-check-input" type="checkbox" id="hideDuplicates"
+                       data-on-change="toggleDuplicateFilter(this.checked)">
+                <span class="form-check-label">{{ _('Hide exact duplicates') }}</span>
+            </label>
+        </div>
+        <div class="results-actions">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="saveSearchBtn"
+                    data-on-click="saveCurrentSearch()"
+                    title="{{ _('Save this search so you can re-run it any time') }}">
+                <i class="bi bi-bookmark-plus me-1" aria-hidden="true"></i>{{ _('Save') }}
+            </button>
+            <div class="results-per-page">
+                <label class="results-per-page-label" for="resultsPerPage">{{ _('Per Page:') }}</label>
+                <select class="form-select form-select-sm results-per-page-select" id="resultsPerPage"
+                        data-on-change="changeResultsPerPage(this.value)">
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                    <option value="500">500</option>
+                </select>
+            </div>
+            <select class="form-select form-select-sm results-sort" id="sortBy" data-on-change="sortResults()" aria-label="{{ _('Sort') }}">
+
+                <option value="relevance">{{ _('Sort: Relevance') }}</option>
+                <option value="date">{{ _('Date (Newest)') }}</option>
+                <option value="date_old">{{ _('Date (Oldest)') }}</option>
+                <option value="name">{{ _('Name (A-Z)') }}</option>
+                <option value="type">{{ _('File type (A-Z)') }}</option>
+                <option value="size">{{ _('Size (Largest)') }}</option>
+            </select>
+            <div class="similarity-threshold-control">
+                <label for="similarityThreshold">{{ _('Similarity ≥') }}</label>
+                <select class="form-select form-select-sm" id="similarityThreshold"
+                        aria-label="{{ _('Minimum content similarity for grouping') }}"
+                        title="{{ _('Choose the minimum content similarity for grouping') }}">
+                    <option value="0.2">20%</option>
+                    <option value="0.32" selected>32%</option>
+                    <option value="0.4">40%</option>
+                    <option value="0.5">50%</option>
+                    <option value="0.6">60%</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="groupSimilarBtn"
+                    data-on-click="toggleSimilarityGrouping()" title="{{ _('Group similar files on this results page') }}">
+                <i class="bi bi-diagram-3 me-1" aria-hidden="true"></i>{{ _('Group similar') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="openSearchInNewWindow()"
+                    title="{{ _('Open this search workspace in a separate window') }}">
+                <i class="bi bi-window-plus me-1" aria-hidden="true"></i>{{ _('New window') }}
+            </button>
+            <div class="btn-group">
+                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle"
+                        data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                        title="{{ _('Export/Print Results') }}" aria-expanded="false"
+                        id="searchExportMenuBtn">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i>{{ _('Export') }}
+                </button>
+                <div class="dropdown-menu dropdown-menu-end ut-export-menu search-export-menu"
+                     id="searchExportMenu" data-export-role="search">
+                    <div class="ut-export-columns" role="group" aria-label="{{ _('Columns to export') }}">
+                        <span class="dropdown-header ut-export-heading">{{ _('Columns') }}</span>
+                        <div class="ut-export-column-actions px-3 pb-1">
+                            <button type="button" class="btn btn-link btn-sm p-0 me-2" data-on-click="setSearchExportColumns(true)">{{ _('Select all') }}</button>
+                            <button type="button" class="btn btn-link btn-sm p-0" data-on-click="setSearchExportColumns(false)">{{ _('Select none') }}</button>
+                        </div>
+                        <div id="searchExportColumnList" class="search-export-column-list">
+                            <div class="dropdown-item-text text-muted small px-3">{{ _('Loading columns…') }}</div>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="ut-export-scope" role="radiogroup" aria-label="{{ _('Export scope') }}">
+                        <span class="dropdown-header ut-export-heading">{{ _('Scope') }}</span>
+                        <label class="dropdown-item-text ut-export-scope-option">
+                            <input type="radio" class="form-check-input ut-export-scope-check"
+                                   name="searchExportScope" value="filtered" checked>
+                            {{ _('Filtered data (current search and filters)') }}
+                        </label>
+                        <label class="dropdown-item-text ut-export-scope-option">
+                            <input type="radio" class="form-check-input ut-export-scope-check"
+                                   name="searchExportScope" value="page">
+                            {{ _('Current page only (what is on screen)') }}
+                        </label>
+                        <label class="dropdown-item-text ut-export-scope-option">
+                            <input type="radio" class="form-check-input ut-export-scope-check"
+                                   name="searchExportScope" value="all">
+                            {{ _('All data (entire database)') }}
+                        </label>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <button type="button" class="dropdown-item" data-on-click="exportResults('csv')">
+                        <i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>{{ _('CSV') }}
+                    </button>
+                    <button type="button" class="dropdown-item" data-on-click="exportResults('excel')">
+                        <i class="bi bi-file-earmark-excel me-2" aria-hidden="true"></i>{{ _('Excel (XLSX)') }}
+                    </button>
+                    <button type="button" class="dropdown-item" data-on-click="exportResults('json')">
+                        <i class="bi bi-file-earmark-code me-2" aria-hidden="true"></i>{{ _('JSON') }}
+                    </button>
+                    <button type="button" class="dropdown-item" data-on-click="exportMatchingFilenames('csv')">
+                        <i class="bi bi-filetype-csv me-2" aria-hidden="true"></i>{{ _('Matching filenames (CSV)') }}
+                    </button>
+                    <button type="button" class="dropdown-item" data-on-click="exportMatchingFilenames('excel')">
+                        <i class="bi bi-file-earmark-excel me-2" aria-hidden="true"></i>{{ _('Matching filenames (Excel)') }}
+                    </button>
+                    <div class="dropdown-divider"></div>
+                    <button type="button" class="dropdown-item" data-on-click="printResults()">
+                        <i class="bi bi-printer me-2" aria-hidden="true"></i>{{ _('Print Results') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- Manual Categorization Bar (FR-1.2 / FR-1.3)                   -->
+    <!-- Operates exclusively on ANALYST categories - a fully separate -->
+    <!-- namespace from smart categories (FR-1.4). Smart categories   -->
+    <!-- can never be assigned or modified from this control.          -->
+    <!-- ============================================================ -->
+    <div id="analystCategorizationBar" class="analyst-categorization-bar" style="display: none;">
+        <div class="acb-selection-info">
+            <i class="bi bi-person-check-fill" aria-hidden="true"></i>
+            <span><strong id="analystSelectedCount">0</strong> {{ _('selected') }}</span>
+            <button type="button" class="btn btn-link btn-sm p-0 ms-2" data-on-click="clearResultSelection()">
+                {{ _('Clear') }}
+            </button>
+        </div>
+        <div class="acb-controls">
+            <select class="form-select form-select-sm" id="analystCategorySelect"
+                    title="{{ _('Analyst-defined categories only (never smart categories)') }}">
+                <option value="">{{ _('Choose analyst category…') }}</option>
+            </select>
+            <div class="input-group input-group-sm acb-new-category">
+                <input type="text" class="form-control" id="newAnalystCategoryInput"
+                       placeholder="{{ _('…or new category name') }}" maxlength="255">
+            </div>
+            <button type="button" class="btn btn-sm btn-analyst-assign" data-on-click="assignAnalystCategory()">
+                <i class="bi bi-tag-fill me-1" aria-hidden="true"></i>{{ _('Categorize') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="removeAnalystCategoriesFromSelection()"
+                    title="{{ _('Remove analyst categories from selected files (returns them to uncategorized scope)') }}">
+                <i class="bi bi-tag me-1" aria-hidden="true"></i>{{ _('Remove') }}
+            </button>
+        </div>
+        <a href="{{ url_for('analyst_categorization_page') }}" class="acb-view-link" target="_blank" rel="noopener">
+            <i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{{ _('Analyst View') }}
+        </a>
+    </div>
+
+    <div id="selectedDocumentActions" class="selected-document-actions" style="display: none;">
+        <div class="selected-document-count">
+            <i class="bi bi-check2-square" aria-hidden="true"></i>
+            <strong id="selectedDocumentCount">0</strong> {{ _('selected across this search') }}
+            <button type="button" class="btn btn-link btn-sm p-0 ms-2" data-on-click="clearResultSelection()">{{ _('Clear') }}</button>
+        </div>
+        <div class="selected-document-buttons">
+            <button type="button" class="btn btn-sm btn-outline-primary" data-on-click="exportSelectedFiles('text')"
+                    title="{{ _('Download extracted text for selected documents as a ZIP') }}">
+                <i class="bi bi-file-earmark-text me-1" aria-hidden="true"></i>{{ _('Text ZIP') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-on-click="exportSelectedFiles('originals')"
+                    title="{{ _('Download available original files for selected documents as a ZIP') }}">
+                <i class="bi bi-file-earmark-arrow-down me-1" aria-hidden="true"></i>{{ _('Originals ZIP') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="exportSelectedNames('csv')">
+                <i class="bi bi-filetype-csv me-1" aria-hidden="true"></i>{{ _('Names CSV') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="exportSelectedNames('excel')">
+                <i class="bi bi-file-earmark-excel me-1" aria-hidden="true"></i>{{ _('Names Excel') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-on-click="exportSelectedToFolder('text')"
+                    title="{{ _('Choose an existing folder or create a subfolder for extracted text') }}">
+                <i class="bi bi-folder-plus me-1" aria-hidden="true"></i>{{ _('Text to folder') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-on-click="exportSelectedToFolder('originals')"
+                    title="{{ _('Choose an existing folder or create a subfolder for original files') }}">
+                <i class="bi bi-folder-symlink me-1" aria-hidden="true"></i>{{ _('Originals to folder') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="exportSelectedFirstPages('txt')"
+                    title="{{ _('Read and combine the first-page text of selected documents into one TXT file') }}">
+                <i class="bi bi-filetype-txt me-1" aria-hidden="true"></i>{{ _('Read & export first pages (TXT)') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="exportSelectedFirstPages('docx')"
+                    title="{{ _('Read and combine the first-page text of selected documents into one Word file') }}">
+                <i class="bi bi-filetype-docx me-1" aria-hidden="true"></i>{{ _('First pages (DOCX)') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="exportSelectedContacts('csv')">
+                <i class="bi bi-envelope-at me-1" aria-hidden="true"></i>{{ _('Emails & links CSV') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="exportSelectedContacts('xlsx')">
+                <i class="bi bi-file-earmark-excel me-1" aria-hidden="true"></i>{{ _('Emails & links XLSX') }}
+            </button>
+        </div>
+    </div>
+
+    <div class="search-workspace-grid" id="searchWorkspaceGrid">
+        <div class="search-workspace-results">
+            <div id="resultsContainer" class="results-container">
+                <!-- Results will be populated here -->
+            </div>
+            <div id="pagination" class="results-pagination"></div>
+        </div>
+        <aside id="documentReviewPane" class="document-review-pane" aria-label="{{ _('Document review') }}"
+               aria-live="polite" hidden>
+            <header class="review-pane-header">
+                <div class="review-pane-heading">
+                    <span class="review-pane-eyebrow">{{ _('Search & review') }}</span>
+                    <h2 id="reviewPaneTitle">{{ _('Select a result to review') }}</h2>
+                </div>
+                <button type="button" class="review-pane-close" data-on-click="closeReviewPane()"
+                        aria-label="{{ _('Close document review') }}" title="{{ _('Close') }}">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </header>
+            <div class="review-pane-toolbar">
+                <a id="reviewOpenFull" class="btn btn-sm btn-outline-primary" href="#" target="_blank" rel="noopener">
+                    <i class="bi bi-box-arrow-up-right me-1" aria-hidden="true"></i>{{ _('Open full record') }}
+                </a>
+                <a id="reviewDownloadOriginal" class="btn btn-sm btn-outline-secondary" href="#" download
+                   data-on-click="downloadReviewOriginal(event)" title="{{ _('Download the original document and choose its filename') }}">
+                    <i class="bi bi-download me-1" aria-hidden="true"></i>{{ _('Download original') }}
+                </a>
+                <button type="button" id="reviewOpenNative" class="btn btn-sm btn-outline-secondary"
+                        data-on-click="openReviewInNativeApplication()" disabled
+                        title="{{ _('Native application access requires the local SYLTHARAE companion') }}">
+                    <i class="bi bi-app-indicator me-1" aria-hidden="true"></i>{{ _('Open in native app') }}
+                </button>
+                <button type="button" id="reviewOpenContainingFolder" class="btn btn-sm btn-outline-secondary"
+                        data-on-click="openReviewContainingFolder()" disabled
+                        title="{{ _('Opening a local folder requires the local SYLTHARAE companion') }}">
+                    <i class="bi bi-folder-symlink me-1" aria-hidden="true"></i>{{ _('Open containing folder') }}
+                </button>
+            </div>
+            <p id="reviewDesktopIntegrationNote" class="review-desktop-note" role="note">
+                <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+                {{ _('This browser can preview and download the source file. Launching or editing it in a native app, or opening its operating-system folder, requires a trusted local SYLTHARAE companion.') }}
+            </p>
+            <div class="review-pane-tabs" role="tablist" aria-label="{{ _('Document view') }}">
+                <button type="button" id="reviewExtractedTab" class="review-pane-tab is-active"
+                        role="tab" aria-selected="true" data-on-click="showReviewExtracted()">
+                    {{ _('Extracted text') }}
+                </button>
+                <button type="button" id="reviewOriginalTab" class="review-pane-tab"
+                        role="tab" aria-selected="false" data-on-click="showReviewOriginal()">
+                    {{ _('Original preview') }}
+                </button>
+            </div>
+            <div id="reviewMatchNavigation" class="review-match-navigation" hidden>
+                <span id="reviewMatchCount" aria-live="polite"></span>
+                <div class="btn-group btn-group-sm" role="group" aria-label="{{ _('Navigate keyword matches') }}">
+                    <button type="button" class="btn btn-outline-secondary" data-on-click="navigateReviewMatch(-1)"
+                            aria-label="{{ _('Previous match') }}" title="{{ _('Previous match') }}">
+                        <i class="bi bi-chevron-up" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-on-click="navigateReviewMatch(1)"
+                            aria-label="{{ _('Next match') }}" title="{{ _('Next match') }}">
+                        <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="reviewPaneContent" class="review-pane-content">
+                <p class="review-pane-empty">{{ _('Choose Review on a search result to inspect its content.') }}</p>
+            </div>
+            <div id="reviewContentControls" class="review-content-controls" hidden>
+                <button type="button" id="reviewShowEarlier" class="btn btn-sm btn-outline-secondary"
+                        data-on-click="loadMoreReviewContent(-1)"
+                        aria-label="{{ _('Show earlier content') }}" title="{{ _('Show earlier content') }}">
+                    <i class="bi bi-arrow-up-circle me-1" aria-hidden="true"></i>{{ _('Show earlier') }}
+                </button>
+                <button type="button" id="reviewShowMore" class="btn btn-sm btn-outline-primary"
+                        data-on-click="loadMoreReviewContent(1)"
+                        aria-label="{{ _('Show more content') }}" title="{{ _('Show more content') }}">
+                    <i class="bi bi-arrow-down-circle me-1" aria-hidden="true"></i>{{ _('Show more content') }}
+                </button>
+            </div>
+            <footer class="review-pane-footer">
+                <span id="reviewPaneStatus" class="review-pane-status"></span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="copyReviewSelection()">
+                    <i class="bi bi-clipboard me-1" aria-hidden="true"></i>{{ _('Copy selected passage') }}
+                </button>
+            </footer>
+        </aside>
+    </div>
+</div>
+
+</div><!-- /.search-page-shell -->
+<!-- Loading Overlay -->
+<div id="searchLoadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner-wrapper">
+        <div class="loading-spinner" role="status" aria-live="polite"></div>
+        <p class="loading-text">{{ _('Searching...') }}</p>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="search-advanced-page-data">{{ {
+    "translations": {
+        "searchError": _('Search error'),
+        "noResultsFound": _('No results found matching your criteria'),
+        "noResultsToExport": _('No results to export'),
+        "searching": _('Searching...'),
+        "resultsFound": _('results found'),
+        "inSeconds": _('in {seconds} seconds'),
+        "largeSearchConfirm": _('Searching without a source or side filter may be slow on large datasets. Continue?'),
+        "untitled": _('Untitled'),
+        "notAvailable": _('N/A'),
+        "unknown": _('unknown'),
+        "analystCategorizeSuccess": _('Analyst category assigned'),
+        "analystRemoveSuccess": _('Analyst categories removed'),
+        "analystActionError": _('Analyst categorization failed'),
+        "selectFilesFirst": _('Select one or more files first'),
+        "chooseOrCreateCategory": _('Choose an analyst category or type a new one'),
+        "smartCategories": _('Smart'),
+        "analystCategories": _('Analyst'),
+        "selectForCategorization": _('Select for manual categorization'),
+        "selectFileForCategorization": _('Select {file} for manual categorization'),
+        "removeAllConfirm": _('Remove all analyst categories from {count} selected file(s)? They will return to "uncategorized" for analyst search scope. Smart categories are not affected.'),
+        "assignedToast": _('Assigned "{category}" to {count} file(s)'),
+        "openInNewTab": _('Open in new tab'),
+        "preview": _('Quick preview (stays on this page)'),
+        "closePreview": _('Close preview'),
+        "previewLoading": _('Loading preview…'),
+        "previewFailed": _('Preview failed'),
+        "previewUnavailable": _('Preview is not available for this file.'),
+        "openFullPageHint": _('Open the file in a new tab to view the full content.'),
+        "pdfFirstPage": _('First page text'),
+        "pdfFirstPagePreview": _('First-page preview'),
+        "pages": _('pages'),
+        "savedSearches": _('Saved searches'),
+        "savedSearch": _('Saved search'),
+        "manageAll": _('Manage all'),
+        "saveSearchPrompt": _('Name this search:'),
+        "searchSaved": _('Search saved. Find it under Saved searches.'),
+        "saveFailed": _('Could not save this search.'),
+        "nothingToSave": _('Run a search first, then save it here.'),
+        "loadingSaved": _('Loading saved searches…'),
+        "loadSavedFailed": _('Could not load saved searches.'),
+        "noSavedSearches": _('No saved searches yet. Run a search and press Save.'),
+        "runSavedSearch": _('Run this search'),
+        "searchApplied": _('Saved search applied'),
+        "applyFailed": _('Could not run this saved search.'),
+        "deleteSearch": _('Delete'),
+        "deleteSearchConfirm": _('Are you sure you want to delete this saved search?'),
+        "searchDeleted": _('Saved search deleted'),
+        "deleteFailed": _('Could not delete this saved search.'),
+        "fileType": _('File Type'),
+        "allTypes": _('All Types'),
+        "smartCategory": _('Smart Category'),
+        "analystCategory": _('Analyst Category'),
+        "source": _('Source'),
+        "side": _('Side'),
+        "from": _('From'),
+        "to": _('To'),
+        "status": _('Status'),
+        "analyzed": _('Analyzed'),
+        "pending": _('Pending'),
+        "removeFilter": _('Remove filter'),
+        "reviewLoading": _('Loading document context…'),
+        "reviewLoadFailed": _('Could not load this document context.'),
+        "reviewNoText": _('No extracted text is available for this document.'),
+        "reviewNoMatches": _('No query matches in extracted text.'),
+        "reviewMatches": _('Match {current} of {total}'),
+        "reviewMoreMatches": _('Showing the first {count} matches.'),
+        "reviewOriginalUnavailable": _('The original file is not available.'),
+        "reviewOriginalFailed": _('Could not load the original preview.'),
+        "reviewOriginalFilenamePrompt": _('Choose a filename for this original document:'),
+        "reviewOriginalDownloadReady": _('Original download ready.'),
+        "reviewOriginalDownloadFailed": _('Could not download the original document.'),
+        "desktopBridgeMissing": _('Opening or editing a native file and opening its operating-system folder require the trusted local SYLTHARAE companion. Use the browser preview or download here.'),
+        "desktopBridgeFailed": _('The local SYLTHARAE companion could not complete this action.'),
+        "reviewCopySelect":  _('Select a passage in the document first.'),
+        "reviewCopied": _('Passage copied.'),
+        "duplicateFilterChanged": _('Updating duplicate filter…'),
+        "groupingLoading": _('Grouping similar files on this results page…'),
+        "groupingFailed": _('Could not group similar files.'),
+        "groupingPageScope": _('Similarity groups apply to this results page only.'),
+        "similarityGroup": _('Similarity group {group}'),
+        "similarityNoText": _('Files without extracted text are shown separately.'),
+        "exportFilenamePrompt": _('Name your export (leave blank for an automatic name):'),
+        "exportFilenamePromptShort": _('Name this download:'),
+        "selectedExportPrompt": _('Name this selected-file export (leave blank for an automatic name):'),
+        "selectedExportFailed": _('Selected-file export failed.'),
+        "selectedExportReady": _('Selected-file export ready.'),
+        "firstPagesReady": _('First-page export ready.'),
+        "exportUnavailableSections": _('The export was saved, but some selected documents had no readable extracted text.'),
+        "contactsReady": _('Email and hyperlink export ready.'),
+        "contactExportEmpty": _('No email addresses or links were found; a headers-only report was saved.'),
+        "selectedNamesReady": _('Selected filename export ready.'),
+        "selectFilesFirst": _('Select one or more documents first.'),
+        "selectedExportLimit": _('Select no more than 200 documents for one export.'),
+        "folderPickerUnsupported": _('Folder export is not supported in this browser; downloading a ZIP instead.'),
+        "folderPickerFailed": _('Could not write to the selected folder.'),
+        "folderExportProgress": _('Writing selected documents to the chosen folder…'),
+        "folderExportDone": _('Documents saved to the chosen folder.'),
+        "folderExportPartial": _('Some documents could not be saved to the chosen folder.'),
+        "folderExportSubfolderPrompt": _('Optional: enter a new subfolder name, or leave blank to use the selected folder.'),
+        "openWindowBlocked": _('Allow pop-ups to open this search in a new window.'),
+        "exportText": _('Download extracted text'),
+        "singleTextExportReady": _('Extracted text download ready.'),
+        "reviewInPane": _('Review beside results'),
+        "matchFilename": _('Filename match'),
+        "matchContent": _('Content match'),
+        "matchBoth": _('Filename and content match'),
+        "matchMetadata": _('Metadata match'),
+        "similarity": _('similarity'),
+        "otherResults": _('Other results'),
+        "groupSimilar": _('Group similar'),
+        "clearGrouping": _('Clear groups'),
+        "groupNeedsResults": _('At least two results are needed to group similar files.'),
+        "reviewMediaUnsupported": _('Your browser cannot play this media.'),
+        "reviewNoInlinePreview": _('This format cannot be displayed inline.'),
+        "downloadOriginal": _('Download original'),
+        "copyFailed": _('Could not copy the selected passage.'),
+        "filenameExportReady": _('Matching filename export ready.'),
+        "filenameExportFailed": _('Could not export the matching filenames.'),
+        "filenameExportTruncated": _('The filename export reached the 50,000-row limit; narrow the search to export everything.')
+    },
+    "initialScope": analyst_scope,
+    "canCategorize": current_user.is_authenticated and current_user.has_role('admin', 'analyst')
+}|tojson }}</script>
+{% endblock %}

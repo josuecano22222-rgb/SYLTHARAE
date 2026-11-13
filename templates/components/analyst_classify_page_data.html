@@ -1,0 +1,43 @@
+{# component: page_data
+   purpose: The translated strings and the write permission the analyst
+            classification module needs, so nothing is hard-coded in
+            JavaScript and a language switch reaches it.
+   states: normal
+   classes: (none - the module reads data attributes)
+   notes: Data only; it renders no interface of its own.
+#}
+{#
+    Page data for the analyst classification control
+    (static/js/modules/analyst-classify.js).
+
+    Carries the write permission and the already-translated strings the
+    module needs, so nothing is hard-coded in JavaScript and a language switch
+    reaches the pop-up exactly like it reaches the pages.
+
+    Rendered by every interface that offers analyst classification: File
+    Detail, the Full Content Reader and the file preview pop-up. The module
+    reads the block once per page, so a page that shows two cards still has
+    one source of strings.
+
+    Parameters:
+      can_categorize — whether the current user may write (analyst/admin)
+#}
+{% macro analyst_classify_page_data(can_categorize=false) %}
+<script type="application/json" id="analyst-classify-page-data">{{ {
+    "canCategorize": can_categorize,
+    "translations": {
+        "noCategoriesYet": _('No analyst categories yet.'),
+        "confirmRemove": _('Remove analyst category from this file? It returns to uncategorized status for search scope.'),
+        "removeLabel": _('Remove'),
+        "chooseCategory": _('Choose analyst category…'),
+        "chooseOrCreateCategory": _('Choose an analyst category or type a new one'),
+        "sourceContext": _('content view'),
+        "assignedToast": _('Assigned "{category}" to {count} file(s)'),
+        "assignFailed": _('Analyst categorization failed'),
+        "removeAllConfirmFile": _('Remove all analyst categories from this file? It will return to "uncategorized" for analyst search scope. Smart categories are not affected.'),
+        "removedToast": _('Removed analyst categories from {count} file(s)'),
+        "removeFailed": _('Remove failed'),
+        "categoryRemoved": _('Analyst category removed')
+    }
+}|tojson|safe }}</script>
+{% endmacro %}

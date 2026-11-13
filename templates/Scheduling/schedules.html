@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% from 'components/table.html' import record_table %}
+{% from 'components/states.html' import state_panel %}
+{% from 'components/page_tips.html' import page_tips %}
+
+{% block title %}{{ _('Schedules') }}{% endblock %}
+
+{% block content %}
+<div class="page-container" id="schedulesPage">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                <i class="bi bi-clock-history me-2"></i>
+                {{ _('Schedules') }}
+            </h1>
+            <p class="text-muted mb-0">{{ _('Evaluate every active scenario, or run retention pruning, on an interval. Each fire re-checks the owner before anything runs.') }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if page_data.is_admin %}
+            <div class="form-check form-switch align-self-center">
+                <input class="form-check-input" type="checkbox" id="schedulesAllUsers">
+                <label class="form-check-label" for="schedulesAllUsers">{{ _('All users') }}</label>
+            </div>
+            {% endif %}
+            <button class="btn btn-outline-primary" data-on-click="refresh()"><i class="bi bi-arrow-clockwise me-1"></i> {{ _('Refresh') }}</button>
+            {% if page_data.can_write %}
+            <button class="btn btn-primary" data-on-click="openCreate()"><i class="bi bi-plus-circle me-2"></i> {{ _('New schedule') }}</button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% call page_tips() %}
+    <div class="tips-section">
+        <div class="tips-section-title"><i class="bi bi-info-circle"></i> {{ _('How scheduling works') }}</div>
+        <ul class="tips-list">
+            <li>{{ _('A schedule evaluates every active scenario, or runs retention pruning, every N minutes.') }}</li>
+            <li>{{ _('Nothing is run by a person who may no longer run it: every fire re-reads the owner\'s role. An owner who loses the required role disables the schedule with the reason stated.') }}</li>
+            <li>{{ _('A fire enqueues the same background job a manual run creates - visible on the Jobs page and in this schedule\'s history.') }}</li>
+            <li>{{ _('Pause stops firing without deleting anything; resume fires again one interval from now, so a long pause never fires a burst.') }}</li>
+        </ul>
+    </div>
+    {% endcall %}
+
+    <div id="schedulesError" class="d-none">
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-2" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <p class="state-message mb-0"></p>
+        </div>
+    </div>
+
+    {% call record_table(
+            id='schedulesTable',
+            columns=[
+                {'key': 'name', 'label': _('Name'), 'sortable': True, 'type': 'text'},
+                {'key': 'runs', 'label': _('What runs'), 'sortable': False, 'type': 'text'},
+                {'key': 'interval_minutes', 'label': _('Every'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '110px'},
+                {'key': 'status', 'label': _('Status'), 'sortable': True, 'width': '170px'},
+                {'key': 'next_run_at', 'label': _('Next run'), 'sortable': True, 'type': 'text', 'width': '170px'},
+                {'key': 'last_status', 'label': _('Last job'), 'sortable': False, 'width': '130px'},
+                {'key': 'owner', 'label': _('Owner'), 'sortable': False, 'width': '150px'},
+                {'kind': 'actions', 'width': '210px'}
+            ],
+            mode='client',
+            empty_message=_('No schedules yet.'),
+            empty_filtered=True) %}
+        <tbody id="schedulesTableBody"></tbody>
+    {% endcall %}
+
+    <div id="schedulesJobsPanel" class="d-none mt-3">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <h2 class="h6 mb-0"><i class="bi bi-list-task me-1"></i> <span id="schedulesJobsTitle"></span></h2>
+            <button class="btn btn-sm btn-outline-secondary ms-auto" data-on-click="closeJobs()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        {% call record_table(
+                id='schedulesJobsTable',
+                columns=[
+                    {'key': 'job_id', 'label': _('Job'), 'sortable': False, 'type': 'text', 'width': '150px'},
+                    {'key': 'status', 'label': _('Status'), 'sortable': False, 'width': '110px'},
+                    {'key': 'progress', 'label': _('Progress'), 'sortable': False, 'type': 'number', 'align': 'end', 'width': '90px'},
+                    {'key': 'source', 'label': _('Source'), 'sortable': False, 'type': 'text'},
+                    {'key': 'created_at', 'label': _('Created'), 'sortable': False, 'type': 'text', 'width': '180px'}
+                ],
+                mode='client',
+                empty_message=_('This schedule has not created any jobs yet.')) %}
+            <tbody id="schedulesJobsTableBody"></tbody>
+        {% endcall %}
+    </div>
+</div>
+
+{% if page_data.can_write %}
+<div class="modal fade" id="scheduleDialog" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="scheduleDialogTitle">{{ _('New schedule') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="scheduleForm" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="scheduleType">{{ _('What runs') }}</label>
+                        <select class="form-select" id="scheduleType">
+                            {% if page_data.is_admin %}
+                            <option value="scenario_evaluation">{{ _('Evaluate every active scenario') }}</option>
+                            <option value="retention">{{ _('Prune by the retention policies') }}</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="scheduleName">{{ _('Name') }}</label>
+                        <input class="form-control" id="scheduleName" maxlength="200" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="scheduleInterval">{{ _('Every (minutes)') }}</label>
+                        <input class="form-control" id="scheduleInterval" type="number" min="{{ page_data.min_interval }}" max="{{ page_data.max_interval }}" value="1440" required>
+                        <div class="form-text">{{ _('Between %(min)s and %(max)s minutes.', min=page_data.min_interval, max=page_data.max_interval) }}</div>
+                    </div>
+                    <div class="col-12" id="scheduleParametersGroup">
+                        <label class="form-label" for="scheduleParameters">{{ _('Parameters (JSON)') }}</label>
+                        <textarea class="form-control font-monospace" id="scheduleParameters" rows="6" spellcheck="false"></textarea>
+                        <div class="form-text">{{ _('Optional note for retention schedules; empty for scenario evaluations.') }}</div>
+                    </div>
+                    <div class="col-12 text-danger d-none" id="scheduleDialogError" role="alert"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                <button type="button" class="btn btn-primary" data-on-click="save()">{{ _('Save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script type="application/json" id="schedules-page-data">{{ page_data|tojson }}</script>
+<script type="application/json" id="schedules-page-labels">{{ {
+    "confirm_delete": _('Delete this schedule? Its history stays on the Jobs page.'),
+    "confirm_run_now": _('Run this schedule now?'),
+    "status_enabled": _('Enabled'),
+    "status_paused": _('Paused'),
+    "status_disabled": _('Disabled'),
+    "reason": _('Reason'),
+    "next_run": _('Next run'),
+    "last_run": _('Last run'),
+    "never": _('never'),
+    "queued": _('queued'),
+    "failure_count": _('consecutive failures'),
+    "mine": _('You'),
+    "dialog_error": _('The schedule was refused:'),
+    "saved": _('Saved.'),
+    "deleted": _('Deleted.'),
+    "fired": _('Fired: the job is on the Jobs page.'),
+    "all_users": _('All users'),
+    "you_cannot_resume": _('This schedule can no longer run (see its status).'),
+    "params_invalid": _('Parameters are not valid JSON.'),
+    "load_failed": _('The schedules could not be loaded.'),
+    "jobs_title": _('Jobs of'),
+    "what_scenarios": _('every active scenario'),
+    "what_retention": _('every enabled retention policy'),
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/schedules-page.js') }}"></script>
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+{% endblock %}

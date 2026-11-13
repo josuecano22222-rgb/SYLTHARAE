@@ -1,0 +1,93 @@
+{# component: filter_bar
+   purpose: The controls above a list that decide which records it shows: a
+            search box and the filters that narrow it, in the arrangement
+            fifteen pages currently rebuild by hand.
+   states: normal, filtered, empty
+   classes: file-filters-section, filter-controls-grid, filter-group,
+            filter-group-search, filter-label, search-input-wrapper,
+            search-input, btn-clear-search, form-control, form-select
+   notes: `filter_bar` is the card and the grid; `filter_section` +
+          `filter_grid` are the same two elements nested, for a page whose
+          action toolbar belongs inside the card. The controls only. Which filters exist, what they mean and what
+          happens when one changes are the page's business: it passes ids and
+          handlers, because the list's JavaScript already knows those names
+          and renaming them here would break it.
+#}
+{#
+   Usage:
+
+       {% from 'components/filter_bar.html' import filter_bar, filter_group,
+            search_group %}
+
+       {% call filter_bar() %}
+           {{ search_group('searchKeywords', _('Search Keywords'),
+                           _('Search keywords...'), onclear='clearSearch()') }}
+           {% call filter_group('statusFilter', _('Status'), 'bi-check-circle') %}
+               <select class="form-select" id="statusFilter" data-on-change="applyFilters()">…</select>
+           {% endcall %}
+       {% endcall %}
+#}
+
+{% macro filter_section(extra_class=None) %}
+{#- The card the filters - and anything that belongs beside them, such as the
+    action toolbar - sit in. One caller slot, so a page that needs the toolbar
+    inside the card (which is what the stylesheet draws: the card is the white
+    panel and the toolbar's rule runs to its edges) nests the two blocks. -#}
+<div class="file-filters-section{{ ' ' ~ extra_class if extra_class }}">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+
+{% macro filter_grid(extra_class=None) %}
+{#- The arrangement of the controls inside the card. -#}
+<div class="filter-controls-grid{{ ' ' ~ extra_class if extra_class }}">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+
+{% macro filter_bar(extra_class=None) %}
+{#- The common case: a card holding only the filters. -#}
+<div class="file-filters-section{{ ' ' ~ extra_class if extra_class }}">
+    <div class="filter-controls-grid">
+        {{ caller() }}
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro filter_group(control_id, label, icon=None, extra_class=None) %}
+{#- One labelled filter. The caller supplies the control itself, so a select,
+    a date range or a set of checkboxes all fit. -#}
+<div class="filter-group{{ ' ' ~ extra_class if extra_class }}">
+    <label for="{{ control_id }}" class="filter-label">
+        {%- if icon %}<i class="bi {{ icon }}" aria-hidden="true"></i> {% endif -%}
+        {{ label }}
+    </label>
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+
+{% macro search_group(input_id, label, placeholder=None, value=None,
+                      icon='bi-search', onclear=None, clear_label=None,
+                      autocomplete='off', hint=None, name=None) %}
+{#- The search box is not this component's markup: it is the search_input
+    component, placed in the filter grid. One owner for the box, one for
+    where it sits. -#}
+{% from 'components/search_input.html' import search_input %}
+<div class="filter-group filter-group-search">
+    {{ search_input(input_id, label=label, placeholder=placeholder, value=value,
+                    icon=icon, on_clear=onclear, clear_label=clear_label,
+                    autocomplete=autocomplete, hint=hint, name=name) }}
+</div>
+{% endmacro %}
+
+
+{% macro hidden_filter(name, value=None) %}
+{#- A filter that is applied but has no visible control: carried in the
+    request so it survives a form submit, rather than living only in
+    JavaScript state where a page reload loses it. -#}
+<input type="hidden" name="{{ name }}" value="{{ value if value is not none else '' }}">
+{% endmacro %}

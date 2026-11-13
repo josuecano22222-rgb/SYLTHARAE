@@ -1,0 +1,619 @@
+<!-- templates/base.html - Enhanced with smooth animations and better UX -->
+<!DOCTYPE html>
+<html lang="{{ current_language }}" dir="{% if current_language in ['ar', 'fa', 'he', 'ur'] %}rtl{% else %}ltr{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    {#- Soft-nav module cache-bust: bump when shipping JS that must re-init
+        after in-app navigations (DocumentActions, analysis, export modules). -#}
+    <meta name="asset-version" content="20261015e">
+    {#- Runs data-on-<event> handlers without inline script (RES-CSP-01).
+        Synchronous and first, so every control drawn below is live. -#}
+    {#- Theme mode, before the first style is applied: <html> carries
+        data-theme-mode so a dark-mode reader never sees a white flash.
+        The full module (menu, system listener) is loaded further down. -#}
+    <script src="{{ url_for('static', filename='js/modules/core/declarative-events.js') }}"></script>
+    <!-- The theme is applied before body renders; it runs second only because
+         the declarative event runtime must be the first script on the page
+         (RES-CSP-01 test_the_shell_loads_the_runtime_first_and_synchronously).
+         Both are synchronous, so no frame is painted between them. -->
+    <script src="{{ url_for('static', filename='js/theme-mode-init.js') }}?v=20261026a"></script>
+    {#- Static sidebar: in-application navigations swap only the main
+        content, so the sidebar element is never redrawn; its state is also
+        restored on a real load. Defers to declarative-events (installed
+        listeners are never duplicated; see the module header). -#}
+    <script src="{{ url_for('static', filename='js/modules/core/navigation-swap.js') }}" defer></script>
+    {#- One default app name for every fallback position, matching the
+        settings model default ("SYLTHARAE System", settings/settings_models.py).
+        Empty stored values also fall back instead of producing a blank title,
+        logo alternative, or brand label. -#}
+    {% set _brand_name = (user_settings.get('system', 'app_name') if user_settings else '') or _('SYLTHARAE System') %}
+    {% set _brand_icon = (user_settings.get('system', 'app_icon') if user_settings else '') or 'bi-file-earmark-text' %}
+    <title>{% block title %}{{ _brand_name }}{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%234f46e5;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%2306b6d4;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='20' fill='url(%23grad)'/%3E%3Cpath d='M30 30 L50 20 L70 30 L70 50 L50 60 L30 50 Z' fill='white' opacity='0.9'/%3E%3Cpath d='M35 35 L50 28 L65 35 L65 48 L50 55 L35 48 Z' fill='none' stroke='white' stroke-width='2'/%3E%3Cline x1='50' y1='28' x2='50' y2='55' stroke='white' stroke-width='2'/%3E%3C/svg%3E">
+    <link rel="alternate icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    
+    <!-- Performance: Resource hints for faster loading -->
+    <link rel="preconnect" href="{{ url_for('static', filename='', _external=True) }}">
+    <link rel="dns-prefetch" href="{{ url_for('static', filename='', _external=True) }}">
+    
+    <!-- Fonts -->
+    <link href="{{ url_for('static', filename='fonts/inter.css') }}" rel="stylesheet" crossorigin="anonymous">
+    {% if current_language in ['ar', 'fa', 'ur'] %}
+    <link href="{{ url_for('static', filename='fonts/noto-arabic.css') }}" rel="stylesheet">
+    {% elif current_language == 'he' %}
+    <link href="{{ url_for('static', filename='fonts/noto-hebrew.css') }}" rel="stylesheet">
+    {% endif %}
+    
+    <!-- Local Bootstrap CSS -->
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet" crossorigin="anonymous">
+    
+    <!-- Local Bootstrap Icons -->
+    <link href="{{ url_for('static', filename='icons/bootstrap-icons.css') }}" rel="stylesheet" crossorigin="anonymous">
+    
+    <!-- Unified CSS Styles - All common styles loaded globally -->
+    <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" crossorigin="anonymous">
+    <link href="{{ url_for('static', filename='css/message_system.css') }}" rel="stylesheet" crossorigin="anonymous">
+    <link href="{{ url_for('static', filename='css/chart-export.css') }}" rel="stylesheet" crossorigin="anonymous">
+    <!-- Unified Design System - standardizes tokens and components on all pages -->
+    <link href="{{ url_for('static', filename='css/design-system.css') }}" rel="stylesheet" crossorigin="anonymous">
+    <!-- Comprehensive Responsive Design Fixes - Loaded globally for all pages -->
+    <link href="{{ url_for('static', filename='css/responsive-fixes.css') }}" rel="stylesheet" crossorigin="anonymous">
+    <script src="{{ url_for('static', filename='js/responsive-fixes.js') }}" defer></script>
+    
+    <!-- Page Tips Component Styles -->
+    <link href="{{ url_for('static', filename='css/page-tips.css') }}" rel="stylesheet" crossorigin="anonymous">
+
+    <!-- Theme mode (light / dark / follow the system) - loaded last on purpose:
+         it re-maps the surfaces the component sheets write with literal colours -->
+    <link href="{{ url_for('static', filename='css/theme-mode.css') }}?v=20261026a" rel="stylesheet" crossorigin="anonymous">
+    {% block head_extra %}{% endblock %}
+    
+    <!-- Common Component Styles (loaded for all pages) -->
+
+
+    <!-- Global Custom CSS (editable in Settings; applied to ALL pages) -->
+    <style id="global-custom-css"></style>
+    <script type="application/json" id="global-custom-css-data">{{ {
+        "custom_css": (user_settings.get('theme', 'custom_css', '') if user_settings else "")
+    }|tojson }}</script>
+    <script src="{{ url_for('static', filename='js/modules/core/global-custom-css.js') }}"></script>
+    
+    <!-- Theme Colors Configuration -->
+    {% set theme = user_settings.get('theme') if user_settings else {} %}
+    {% if theme is not mapping or theme is none %}
+        {% set theme = {} %}
+    {% endif %}
+    
+    <!-- Inline Theme Colors - Applied Immediately to Prevent FOUC -->
+    <style id="inline-theme-colors">
+        :root {
+            {% if theme.get('primary_color') %}--primary-color: {{ theme.get('primary_color') }};{% endif %}
+            {% if theme.get('secondary_color') %}--secondary-color: {{ theme.get('secondary_color') }};{% endif %}
+            {% if theme.get('success_color') %}--success-color: {{ theme.get('success_color') }};{% endif %}
+            {% if theme.get('danger_color') %}--danger-color: {{ theme.get('danger_color') }};{% endif %}
+            {% if theme.get('warning_color') %}--warning-color: {{ theme.get('warning_color') }};{% endif %}
+            {% if theme.get('info_color') %}--info-color: {{ theme.get('info_color') }};{% endif %}
+            {% if theme.get('bg_light') %}--bg-light: {{ theme.get('bg_light') }};{% endif %}
+            {% if theme.get('bg_white') %}--bg-white: {{ theme.get('bg_white') }};{% endif %}
+            {% if theme.get('bg_section') %}--bg-section: {{ theme.get('bg_section') }};{% endif %}
+            {% if theme.get('text_dark') %}--text-dark: {{ theme.get('text_dark') }};{% endif %}
+            {% if theme.get('text_light') %}--text-light: {{ theme.get('text_light') }};{% endif %}
+            {% if theme.get('text_muted') %}--text-muted: {{ theme.get('text_muted') }};{% endif %}
+            {% if theme.get('border_color') %}--border-color: {{ theme.get('border_color') }};{% endif %}
+            {% if theme.get('border_light') %}--border-light: {{ theme.get('border_light') }};{% endif %}
+            {% if theme.get('border_dark') %}--border-dark: {{ theme.get('border_dark') }};{% endif %}
+            {% if theme.get('link_color') %}--link-color: {{ theme.get('link_color') }};{% endif %}
+            {% if theme.get('sidebar_bg') %}--sidebar-bg: {{ theme.get('sidebar_bg') }};{% endif %}
+            {% if theme.get('sidebar_text') %}--sidebar-text: {{ theme.get('sidebar_text') }};{% endif %}
+            {% if theme.get('sidebar_active') %}--sidebar-active: {{ theme.get('sidebar_active') }};{% endif %}
+            {% if theme.get('sidebar_hover') %}--sidebar-hover: {{ theme.get('sidebar_hover') }};{% endif %}
+            {% if theme.get('btn_primary') %}--btn-primary: {{ theme.get('btn_primary') }};{% endif %}
+            {% if theme.get('btn_primary_hover') %}--btn-primary-hover: {{ theme.get('btn_primary_hover') }};{% endif %}
+            {% if theme.get('btn_secondary') %}--btn-secondary: {{ theme.get('btn_secondary') }};{% endif %}
+            {% if theme.get('btn_secondary_hover') %}--btn-secondary-hover: {{ theme.get('btn_secondary_hover') }};{% endif %}
+            {% if theme.get('section_bg') %}--section-bg: {{ theme.get('section_bg') }};{% endif %}
+            {% if theme.get('card_bg') %}--card-bg: {{ theme.get('card_bg') }};{% endif %}
+            {% if theme.get('card_border') %}--card-border: {{ theme.get('card_border') }};{% endif %}
+            {% if theme.get('table_header_bg') %}--table-header-bg: {{ theme.get('table_header_bg') }};{% endif %}
+            {% if theme.get('table_row_hover') %}--table-row-hover: {{ theme.get('table_row_hover') }};{% endif %}
+            {% if theme.get('table_border') %}--table-border: {{ theme.get('table_border') }};{% endif %}
+            {% if theme.get('input_bg') %}--input-bg: {{ theme.get('input_bg') }};{% endif %}
+            {% if theme.get('input_border') %}--input-border: {{ theme.get('input_border') }};{% endif %}
+            {% if theme.get('input_focus') %}--input-focus: {{ theme.get('input_focus') }};{% endif %}
+            {% if theme.get('gradient_start') %}--gradient-start: {{ theme.get('gradient_start') }};{% endif %}
+            {% if theme.get('gradient_end') %}--gradient-end: {{ theme.get('gradient_end') }};{% endif %}
+            {% if theme.get('gradient_direction') %}--gradient-direction: {{ theme.get('gradient_direction') }};{% endif %}
+            {% for i in range(1, 11) %}
+                {% set color_key = 'chart_color_' ~ i %}
+                {% if theme.get(color_key) %}--chart-color-{{ i }}: {{ theme.get(color_key) }};{% endif %}
+            {% endfor %}
+        }
+    </style>
+    {% set chart_colors = {
+        "1": theme.get('chart_color_1'),
+        "2": theme.get('chart_color_2'),
+        "3": theme.get('chart_color_3'),
+        "4": theme.get('chart_color_4'),
+        "5": theme.get('chart_color_5'),
+        "6": theme.get('chart_color_6'),
+        "7": theme.get('chart_color_7'),
+        "8": theme.get('chart_color_8'),
+        "9": theme.get('chart_color_9'),
+        "10": theme.get('chart_color_10')
+    } %}
+    
+    <script type="application/json" id="theme-colors">{{ {
+        "primary_color": theme.get('primary_color'),
+        "secondary_color": theme.get('secondary_color'),
+        "success_color": theme.get('success_color'),
+        "danger_color": theme.get('danger_color'),
+        "warning_color": theme.get('warning_color'),
+        "info_color": theme.get('info_color'),
+        "bg_light": theme.get('bg_light'),
+        "bg_white": theme.get('bg_white'),
+        "bg_section": theme.get('bg_section'),
+        "text_dark": theme.get('text_dark'),
+        "text_light": theme.get('text_light'),
+        "text_muted": theme.get('text_muted'),
+        "border_color": theme.get('border_color'),
+        "border_light": theme.get('border_light'),
+        "border_dark": theme.get('border_dark'),
+        "link_color": theme.get('link_color'),
+        "gradient_start": theme.get('gradient_start'),
+        "gradient_end": theme.get('gradient_end'),
+        "gradient_direction": theme.get('gradient_direction'),
+        "sidebar_bg": theme.get('sidebar_bg'),
+        "sidebar_text": theme.get('sidebar_text'),
+        "sidebar_active": theme.get('sidebar_active'),
+        "sidebar_hover": theme.get('sidebar_hover'),
+        "btn_primary": theme.get('btn_primary'),
+        "btn_primary_hover": theme.get('btn_primary_hover'),
+        "btn_secondary": theme.get('btn_secondary'),
+        "btn_secondary_hover": theme.get('btn_secondary_hover'),
+        "section_bg": theme.get('section_bg'),
+        "card_bg": theme.get('card_bg'),
+        "card_border": theme.get('card_border'),
+        "table_header_bg": theme.get('table_header_bg'),
+        "table_row_hover": theme.get('table_row_hover'),
+        "table_border": theme.get('table_border'),
+        "input_bg": theme.get('input_bg'),
+        "input_border": theme.get('input_border'),
+        "input_focus": theme.get('input_focus'),
+        "chart_colors": chart_colors
+    }|tojson }}</script>
+    
+    <!-- Theme Management Scripts (Load Early, Async) -->
+    <script type="module" src="{{ url_for('static', filename='js/theme-initializer.js') }}" async></script>
+    <script type="module" src="{{ url_for('static', filename='js/theme-manager-wrapper.js') }}" async></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/charts/chart-colors.js') }}" async></script>
+    
+    {% block extra_css %}{% endblock %}
+
+    <!-- ============================================================
+         LOCALIZATION RUNTIME (loads before every other script)
+         1. Static UI packs per locale (JS-only strings)
+         2. app-i18n.js - merges UI packs + server catalog, exposes
+            window.t() / window.translations and live-translates the DOM
+         ============================================================ -->
+    <script src="{{ url_for('static', filename='js/modules/core/csrf-token.js') }}?v=20260912b" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/locales/en.js') }}?v=20260912b" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/locales/ar.js') }}?v=20260912b" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/locales/he.js') }}?v=20260912b" defer></script>
+    <script src="{{ url_for('static', filename='js/i18n/locales/fa.js') }}?v=20260912b" defer></script>
+    <script src="{{ url_for('static', filename='js/modules/core/app-i18n.js') }}?v=20260912b" defer></script>
+    {#- The status vocabulary, defined once in core/frontend/status_vocabulary.py.
+        Server-rendered badges and JavaScript that draws a status chip both read
+        this, so there is one answer to "what colour is a paused job". -#}
+    {% if status_vocabulary %}
+    <script type="application/json" id="status-vocabulary">{{ status_vocabulary|tojson }}</script>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/modules/core/status.js') }}?v=20260921a" defer></script>
+    {#- Keyboard and loading behaviour for the search box component. The
+        component renders it; this is what makes Escape clear it. -#}
+    <script src="{{ url_for('static', filename='js/modules/core/search-input.js') }}?v=20260921a" defer></script>
+    {#- The selection a bulk action applies to. The component renders the bar
+        and the disabled state; this keeps the scope in step as rows are
+        selected, so a bulk action is never enabled without saying what it
+        would affect. -#}
+    <script src="{{ url_for('static', filename='js/modules/core/action-toolbar.js') }}?v=20260921a" defer></script>
+    {#- Asking before something irreversible. The dialog is a component each
+        page renders; this is what turns an answer into a boolean and nothing
+        else - the page still performs the operation. -#}
+    <script src="{{ url_for('static', filename='js/modules/core/confirm-dialog.js') }}?v=20260921a" defer></script>
+    {#- Every action ends visibly. One region, one set of tones, text only. -#}
+    <script src="{{ url_for('static', filename='js/modules/core/toast.js') }}?v=20261015d" defer></script>
+    {#- The actions a record offers: the question, the busy state and the
+        toast. The page supplies what each action does; this supplies how it
+        is asked for, and nothing else. -#}
+    <script src="{{ url_for('static', filename='js/modules/core/record-actions.js') }}?v=20260922a" defer></script>
+    {#- The Screen Inspector: a read-only panel that says which registry entry,
+        component, action and binding owns an element. Rendered and loaded only
+        when the installation switched it on and this account may use it; the
+        endpoint it reads is guarded on its own, because a hidden tool is not a
+        secured one. -#}
+    {% if inspector_enabled %}
+    <script src="{{ url_for('static', filename='js/modules/core/screen-inspector.js') }}?v=20260923a" defer></script>
+    {% endif %}
+</head>
+
+{#- `?embed=1`: this page is being rendered inside another surface's iframe
+    (the React app's FullDocumentViewer -- see Api/blueprints/files.py
+    `file_full_content` for the matching frame-header relaxation, scoped to
+    that one route). Nothing here changes for a normal top-level visit;
+    embed mode only ever hides chrome that would otherwise duplicate the
+    embedding app's own navigation. -#}
+{% set embed_mode = request.args.get('embed') == '1' %}
+{% if embed_mode %}
+<style>
+  .sidebar, .sidebar-backdrop, .page-navigation-bar { display: none !important; }
+  .main-content { margin-left: 0 !important; padding-top: 0 !important; }
+  body { background: transparent !important; }
+</style>
+{% endif %}
+<body data-page-type="{% block page_type %}default{% endblock %}"
+      data-current-endpoint="{{ request.endpoint|default('', true) }}"
+      class="{{ 'embed-mode' if embed_mode else '' }}">
+
+    <!-- Accessibility: skip link -->
+    <a class="skip-to-content" href="#mainContent">{{ _('Skip to main content') }}</a>
+
+    <!-- ========================================
+         SIDEBAR NAVIGATION
+         ======================================== -->
+    <div class="sidebar" id="sidebar">
+        <!-- Logo -->
+        <div class="sidebar-logo">
+            {% if user_settings and user_settings.get('system', 'app_logo') %}
+            <img src="{{ user_settings.get('system', 'app_logo') }}" alt="{{ _brand_name }}"
+                 data-on-error="this.style.display='none'; this.nextElementSibling.style.display='';">
+            <i class="bi {{ _brand_icon }}" style="display: none;" aria-hidden="true"></i>
+            {% else %}
+            <i class="bi {{ _brand_icon }}" aria-hidden="true"></i>
+            {% endif %}
+            <h4>{{ _brand_name }}</h4>
+        </div>
+        
+        <!-- Navigation Menu: rendered from the interface registry -->
+        <nav aria-label="{{ _('Primary navigation') }}">
+            {% include 'components/sidebar_nav.html' %}
+        </nav>
+
+        <!-- Sidebar Footer: the running version and the AGPL-3.0 section 13
+             source offer. Language selection is in the top bar. -->
+        <div class="sidebar-footer">
+            <span class="sidebar-version">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                {{ _('Version') }} {{ version }}
+            </span>
+            <a class="sidebar-version sidebar-source" href="{{ source_code_url }}" rel="noopener" target="_blank"
+               title="{{ _('SYLTHARAE is free software under the GNU AGPL-3.0-or-later. Get its source code.') }}">
+                <i class="bi bi-code-slash" aria-hidden="true"></i>
+                {{ _('Source code') }} (AGPL-3.0)
+            </a>
+        </div>
+    </div>
+    
+    <!-- Sidebar Backdrop (for mobile overlay) -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
+
+    {#- One live region for the whole application: an action that finished
+        says so in one place, whatever page it happened on. It is placed
+        before #mainContent, not after the page: a soft navigation replaces the
+        children of #mainContent, and a region inside it lost every visible
+        toast. The region is position:fixed, so its placement does not move it. -#}
+    {% from 'components/toast.html' import toast_region %}
+    {{ toast_region() }}
+
+    <!-- ========================================
+         MAIN CONTENT AREA
+         ======================================== -->
+    <div class="main-content" id="mainContent">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container-fluid px-0 mb-3">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                            <i class="bi bi-{% if category == 'success' %}check-circle{% elif category == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2" aria-hidden="true"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Close') }}"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% if current_user and current_user.is_authenticated and current_user.must_change_password %}
+        <div class="container-fluid px-0">
+            <div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2" role="alert">
+                <span>
+                    <i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>
+                    {{ _('You are signed in with a temporary password. Please set a new password.') }}
+                </span>
+                <button type="button" class="btn btn-sm btn-warning" id="mustChangePasswordBtn">
+                    {{ _('Change Password') }}
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Page Navigation Bar -->
+        <div class="page-navigation-bar">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 py-2">
+                    <button type="button" class="btn btn-primary d-lg-none d-inline-flex align-items-center justify-content-center" id="menuToggle"
+                            aria-label="{{ _('Open navigation menu') }}" aria-controls="sidebar" aria-expanded="false"
+                            data-open-label="{{ _('Open navigation menu') }}"
+                            data-close-label="{{ _('Close navigation menu') }}">
+                        <i class="bi bi-list" aria-hidden="true"></i>
+                    </button>
+
+                    <!-- Breadcrumb Navigation -->
+                    <nav aria-label="{{ _('Breadcrumb navigation') }}" class="flex-grow-1">
+                        <ol class="breadcrumb mb-0">
+                            {% block breadcrumb %}
+                            {# Labels come from the registry, via the `page`
+                               the application prepared. `base.html` used to
+                               carry two hand-written endpoint dictionaries,
+                               which disagreed with each other and with the
+                               registry. #}
+                            {% set _crumbs = page_identity.breadcrumbs if page_identity and page_identity.breadcrumbs else () %}
+                            {% for crumb in _crumbs %}
+                            <li class="breadcrumb-item {% if crumb.current %}active{% endif %}"
+                                {% if crumb.current %}aria-current="page"{% endif %}>
+                                {% if crumb.url and not crumb.current %}
+                                    <a href="{{ crumb.url }}">{% if crumb.icon %}<i class="bi {{ crumb.icon }} me-1" aria-hidden="true"></i>{% endif %}{{ _(crumb.label) }}</a>
+                                {% else %}
+                                    {{ _(crumb.label) }}
+                                {% endif %}
+                            </li>
+                            {% endfor %}
+                            {% endblock %}
+                        </ol>
+                    </nav>
+                    
+                    <!-- Page Title / Context -->
+                    <div class="d-none d-md-flex align-items-center gap-3">
+                        <!-- Notifications Icon with Badge -->
+                        <a href="{{ url_for('notifications_page') }}" 
+                           class="btn btn-sm btn-outline-secondary position-relative" 
+                           title="{{ _('Notifications') }}" 
+                           id="notificationsIcon" aria-label="{{ _('Notifications') }}">
+                            <i class="bi bi-bell" aria-hidden="true"></i>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" 
+                                  id="notificationsBadge" aria-hidden="true"
+                                  style="display: none;">
+                                0
+                            </span>
+                        </a>
+                        
+                        {% block page_title %}
+                        {% if page_identity and page_identity.interface_id %}
+                        <span class="text-muted small topbar-page-identity">
+                            <i class="bi {{ page_identity.icon or 'bi-file-earmark-text' }} me-1" aria-hidden="true"></i>
+                            {{ _(page_identity.label) }}
+                            {% if page_identity.badge %}<span class="badge text-bg-secondary ms-1">{{ _(page_identity.badge) }}</span>{% endif %}
+                        </span>
+                        {% endif %}
+                        {% endblock %}
+                    </div>
+
+                    <!-- Quick Language Switcher (top bar) -->
+                    <div class="dropdown topbar-lang">
+                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                id="topbarLangBtn" data-bs-toggle="dropdown" aria-expanded="false"
+                                title="{{ _('Language') }}" aria-label="{{ _('Language') }}">
+                            <i class="bi bi-translate me-1" aria-hidden="true"></i>
+                            <span class="d-none d-lg-inline text-uppercase small">{{ current_language }}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="topbarLangBtn">
+                            {% for lang_code, lang_name in languages.items() %}
+                            <li>
+                                <button type="button"
+                                        class="dropdown-item {% if lang_code == current_language %}active{% endif %}"
+                                        data-language-switch="{{ lang_code }}"
+                                        aria-current="{% if lang_code == current_language %}true{% else %}false{% endif %}">
+                                    <i class="bi bi-check2 lang-check" aria-hidden="true"></i>
+                                    <span class="lang-native">{{ lang_name }}</span>
+                                    <span class="lang-english">{{ {'en': 'English', 'ar': 'Arabic', 'he': 'Hebrew', 'fa': 'Persian'}.get(lang_code, lang_code) }}</span>
+                                </button>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+
+                    <!-- User Menu -->
+                    {% if current_user and current_user.is_authenticated %}
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" id="userMenuBtn"
+                                    data-bs-toggle="dropdown" aria-expanded="false"
+                                    title="{{ _('Account menu') }}"
+                                    aria-label="{{ _('Account menu') }}: {{ current_user.username }}">
+                                <i class="bi bi-person-circle me-1" aria-hidden="true"></i>
+                                <span class="d-none d-sm-inline">{{ current_user.username }}</span>
+                                {% if current_user.is_admin %}<span class="badge text-bg-secondary ms-1">{{ _('Admin') }}</span>{% endif %}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuBtn">
+                                <li>
+                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2"
+                                            id="themeModeItem" aria-haspopup="true" aria-expanded="false"
+                                            title="{{ _('Theme') }}: {{ _('Auto') }} / {{ _('Light') }} / {{ _('Dark') }}">
+                                        <i class="bi bi-circle-half me-2" aria-hidden="true"></i>
+                                        <span>{{ _('Theme') }}</span>
+                                        <span class="badge text-bg-secondary ms-auto" id="themeModeBadge">{{ _('Auto') }}</span>
+                                    </button>
+                                </li>
+                                <li id="themeModeChoices" class="px-3 pb-2" hidden>
+                                    <div class="btn-group btn-group-sm w-100" role="group"
+                                         aria-label="{{ _('Theme') }}">
+                                        <button type="button" class="btn btn-outline-secondary"
+                                                data-theme-choice="auto" aria-pressed="true">
+                                            <i class="bi bi-display" aria-hidden="true"></i> {{ _('Auto') }}
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary"
+                                                data-theme-choice="light" aria-pressed="false">
+                                            <i class="bi bi-sun" aria-hidden="true"></i> {{ _('Light') }}
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary"
+                                                data-theme-choice="dark" aria-pressed="false">
+                                            <i class="bi bi-moon-stars" aria-hidden="true"></i> {{ _('Dark') }}
+                                        </button>
+                                    </div>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button type="button" class="dropdown-item" id="changePasswordItem">
+                                        <i class="bi bi-key me-2" aria-hidden="true"></i>{{ _('Change Password') }}
+                                    </button>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form method="post" action="{{ url_for('auth.logout') }}" id="logoutForm">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="bi bi-box-arrow-right me-2" aria-hidden="true"></i>{{ _('Logout') }}
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Page Content Block -->
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Change Password Modal -->
+    {% if current_user and current_user.is_authenticated %}
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="changePasswordForm" novalidate>
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="changePasswordModalLabel">
+                            <i class="bi bi-key me-2"></i>{{ _('Change Password') }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label" for="currentPasswordInput">{{ _('Current Password') }}</label>
+                            <input type="password" class="form-control" id="currentPasswordInput" required autocomplete="current-password"
+                                   data-required-message="{{ _('Enter your current password.') }}"
+                                   data-unchanged-message="{{ _('The new password must be different from the current one.') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="newPasswordInput">{{ _('New Password') }}</label>
+                            <input type="password" class="form-control" id="newPasswordInput" required minlength="{{ password_min_length|default(12) }}" autocomplete="new-password"
+                                   data-minimum-message="{{ _('New password must be at least %(min)s characters.', min=password_min_length|default(12)) }}">
+                            <div class="form-text">{{ _('Minimum %(min)s characters.', min=password_min_length|default(12)) }}</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" for="confirmPasswordInput">{{ _('Confirm New Password') }}</label>
+                            <input type="password" class="form-control" id="confirmPasswordInput" required autocomplete="new-password">
+                            <div class="invalid-feedback" id="passwordMismatchFeedback" style="display: none;">
+                                {{ _('Passwords do not match.') }}
+                            </div>
+                        </div>
+                        <div class="alert alert-danger d-none" id="changePasswordError" role="alert"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                        <button type="submit" class="btn btn-primary" id="changePasswordSubmit">
+                            <i class="bi bi-check-circle me-1"></i>{{ _('Save New Password') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}" defer crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}" defer crossorigin="anonymous"></script>
+    
+    <!-- Chart Libraries (Non-Critical: Load After Page) -->
+    <script src="{{ url_for('static', filename='js/chart.umd.js') }}" defer crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='js/jspdf.umd.min.js') }}" defer crossorigin="anonymous"></script>
+    
+    <!-- Chart Modules (Lazy Load) -->
+    <script src="{{ url_for('static', filename='js/modules/charts/chart-customizer.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/charts/chart-export.js') }}" defer></script>
+    
+    <!-- Rendering Modules (Lazy Load) -->
+    <script type="module" src="{{ url_for('static', filename='js/modules/rendering/cursor-pagination.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/ui/table-export.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/modules/core/unified-pagination.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/file-actions.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/modules/ui/documents-panel.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/ui/documents-panel-exports.js') }}" defer></script>
+    
+    <!-- Language Initialization (Run Immediately, Before DOM Ready) -->
+    <script type="application/json" id="language-init-data">{{ {
+    "currentLanguage": current_language|default("en")
+}|tojson }}</script>
+    <script src="{{ url_for('static', filename='js/modules/core/language-init.js') }}"></script>
+    
+    <!-- Language Persistence Manager (CRITICAL: Load First to Intercept All Requests) -->
+    <script type="module" src="{{ url_for('static', filename='js/modules/core/language-persistence.js') }}"></script>
+    
+    <!-- RTL Manager (Load Early to Apply Direction) -->
+    <script type="module" src="{{ url_for('static', filename='js/modules/core/rtl-manager.js') }}" defer></script>
+    
+    <!-- Language Switcher (Load Early for Seamless Switching) -->
+    <script type="module" src="{{ url_for('static', filename='js/modules/core/language-switcher.js') }}" defer></script>
+    
+    <!-- Page Tips Manager (Load Early for Tips Visibility) -->
+    <script type="module" src="{{ url_for('static', filename='js/modules/core/page-tips.js') }}" defer></script>
+    
+    <!-- Base Page JavaScript (Critical: Load Early) -->
+    <script type="module" src="{{ url_for('static', filename='js/pages/base-page.js') }}" defer></script>
+    
+    <!-- Base Page Data -->
+    <script type="application/json" id="base-page-data">{{ {
+        "current_endpoint": request.endpoint|default("", true),
+        "home_url": url_for('index')
+    }|tojson }}</script>
+    
+    <!-- Translation Modules (Lazy Load) -->
+    <script type="module" src="{{ url_for('static', filename='js/translations-loader.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/translations-wrapper.js') }}" defer></script>
+    
+    <!-- Message System Modules (Lazy Load) -->
+    <script type="module" src="{{ url_for('static', filename='js/modules/messages/message_system.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/messages/alert-replacement.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/messages/message-router.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/messages/interface-messages.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/modules/messages/message-formatter.js') }}" defer></script>
+    
+    <!-- Global Modal Fix - Ensures proper modal behavior and interaction -->
+    <script type="module" src="{{ url_for('static', filename='js/modules/core/modal-fix.js') }}" defer></script>
+    
+    {#- The Screen Inspector, when the installation turned it on for an account
+        that may use it. -#}
+    {% if inspector_enabled %}
+    {% from 'components/screen_inspector.html' import screen_inspector %}
+    {{ screen_inspector(enabled=True, interface_id=inspector_interface) }}
+    <script src="{{ url_for('static', filename='js/modules/core/screen-inspector-init.js') }}"></script>
+    {% endif %}
+
+    <!-- Page-Specific JavaScript -->
+    {% block extra_js %}{% endblock %}
+    {% block scripts_extra %}{% endblock %}
+    
+    <!-- Universal Page Initializer (Load Last) -->
+    <!-- User account menu (logout / change password) -->
+    <script type="module" src="{{ url_for('static', filename='js/modules/ui/theme-mode.js') }}?v=20261026a" defer></script>
+    <script src="{{ url_for('static', filename='js/user-menu.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='js/pages/universal-initializer.js') }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+{# component: file_library_table
+   purpose: The File Library's table - the one rendering of the library's
+            rows, shared by the File Library page and by the documents
+            panels (a file type's, a keyword's, a category's documents).
+            Ten columns, sortable headers, the Type/Size/Date column
+            filters, Load More, the per-row action menu, selection.
+   states: normal, empty, filtered
+   classes: file-row, file-checkbox, ut-row-check, ut-index-cell, ut-name,
+            badge-type, badge-success, badge-secondary, ut-muted, ut-actions
+   styles: static/css/unified-table.css, static/css/unified-table.css owns
+           the ut- classes; the badges are the shell's
+   notes: The rows are the library's 10-tuples; what a panel passes is the
+          same tuple list the page passes, so the two can never disagree.
+#}
+{% from 'components/table.html' import record_table, table_empty_row %}
+
+{#- ------------------------------------------------------------------------- -
+    file_library_table: the File Library's table - the one rendering of the
+    library's rows, shared by the File Library page and by every panel that
+    shows a slice of the same list (a file type's documents, a keyword's or
+    category's files). One markup, one behaviour: what the panel shows is
+    what the library shows, smaller.
+
+    `files` rows are the library's own 10-tuples
+    (id, name, path, size, type, status, file_date, date_creation,
+    source_name, side_name) - `name` may already carry the search hit's
+    `<mark>` from the server.
+
+    Panel embedding: pass a distinct `id`, `show_per_page=False`, and the
+    view's own `export_params` / `export_scope_base` so Export speaks about
+    this table's view, not the page's.
+   - ------------------------------------------------------------------------- -#}
+{% macro file_library_table(files, id='filesTable', info_id='filesResultsInfo',
+                            start_position=1, total_files_count=0,
+                            page=1, total_pages=1, limit=10,
+                            sort_by='date', sort_order='desc', search='',
+                            nav_params={},
+                            per_page_onchange='changeFilesPageSize()',
+                            select_all_onchange='toggleSelectAll(this)',
+                            show_per_page=True, delete_handler=True,
+                            type_options=None,
+                            empty_action_label=_('Upload your first file'),
+                            empty_action_href=None,
+                            export_params=None, export_scope_base=None,
+                            name_search_param=None,
+                            row_select_onchange='updateBulkToolbar()') %}
+{% set files_info -%}
+    {%- if files and files|length > 0 -%}
+        {%- set start = start_position|default(1) -%}
+        {%- set end = start + files|length - 1 -%}
+        {{ _('Showing records') }} {{ start }}–{{ end }} {{ _('of') }} {{ total_files_count }} {{ _('files') }}
+    {%- else -%}
+        {{ _('No files found') }}
+    {%- endif -%}
+{%- endset %}
+{% call record_table(
+        id=id,
+        columns=[
+            {'kind': 'select', 'width': '44px'},
+            {'kind': 'index', 'width': '64px'},
+            {'key': 'name', 'label': _('File Name'), 'sortable': True, 'type': 'text',
+             'filter': {'kind': 'text', 'param': name_search_param,
+                        'value': search or ''} if name_search_param else none},
+            {'key': 'type', 'label': _('Type'), 'width': '110px',
+             'filter': {
+                 'kind': 'values', 'row_attr': 'data-type',
+                 'param': 'file_type', 'exclude_param': 'exclude_file_type',
+                 'options': type_options or [],
+             } if type_options is not none else none},
+            {'key': 'size', 'label': _('Size'), 'sortable': True, 'type': 'number', 'align': 'end', 'width': '110px',
+             'filter': {'kind': 'number', 'min_param': 'size_min', 'max_param': 'size_max',
+                        'min': '', 'max': ''}},
+            {'key': 'source', 'label': _('Source'), 'width': '150px'},
+            {'key': 'side', 'label': _('Side'), 'width': '150px'},
+            {'key': 'status', 'label': _('Status'), 'width': '130px'},
+            {'key': 'date', 'label': _('Date'), 'sortable': True, 'type': 'date', 'width': '130px',
+             'filter': {'kind': 'date', 'from_param': 'date_from', 'to_param': 'date_to',
+                        'from': '', 'to': ''}},
+            {'kind': 'actions', 'width': '110px'}
+        ],
+        mode='server',
+        sort_key=sort_by|default('date'),
+        sort_dir=sort_order|default('desc'),
+        info_text=files_info,
+        info_id=info_id,
+        per_page=limit|default(10),
+        per_page_id=(id ~ 'PerPage'),
+        per_page_options=(10, 25, 50, 100, 200) if show_per_page else none,
+        on_per_page_change=per_page_onchange,
+        select_all_id=(id ~ 'SelectAll'),
+        select_all_onchange=select_all_onchange,
+        empty_message=_('No files found.'),
+        empty_action_label=_('Upload your first file'),
+        empty_action_href=url_for('operations_input_page'),
+        export_interface=export_interface_for(request.endpoint),
+        export_columns=[
+            {'key': 'id', 'label': _('Id')},
+            {'key': 'path', 'label': _('Path')},
+            {'key': 'created', 'label': _('Created')},
+        ],
+        export_params=export_params,
+        export_scope_base=export_scope_base,
+        page=page|default(1),
+        total_pages=total_pages|default(1),
+        total_count=total_files_count|default(0),
+        rows_shown=files|length,
+        append=True) %}
+    {% if not files %}
+    {{ table_empty_row(10,
+                       message=_('No files found.'),
+                       filtered=False,
+                       action_label=empty_action_label,
+                       action_href=empty_action_href or url_for('operations_input_page')) }}
+    {% endif %}
+    {% for file in files %}
+    {% set row_number = (start_position|default(1)) + loop.index0 %}
+    <tr class="file-row{% if search and search|lower in (file[1]|string)|lower %} ut-row-hit{% endif %}"
+        data-file-id="{{ file[0] }}"
+        data-file-name="{{ file[1] }}"
+        data-size="{{ file[3] }}"
+        data-type="{{ file[4] }}"
+        data-status="{{ file[5] }}"
+        data-date="{{ file[7].isoformat() if file[7] else '' }}">
+        <td class="ut-col-select">
+            <input type="checkbox"
+                   class="file-checkbox ut-row-check"
+                   value="{{ file[0] }}"
+                   {% if row_select_onchange %}data-on-change="{{ row_select_onchange }}"{% endif %}
+                   aria-label="{{ _('Select file') }}: {{ file[1] }}">
+        </td>
+        <td class="ut-index-cell">{{ row_number }}</td>
+        <td data-ut-value="{{ file[1]|lower }}">
+            <a class="ut-name" href="{{ url_for('files.file_detail', file_id=file[0], **nav_params) }}"
+               data-file-id="{{ file[0] }}" title="{{ file[1] }}">{{ file[1] }}</a>
+        </td>
+        <td><span class="badge badge-type">{{ file[4]|upper if file[4] else '' }}</span></td>
+        <td class="text-end" data-ut-value="{{ file[3] }}">
+            {% if file[3] > 1048576 %}
+                {{ (file[3] / 1048576)|round(1) }} MB
+            {% else %}
+                {{ (file[3] / 1024)|round|int }} KB
+            {% endif %}
+        </td>
+        <td class="ut-muted">{{ file[8] }}</td>
+        <td class="ut-muted">{{ file[9] }}</td>
+        <td data-ut-value="{{ file[5] }}">
+            {% if file[5] == 'Read' %}
+                <span class="badge badge-success">
+                    <i class="bi bi-check-circle" aria-hidden="true"></i>
+                    {{ _('Read') }}
+                </span>
+            {% else %}
+                <span class="badge badge-secondary">
+                    <i class="bi bi-dash-circle" aria-hidden="true"></i>
+                    {{ _('Unread') }}
+                </span>
+            {% endif %}
+        </td>
+        <td data-ut-value="{{ file[7].isoformat() if file[7] else '' }}">
+            {% if file[7] %}
+                {{ file[7].strftime('%Y-%m-%d') }}
+            {% else %}
+                <span class="ut-muted">—</span>
+            {% endif %}
+        </td>
+        <td>
+            <div class="ut-actions">
+                <button type="button"
+                        class="btn btn-sm btn-outline-secondary"
+                        data-file-menu-button
+                        data-file-id="{{ file[0] }}"
+                        data-file-name="{{ file[1] }}"
+                        aria-label="{{ _('File actions') }}: {{ file[1] }}"
+                        title="{{ _('Preview, open, export, copy, rename…') }}">
+                    <i class="bi bi-three-dots" aria-hidden="true"></i>
+                </button>
+                <a href="{{ url_for('files.file_detail', file_id=file[0], **nav_params) }}"
+                   class="btn btn-sm btn-outline-primary"
+                   title="{{ _('View Details') }}">
+                    <i class="bi bi-eye"></i>
+                </a>
+                {% if delete_handler %}
+                <button class="btn btn-sm btn-outline-danger"
+                        data-on-click="deleteFile({{ file[0] }})"
+                        title="{{ _('Delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+                {% endif %}
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% endcall %}
+{% endmacro %}

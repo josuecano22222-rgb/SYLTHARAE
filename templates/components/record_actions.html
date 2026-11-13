@@ -1,0 +1,150 @@
+{# component: record_actions
+   purpose: The actions a single record offers. The buttons come from the
+            Action Definition layer - id, label, icon, scope, destructiveness,
+            confirmation key - joined with the screen's own bindings by
+            core/experience/presentation.py, so a page cannot invent an action
+            and two pages cannot render one action two ways.
+   inputs: actions (the grouped payload from presentation.record_actions:
+           primary, secondary, overflow, hidden, skipped), surface_id,
+           label (the accessible name of the toolbar), busy_label
+   outputs: none. The component performs nothing.
+   events: a click on a [data-record-action] element is handled by the page
+           through static/js/modules/core/record-actions.js, which asks the
+           Confirmation Dialog when the action declares one, marks the control
+           busy, and reports the outcome through the Toast.
+   states: normal, loading, success, error, unauthorized
+   presentation_states: neutral, danger
+   slots: primary, secondary and overflow groups
+   accessibility: role="toolbar" with an accessible name; a navigation is a
+           link and an operation is a button, so the keyboard and the middle
+           click behave as the reader expects; a disabled action stays in the
+           DOM with aria-disabled and a reason in its accessible description;
+           a dangerous action's name is its label, and the confirmation is
+           where the risk is spelled out; busy state sets aria-busy and keeps
+           the label rather than replacing it with an icon.
+   third_party: Bootstrap 5 buttons and dropdown for the overflow menu.
+   css: btn-action, btn-danger, btn-outline-secondary, dropdown-menu,
+        record-actions - from the stylesheet this project already ships.
+   notes: `disabled` and `hidden` belong to an action, not to this component:
+          an action that cannot be used right now keeps its place with
+          `aria-disabled` and a reason (a missing original file, an archived
+          record), and an action that must not be shown is not rendered at all.
+          Both are facts the surface was handed, and neither is a security
+          boundary - the endpoint decides on its own, every time.
+   boundary: it draws what the registry and the screen agreed on. It never
+             fetches, never authorises, and never decides which action is
+             available: a hidden action is not a secured one, and the endpoint
+             behind it stays the boundary.
+#}
+{#
+   Usage - the page renders one surface per record:
+
+       {% from 'components/record_actions.html' import record_action_surface %}
+       {{ record_action_surface(record_actions, surface_id='fileActions',
+                                label=_('Actions for this file')) }}
+
+   `record_actions` is built server-side by core/experience/presentation.py
+   from the registry plus this page's bindings; nothing here invents a label.
+#}
+
+{%- macro record_action_button(action, menu=False, interface_id=None) -%}
+{%- if menu -%}
+    {%- set tone = 'text-danger' if action.destructive else '' -%}
+    {%- set classes = 'dropdown-item ' ~ tone if tone else 'dropdown-item' -%}
+{%- else -%}
+    {%- set tone = 'btn-danger' if action.destructive
+                  else ('btn-primary' if action.group == 'primary'
+                        else 'btn-outline-secondary') -%}
+    {%- set classes = 'btn btn-sm ' ~ tone -%}
+{%- endif -%}
+{%- set description = action.disabled_label or '' -%}
+{% if action.href %}
+<a class="{{ classes }}{% if not action.enabled %} disabled{% endif %}"
+   href="{{ action.href }}"
+   {% if action.target %}target="{{ action.target }}" rel="noopener"{% endif %}
+   data-record-action="{{ action.action_id }}"
+   data-record-action-label="{{ _(action.label) }}"
+   data-inspector-component="record_actions" data-inspector-role="control"
+   data-inspector-action="{{ action.action_id }}"{% if interface_id %}
+   data-inspector-interface="{{ interface_id }}"{% endif %}
+   {% if not action.enabled %}aria-disabled="true"{% if description %}
+   aria-describedby="{{ action.action_id|replace('.', '-') }}-reason"{% endif %}{% endif %}
+   {% if action.disabled_reason %}data-disabled-reason="{{ action.disabled_reason }}"{% endif %}
+   {% if action.success_message %}data-record-success="{{ action.success_message }}"{% endif %}
+   {% if action.failure_message %}data-record-failure="{{ action.failure_message }}"{% endif %}
+   {% if action.confirmation %}data-confirm-key="{{ action.confirmation }}"
+   data-confirm-title="{{ action.confirmation_title or _(action.label) }}"
+   data-confirm-message="{{ action.confirmation_message or '' }}"
+   data-confirm-accept-label="{{ action.confirm_label or _(action.label) }}"
+   data-confirm-cancel-label="{{ action.cancel_label or '' }}"
+   data-confirm-dangerous="{{ 'true' if action.destructive else 'false' }}"
+   {% if action.typed_confirmation %}data-confirm-typed="{{ action.typed_confirmation }}"{% endif %}{% endif %}>
+    <i class="bi {{ action.icon }} me-1" aria-hidden="true"></i>{{ _(action.label) }}
+</a>
+{% else %}
+<button type="button"
+        class="{{ classes }}{% if not action.enabled %} disabled{% endif %}"
+        data-record-action="{{ action.action_id }}"
+        data-record-action-label="{{ _(action.label) }}"
+        data-inspector-component="record_actions" data-inspector-role="control"
+        data-inspector-action="{{ action.action_id }}"{% if interface_id %}
+        data-inspector-interface="{{ interface_id }}"{% endif %}
+        data-record-endpoint="{{ action.endpoint }}"
+        data-record-method="{{ action.method }}"
+        {% if description %}aria-describedby="{{ action.action_id|replace('.', '-') }}-reason"{% endif %}
+        {% if not action.enabled %}aria-disabled="true" disabled{% endif %}
+        {% if action.disabled_reason %}data-disabled-reason="{{ action.disabled_reason }}"{% endif %}
+        {% if action.success_message %}data-record-success="{{ action.success_message }}"{% endif %}
+   {% if action.failure_message %}data-record-failure="{{ action.failure_message }}"{% endif %}
+   {% if action.confirmation %}data-confirm-key="{{ action.confirmation }}"
+        data-confirm-title="{{ action.confirmation_title or _(action.label) }}"
+        data-confirm-message="{{ action.confirmation_message or '' }}"
+        data-confirm-accept-label="{{ action.confirm_label or _(action.label) }}"
+        data-confirm-cancel-label="{{ action.cancel_label or '' }}"
+        data-confirm-dangerous="{{ 'true' if action.destructive else 'false' }}"
+        {% if action.typed_confirmation %}data-confirm-typed="{{ action.typed_confirmation }}"{% endif %}{% endif %}>
+    <span class="spinner-border spinner-border-sm me-1 d-none"
+          role="status" aria-hidden="true" data-record-action-spinner></span>
+    <i class="bi {{ action.icon }} me-1" aria-hidden="true"></i>{{ _(action.label) }}
+</button>
+{% endif %}
+{%- if description %}
+<span class="visually-hidden" id="{{ action.action_id|replace('.', '-') }}-reason">{{ description }}</span>
+{%- endif %}
+{%- endmacro -%}
+
+
+{%- macro record_action_surface(actions, surface_id='recordActions',
+                                label=None, busy_label=None,
+                                interface_id=None) -%}
+<div class="record-actions" id="{{ surface_id }}" role="toolbar"
+     aria-label="{{ label or _('Record actions') }}"
+     aria-busy="false" data-record-actions
+     data-inspector-component="record_actions" data-inspector-role="toolbar"{% if interface_id %}
+     data-inspector-interface="{{ interface_id }}"{% endif %}>
+    {% for action in actions.primary %}{{ record_action_button(action, interface_id=interface_id) }}{% endfor %}
+    {% for action in actions.secondary %}{{ record_action_button(action, interface_id=interface_id) }}{% endfor %}
+    {% if actions.overflow %}
+    <div class="dropdown d-inline-block">
+        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                data-bs-toggle="dropdown" aria-expanded="false"
+                aria-label="{{ _('More actions') }}">
+            <i class="bi bi-three-dots" aria-hidden="true"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            {% for action in actions.overflow %}
+            <li>{{ record_action_button(action, menu=True, interface_id=interface_id) }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    {#
+       What was declared but not offered: drawn as nothing, counted elsewhere.
+       A reader is not shown a dead control, and a screen that hides an action
+       has said so to the server, not merely to the browser.
+    #}
+    <span class="visually-hidden" data-record-actions-hidden
+          data-hidden-count="{{ actions.hidden|length }}"
+          data-skipped-count="{{ actions.skipped|length }}"></span>
+</div>
+{%- endmacro -%}

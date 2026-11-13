@@ -1,0 +1,159 @@
+/* ==========================================================================
+   File content tabs + Original File viewer (shared)
+   --------------------------------------------------------------------------
+   One source of truth for the extracted-text / original-file tab pair used
+   by the File Details pop-up (FMAS), the full-content reader
+   (/file/<id>/full-content) and the file detail page (/file/<id>).
+   ========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   Original File viewer (File Details)
+   ---------------------------------------------------------------------------
+   The left pane of File Details shows either the extracted text or the source
+   file it came from. Both fill the same box, so the viewer keeps the pane's
+   own constraints (scrolling, max height) and only styles its contents.
+   --------------------------------------------------------------------------- */
+
+.file-content-tabs {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.file-content-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 0.375rem 0.375rem 0 0;
+    background: transparent;
+    color: var(--text-light, #64748b);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.file-content-tab:hover {
+    color: var(--text-color, #1e293b);
+    background: rgba(102, 126, 234, 0.08);
+}
+
+.file-content-tab.active {
+    color: #4f46e5;
+    background: #fff;
+    border-color: #e2e8f0;
+    border-bottom-color: transparent;
+}
+
+.original-file-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-section, #f8fafc);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.original-file-identity {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.original-file-name {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.original-file-meta {
+    color: var(--text-light, #64748b);
+    font-size: 0.8125rem;
+}
+
+.original-file-actions {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 3;
+}
+
+.original-file-actions .btn {
+    position: relative;
+    z-index: 1;
+}
+
+.original-file-stage {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0.75rem;
+    background:
+        repeating-conic-gradient(#f1f5f9 0% 25%, #ffffff 0% 50%) 50% / 20px 20px;
+}
+
+.original-file-image {
+    max-width: 100%;
+    height: auto;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18);
+}
+
+.original-file-frame {
+    width: 100%;
+    height: min(70vh, 720px);
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: #fff;
+}
+
+.original-file-audio,
+.original-file-video {
+    width: 100%;
+    max-width: 640px;
+}
+
+.original-file-text {
+    width: 100%;
+    margin: 0;
+    padding: 0.75rem;
+    background: #fff;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 0.25rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.8125rem;
+    max-height: 60vh;
+    overflow: auto;
+}
+
+.original-file-unavailable {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.25rem;
+    margin: 0.75rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid #fde68a;
+    border-radius: 0.375rem;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.original-file-path {
+    flex-basis: 100%;
+    margin-top: 0.375rem;
+    color: #78350f;
+    overflow-wrap: anywhere;
+}
+
+[dir="rtl"] .file-content-tab.active {
+    border-radius: 0.375rem 0.375rem 0 0;
+}

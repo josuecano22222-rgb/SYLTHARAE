@@ -1,0 +1,65 @@
+{# component: pagination_cursor
+   purpose: Moving through a list that has no page numbers - only "next" and
+            "back" - and saying honestly what is known about how much is left.
+   states: normal, filtered
+   classes: cursor-pagination-container, pagination-info, page-link
+   notes: Links, not buttons: moving through a cursor-paged list is a URL, so
+          the component needs no JavaScript and no page can be asked for by
+          number. `total_estimated` is an estimate and is labelled as one; if
+          there is no estimate the count is not invented.
+#}
+{%- macro cursor_pagination(next_cursor, prev_cursor, has_next, has_prev, query_time_ms=0, total_estimated=0, limit=50) -%}
+{# builds the same-path link with the cursor replaced and any stale page param dropped #}
+{%- set _base = request.args.to_dict() -%}
+{%- set _drop = _base.pop('cursor', None) -%}
+{%- set _drop = _base.pop('page', None) -%}
+{%- set _prev_href = url_for(request.endpoint, cursor=prev_cursor, **_base) if prev_cursor else url_for(request.endpoint, **_base) -%}
+{%- set _next_href = url_for(request.endpoint, cursor=next_cursor, **_base) if next_cursor else url_for(request.endpoint, **_base) -%}
+<div class="cursor-pagination-container mt-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="pagination-info">
+            {% if total_estimated and total_estimated > 0 %}
+                <span class="text-muted small">
+                    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+                    {{ _('Estimated') }} {{ "{:,}".format(total_estimated|int) }} {{ _('total records') }}
+                </span>
+            {% endif %}
+            {% if query_time_ms and query_time_ms > 0 %}
+                <span class="text-muted small ms-2">
+                    &middot; {{ _('Loaded in') }} {{ "%.0f"|format(query_time_ms|float) }}ms
+                </span>
+            {% endif %}
+        </div>
+
+        <div class="pagination-controls d-flex gap-2">
+            {% if has_prev %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ _prev_href }}"
+                   rel="prev" aria-label="{{ _('Previous page') }}">
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                    <span class="d-none d-sm-inline ms-1">{{ _('Previous') }}</span>
+                </a>
+            {% else %}
+                <span class="btn btn-outline-secondary btn-sm disabled" aria-disabled="true"
+                      aria-label="{{ _('Previous page') }}">
+                    <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                    <span class="d-none d-sm-inline ms-1">{{ _('Previous') }}</span>
+                </span>
+            {% endif %}
+
+            {% if has_next %}
+                <a class="btn btn-outline-secondary btn-sm" href="{{ _next_href }}"
+                   rel="next" aria-label="{{ _('Next page') }}">
+                    <span class="d-none d-sm-inline me-1">{{ _('Next') }}</span>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </a>
+            {% else %}
+                <span class="btn btn-outline-secondary btn-sm disabled" aria-disabled="true"
+                      aria-label="{{ _('Next page') }}">
+                    <span class="d-none d-sm-inline me-1">{{ _('Next') }}</span>
+                    <i class="bi bi-chevron-right" aria-hidden="true"></i>
+                </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{%- endmacro -%}

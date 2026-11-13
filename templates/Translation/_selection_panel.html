@@ -1,0 +1,70 @@
+{% from 'components/table.html' import data_table %}
+{#-
+    The manual translation panel.
+
+    Included by the file viewer (templates/file/file_detail.html) and the search
+    results page (templates/Search/search.html). The pages mark the regions a
+    reader may select from with ``data-translatable``; the script
+    (static/js/pages/translation-selection.js) shows a "Translate selection"
+    button when text inside such a region is selected, and this panel is where
+    the answer lands: original and translation side by side, one row per
+    sentence, labelled as machine translation, with Accept and Correct.
+
+    The panel is inert until something is selected: it renders no translation,
+    makes no request, and holds no state on the server.
+-#}
+<section id="translation-panel" class="card mt-3 d-none shadow-sm"
+         data-translation-panel
+         aria-live="polite">
+    <div class="card-header d-flex flex-wrap gap-2 align-items-center">
+        <strong>{{ _('Translate selection') }}</strong>
+        <span class="badge bg-warning text-dark" data-translation-disclaimer>
+            {{ _('Machine translation, not verified') }}
+        </span>
+        <div class="ms-auto d-flex flex-wrap gap-2 align-items-center">
+            <label class="visually-hidden" for="translation-target-lang">
+                {{ _('Translation') }}
+            </label>
+            <select id="translation-target-lang" class="form-select form-select-sm w-auto"
+                    data-translation-target>
+                {% for code, name in translation_languages.items() %}
+                <option value="{{ code }}"{% if code == 'he' %} selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+            <label class="visually-hidden" for="translation-source-lang">
+                {{ _('Original') }}
+            </label>
+            <select id="translation-source-lang" class="form-select form-select-sm w-auto"
+                    data-translation-source>
+                <option value="">{{ _('Detect language') }}</option>
+                {% for code, name in translation_languages.items() %}
+                <option value="{{ code }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="btn btn-sm btn-primary"
+                    data-translation-run>{{ _('Translate selection') }}</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    data-translation-close>{{ _('Close') }}</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <p class="small text-muted mb-2" data-translation-engine></p>
+        <p class="small text-danger d-none" data-translation-error role="alert"></p>
+        {% call data_table(variant='sm align-middle', extra_class='mb-0') %}
+                <thead>
+                    <tr>
+                        <th scope="col" style="width:45%">{{ _('Original') }}</th>
+                        <th scope="col" style="width:45%">{{ _('Translation') }}</th>
+                        <th scope="col" style="width:10%">{{ _('Accept translation') }}</th>
+                    </tr>
+                </thead>
+                <tbody data-translation-rows></tbody>
+            
+        {% endcall %}
+        <p class="small text-muted mt-2 mb-0">
+            {{ _('Note: the machine translation is not verified') }}
+        </p>
+    </div>
+</section>
+
+<script type="module" src="{{ url_for('static', filename='js/pages/translation-selection.js') }}"></script>

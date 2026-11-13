@@ -1,0 +1,311 @@
+/* File Details modal — icon toolbar + collapsible panels */
+
+#fileModal .file-modal-toolbar {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background: var(--bg-section, #f8fafc);
+    min-height: 2.5rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+}
+
+#fileModal .file-modal-toolbar__cluster {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+#fileModal .file-modal-toolbar__search {
+    flex: 1 1 auto;
+    min-width: 8rem;
+    max-width: 100%;
+}
+
+#fileModal .file-modal-toolbar__input {
+    flex: 1 1 8rem;
+    min-width: 5rem;
+    max-width: 14rem;
+}
+
+#fileModal .file-modal-panel__actions {
+    margin-inline-start: auto;
+}
+
+#fileModal .file-content-tabs.file-modal-toolbar__cluster {
+    gap: 0.15rem;
+}
+
+#fileModal .file-content-tab--icon {
+    padding: 0.35rem 0.45rem;
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    gap: 0;
+}
+
+#fileModal .file-content-tab--icon.active {
+    border-color: #c7d2fe;
+    border-bottom-color: #c7d2fe;
+    border-radius: 0.375rem;
+}
+
+#fileModal .file-modal-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.375rem;
+    background: #fff;
+    color: #475569;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+#fileModal .file-modal-icon-btn:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+#fileModal .file-modal-icon-btn.is-active,
+#fileModal .file-modal-icon-btn[aria-pressed="true"] {
+    background: #eef2ff;
+    border-color: #818cf8;
+    color: #4338ca;
+}
+
+#fileModal .file-modal-icon-btn--primary {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #fff;
+}
+
+#fileModal .file-modal-icon-btn--primary:hover {
+    background: #4338ca;
+    border-color: #4338ca;
+    color: #fff;
+}
+
+#fileModal .file-modal-icon-toggle.is-active {
+    background: #ecfdf5;
+    border-color: #34d399;
+    color: #047857;
+}
+
+#fileModal .file-modal-search-options {
+    display: inline-flex;
+    gap: 0.2rem;
+}
+
+#fileModal .file-modal-search-options .visually-hidden,
+#fileModal .file-content-tab .visually-hidden {
+    position: absolute !important;
+}
+
+#fileModal .file-modal-search-results {
+    display: none;
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--border-color, #e2e8f0);
+    background: #fff;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+#fileModal .file-modal-search-results.is-visible {
+    display: flex;
+}
+
+#fileModal .file-modal-search-results__nav {
+    display: inline-flex;
+    gap: 0.25rem;
+}
+
+/* Collapsible panels */
+#fileModal .file-modal-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+}
+
+#fileModal .file-modal-panel__head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+
+#fileModal .file-modal-panel__head h3 {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #1e293b;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#fileModal .file-modal-panel__controls {
+    display: inline-flex;
+    gap: 0.2rem;
+    flex-shrink: 0;
+}
+
+#fileModal .file-modal-panel__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    transition: max-height 0.28s ease, opacity 0.22s ease, padding 0.22s ease;
+    max-height: 2000px;
+    opacity: 1;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+#fileModal .file-modal-panel.is-collapsed .file-modal-panel__body,
+#fileModal .file-modal-panel.is-collapsed-by-expand .file-modal-panel__body {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+#fileModal .file-modal-panel.is-collapsed-by-expand .file-modal-panel__head,
+#fileModal .file-details-content-section.file-modal-panel.is-collapsed-by-expand .file-modal-toolbar,
+#fileModal .file-details-content-section.file-modal-panel.is-collapsed-by-expand .file-modal-search-results.is-visible {
+    opacity: 0.72;
+}
+
+#fileModal .file-modal-panel.is-expanded {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+#fileModal .file-details-container.has-expanded-panel .file-details-analysis-section .file-modal-panel.is-expanded,
+#fileModal .file-details-container.has-expanded-panel .file-details-content-section.file-modal-panel.is-expanded {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+#fileModal .file-details-container.is-focus-content {
+    grid-template-columns: minmax(0, 1.85fr) minmax(0, 0.45fr);
+}
+
+#fileModal .file-details-container.is-focus-analysis {
+    grid-template-columns: minmax(0, 0.45fr) minmax(0, 1.85fr);
+}
+
+#fileModal .file-details-container.is-focus-metadata {
+    grid-template-rows: minmax(0, 0.45fr) minmax(0, 1fr);
+}
+
+#fileModal .file-details-container.is-focus-metadata .file-details-metadata-section {
+    max-height: none;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+#fileModal .file-details-content-section.file-modal-panel.is-collapsed .file-modal-toolbar,
+#fileModal .file-details-content-section.file-modal-panel.is-collapsed .file-modal-search-results.is-visible {
+    opacity: 0.85;
+}
+
+#fileModal .file-details-analysis-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    min-height: 0;
+}
+
+#fileModal .file-details-analyst-section.file-modal-panel__body {
+    flex: 0 1 auto;
+    overflow: auto;
+}
+
+#fileModal .file-modal-panel--status {
+    flex: 0 1 auto;
+    min-height: 0;
+}
+
+#fileModal .file-document-status-panel {
+    padding: 0.35rem 0.45rem 0.5rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+#fileModal .file-document-status-panel .file-details-analysis-summary {
+    margin: 0;
+    max-height: none;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+#fileModal .file-document-status-panel .doc-document-status {
+    border: none;
+    background: transparent;
+    padding: 0;
+}
+
+#fileModal .file-modal-panel--status.is-expanded {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+#fileModal .file-details-analysis-summary {
+    flex: 0 1 auto;
+}
+
+#fileModal .file-details-metadata-section.file-modal-panel {
+    flex-shrink: 0;
+}
+
+#fileModal .file-details-content-section .file-modal-panel__body {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+#fileModal .file-details-content-section .file-details-content-view {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+}
+
+#fileModal .file-modal-panel.is-pinned [data-panel-collapse] {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+@media (max-width: 767.98px) {
+    #fileModal .file-modal-toolbar {
+        flex-wrap: wrap;
+    }
+
+    #fileModal .file-modal-toolbar__search {
+        flex-basis: 100%;
+        order: 3;
+    }
+
+    #fileModal .file-modal-panel__actions {
+        margin-inline-start: 0;
+    }
+}

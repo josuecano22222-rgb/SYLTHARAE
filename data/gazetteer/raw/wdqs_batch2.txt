@@ -1,0 +1,73 @@
+@@Hungary\|Q28\|Point(19.0 47.0)\|HU\|Hungary\|المجر\|הונגריה\|مجارستان\|Mađarska\|Magyarország@hu
+@@Italy\|Q38\|Point(12.5 42.5)\|IT\|Italy\|إيطاليا\|איטליה\|ایتالیا\|Italija\|Italia@it/Repubblica Italiana@it
+@@Egypt\|Q79\|Point(29.0 27.0)\|EG\|Egypt\|مصر\|מצרים\|مصر\|Egipat\|Egypt@en/مصر@ar/Mesir@ms/جُمهورِيّةُ مِصرَ العَرَبيّةِ@ar/Arab Republic of Egypt@en/Republik Arab Mesir@ms
+@@France\|Q142\|Point(2.0 47.0)\|FR\|France\|فرنسا\|צרפת\|فرانسه\|Francuska\|France@fr/République française@fr
+@@Turkey\|Q43\|Point(36.0 39.0)\|TR\|Turkey\|تركيا\|טורקיה\|ترکیه\|Turska\|Türkiye@tr/Türkiye Cumhuriyeti@tr
+@@United States\|Q30\|Point(-98.5795 39.828175)\|US\|United States\|الولايات المتحدة\|ארצות הברית\|ایالات متحده آمریکا\|Sjedinjene Američke Države\|United States of America@en/Estados Unidos de América@es/Estados Unidus@ch/ᏌᏊᎢᏳᎾᎵᏍᏔᏅᏍᎦᏚᎩ ᎾᎿ ᎠᎺᏰᏟ@chr/ʻAmelika Hui Pū ʻia@haw/Tannapta Nunaat Amiarikami@ik/Wááshindoon Bikéyah Ałhidadiidzooígíí@nv/Iunaite Sitete o Amerika@sm/Létaz-Ini d'Amérik@lou
+@@United Kingdom\|Q145\|Point(-2.0 54.6)\|GB\|United Kingdom\|المملكة المتحدة\|הממלכה המאוחדת\|بریتانیا\|Ujedinjeno Kraljevstvo\|United Kingdom of Great Britain and Northern Ireland@en
+@@China\|Q148\|Point(103.451944444 35.844722222)\|CN\|People's Republic of China\|الصين\|הרפובליקה העממית של סין\|جمهوری خلق چین\|Narodna Republika Kina\|中华人民共和国@zh-hans
+@@Russia\|Q159\|Point(94.25 66.416666666)\|RU\|Russia\|روسيا\|רוסיה\|روسیه\|Rusija\|Россия@ru/Российская Федерация@ru
+@@Germany\|Q183\|Point(10.0 51.0)\|DE\|Germany\|ألمانيا\|גרמניה\|آلمان\|Njemačka\|Deutschland@de/Bundesrepublik Deutschland@de
+@@Ukraine\|Q212\|Point(32.0 49.0)\|UA\|Ukraine\|أوكرانيا\|אוקראינה\|اوکراین\|Ukrajina\|Україна@uk
+@@Slovenia\|Q215\|Point(15.0 46.0)\|SI\|Slovenia\|سلوفينيا\|סלובניה\|اسلوونی\|Slovenija\|Slovenija@sl
+@@Croatia\|Q224\|Point(15.466667 45.25)\|HR\|Croatia\|كرواتيا\|קרואטיה\|کرواسی\|Hrvatska\|Hrvatska@hr
+@@Bosnia and Herzegovina\|Q225\|Point(18.0 44.0)\|\|Bosnia and Herzegovina\|البوسنة والهرسك\|בוסניה והרצגובינה\|بوسنی و هرزگوین\|Bosna i Hercegovina\|Bosna i Hercegovina@bs/Bosna i Hercegovina@sh
+@@Georgia (country)\|Q230\|Point(44.0 42.0)\|GE\|Georgia\|جورجيا\|גאורגיה\|گرجستان\|Gruzija\|საქართველო@ka
+@@Montenegro\|Q236\|Point(19.216667 42.766667)\|ME\|Montenegro\|الجبل الأسود\|מונטנגרו\|مونتهنگرو\|Crna Gora\|Crna Gora@cnr/Црна Гора@cnr-cyrl
+@@Algeria\|Q262\|Point(1.0 28.0)\|DZ\|Algeria\|الجزائر\|אלג'יריה\|الجزایر\|Alžir\|الجزائر@ar/الجمهورية الجزائرية الديمقراطية الشعبية@ar
+@@Skopje\|Q384\|Point(21.431666666 41.996111111)\|MK\|Skopje\|إسكوبية\|סקופיה\|اسکوپیه\|Skoplje\|Скопје@mk/mak. Скопје alb. Shkup@az
+@@Bahrain\|Q398\|Point(50.551111 26.0675)\|BH\|Bahrain\|البحرين\|בחריין\|بحرین\|Bahrein\|
+@@Ljubljana\|Q437\|Point(14.506111111 46.051388888)\|SI\|Ljubljana\|لبلانة\|ליובליאנה\|لیوبلیانا\|Ljubljana\|Ljubljana@sl
+@@Trieste\|Q546\|Point(13.770277777 45.650277777)\|IT\|Trieste\|ترييستي\|טריאסטה\|تریسته\|Trst\|Trieste@vec
+@@Venice\|Q641\|Point(12.331944444 45.439722222)\|IT\|Venice\|البندقية\|ונציה\|ونیز\|Venecija\|Venezia@it/Venesia@vec
+@@Iran\|Q794\|Point(53.0 32.0)\|IR\|Iran\|إيران\|איראן\|ایران\|Iran\|ایران@fa
+@@Iraq\|Q796\|Point(43.0 33.0)\|IQ\|Iraq\|العراق\|עיראק\|عراق\|Irak\|Iraq@en/Iraq@ms/العراق@ar/جمهورية العراق@ar/Republic of Iraq@en/Republik Iraq@ms
+@@Israel\|Q801\|Point(35.0 31.0)\|IL\|Israel\|إسرائيل\|ישראל\|اسرائیل\|Izrael\|دَوْلَة إِسْرَائِيل@ar/מְדִינַת יִשְׂרָאֵל@he
+@@Serbia\|Q403\|Point(20.933333333 43.95)\|RS\|Serbia\|صربيا\|סרביה\|صربستان\|Srbija\|Србија@sr
+@@Jordan\|Q810\|Point(36.5 31.2)\|JO\|Jordan\|الأردن\|ירדן\|اردن\|Jordan\|االْمَمْلَكَةُ الْأُرْدُنِيَةُ الْهَاشِمِيَة@ar
+@@Kuwait\|Q817\|Point(47.6 29.166667)\|KW\|Kuwait\|الكويت\|כווית\|کویت\|Kuvajt\|الكويت@ar
+@@Yemen\|Q805\|Point(48.0 15.5)\|YE\|Yemen\|اليمن\|תימן\|یمن\|Jemen\|الجمهوريّة اليمنية@ar
+@@Lebanon\|Q822\|Point(35.766667 33.833333)\|LB\|Lebanon\|لبنان\|לבנון\|لبنان\|Libanon\|Lebanon@en/لبنان@ar/الجمهورية اللبنانية@ar/Republic of Lebanon@en/Lubnan@ms/Republik Lubnan@ms
+@@Oman\|Q842\|Point(57.0 21.0)\|OM\|Oman\|سلطنة عمان\|עומאן\|عمان\|Oman\|سلطنة عُمان@ar
+@@Qatar\|Q846\|Point(51.212767 25.269535)\|QA\|Qatar\|قطر\|קטר\|قطر\|Katar\|
+@@United Arab Emirates\|Q878\|Point(54.3 24.4)\|AE\|United Arab Emirates\|الإمارات العربية المتحدة\|איחוד האמירויות הערביות\|امارات متحده عربی\|Ujedinjeni Arapski Emirati\|الإِمَارات العربِيَّة المُتَّحِدة@ar
+@@Afghanistan\|Q889\|Point(66.0 33.0)\|AF\|Afghanistan\|أفغانستان\|אפגניסטן\|افغانستان\|Afganistan\|افغانستان@ps
+@@Saudi Arabia\|Q851\|Point(44.116667 23.716667)\|SA\|Saudi Arabia\|السعودية\|ערב הסעודית\|عربستان سعودی\|Saudijska Arabija\|Saudi Arabia@en/Kingdom of Saudi Arabia@en/السعودية@ar/المملكة العربية السعودية@ar/Arab Saudi@ms/Kerajaan Arab Saudi@ms
+@@Tunisia\|Q948\|Point(10.0 34.0)\|TN\|Tunisia\|تونس\|תוניסיה\|تونس\|Tunis\|Tunisia@en/تونس@ar/الجمهورية التونسية@ar/Republic of Tunisia@en/Republik Tunisia@ms/Tunisia@ms
+@@Libya\|Q1016\|Point(17.0 27.0)\|LY\|Libya\|ليبيا\|לוב\|لیبی\|Libija\|دولة ليبيا@ar
+@@Syria\|Q858\|Point(38.583333 35.216667)\|SY\|Syria\|سوريا\|סוריה\|سوریه\|Sirija\|الجمهورية العربية السورية@ar/سوريا@ar/Komara Erebî ya Sûriyê@ku
+@@Morocco\|Q1028\|Point(-6.0 32.0)\|MA\|Morocco\|المغرب\|מרוקו\|مراکش\|Maroko\|المملكة المغربية@ar/ⵜⴰⴳⵍⴷⵉⵜ ⵏ ⵍⵎⵖⵔⵉⴱ@zgh
+@@Sudan\|Q1049\|Point(32.0 15.0)\|SD\|Sudan\|السودان\|סודאן\|سودان\|Sudan\|السودان@ar/جمهورية السودان@ar
+@@Hyderabad\|Q1361\|Point(78.474722222 17.361666666)\|IN\|Hyderabad\|حيدر آباد\|היידראבאד\|حیدرآباد\|Hyderabad\|హైదరాబాదు@te
+@@Zagreb\|Q1435\|Point(15.977222222 45.813055555)\|HR\|Zagreb\|زغرب\|זאגרב\|زاگرب\|Zagreb\|Zagreb@hr
+@@Osijek\|Q1640\|Point(18.670277777 45.560277777)\|HR\|Osijek\|أوسييك\|אוסייק\|اوسییک\|Osijek\|Osijek@hr
+@@Georgia (U.S. state)\|Q1428\|Point(-83.5 33.0)\|US\|Georgia\|جورجيا\|ג'ורג'יה\|جورجیا\|Georgia\|Georgia@en
+@@Split, Croatia\|Q1663\|Point(16.44 43.51)\|HR\|Split\|أسبالطو\|ספליט\|اسپلیت\|Split\|Split@hr
+@@Rijeka\|Q1647\|Point(14.433333333 45.333333333)\|HR\|Rijeka\|رييكا\|רייקה\|رییکا\|Rijeka\|Fiume@it/Rijeka@hr/Fiume@hu
+@@Budapest\|Q1781\|Point(19.040833333 47.498333333)\|HU\|Budapest\|بودابست\|בודפשט\|بوداپست\|Budimpešta\|Budapest@hu
+@@Khartoum\|Q1963\|Point(32.52654 15.60308)\|SD\|Khartoum\|الخرطوم\|ח'רטום\|خارطوم\|Khartoum\|الخرطوم@ar
+@@Zadar\|Q3370\|Point(15.2275 44.114166666)\|HR\|Zadar\|زادار\|זאדאר\|زادار\|Zadar\|Zadar@hr
+@@Šibenik\|Q3549\|Point(15.895555555 43.733888888)\|HR\|Šibenik\|شيبينيك\|שיבניק\|سیبنیک\|Šibenik\|Šibenik@hr
+@@Dubrovnik\|Q1722\|Point(18.108333333 42.640277777)\|HR\|Dubrovnik\|دوبروفنيك\|דוברובניק\|دوبروونیک\|Dubrovnik\|Dubrovnik@hr
+@@Belgrade\|Q3711\|Point(20.456944444 44.817777777)\|RS\|Belgrade\|بلغراد\|בלגרד\|بلگراد\|Beograd\|Београд@sr-cyrl/Beograd@sr-latn
+@@Varaždin\|Q5420\|Point(16.337777777 46.308055555)\|HR\|Varaždin\|فاراجدين\|ואראז'דין\|واراژدین\|Varaždin\|Varaždin@hr
+@@Córdoba, Spain\|Q5818\|Point(-4.78 37.89)\|ES\|Córdoba\|قرطبة\|קורדובה\|کوردوبا\|Córdoba\|Córdoba@es
+@@Pula\|Q4656\|Point(13.845555555 44.870277777)\|HR\|Pula\|بولا\|פולה\|پولا\|Pula\|Pula@hr
+@@Tripoli, Libya\|Q3579\|Point(13.1875 32.8875)\|LY\|Tripoli\|طرابلس\|טריפולי\|طرابلس\|Tripoli\|طرابلس@ar
+@@Podgorica\|Q23564\|Point(19.262777777 42.441388888)\|ME\|Podgorica\|بودغوريتسا\|פודגוריצה\|پودگوریتسا\|Podgorica\|Podgorica@cnr/Подгорица@cnr-cyrl
+@@Benghazi\|Q40816\|Point(20.066666666 32.116666666)\|LY\|Benghazi\|بنغازي\|בנגאזי\|بنغازی\|Bengazi\|بنغازي@arq
+@@Gaza Strip\|Q39760\|Point(34.4 31.45)\|PS\|Gaza Strip\|قطاع غزة\|רצועת עזה\|نوار غزه\|Pojas Gaze\|
+@@West Bank\|Q36678\|Point(35.35 32.0)\|PS,JO,IL\|West Bank\|الضفة الغربية\|יהודה ושומרון\|کرانه باختری رود اردن\|Zapadna Obala\|الضفة الغربية@ar/יהודה ושומרון@he
+@@Beersheba\|Q41843\|Point(34.786666666 31.252222222)\|IL\|Beersheba\|بئر السبع\|באר שבע\|بئرشبع\|Beršeba\|באר שבע@he
+@@Sarajevo\|Q11194\|Point(18.413055555 43.856388888)\|BA\|Sarajevo\|سراييفو\|סרייבו\|سارایوو\|Sarajevo\|Sarajevo@bs/Sarajevo@hr/Сарајево@sr
+@@Córdoba, Argentina\|Q44210\|Point(-64.183333333 -31.416666666)\|AR\|Córdoba\|قرطبة\|קורדובה\|کوردوبا، آرژانتین\|Córdoba\|
+@@Mostar\|Q93347\|Point(17.8075 43.343611111)\|BA\|Mostar\|موستار\|מוסטר\|موستار\|Mostar\|Mostar@bs
+@@Sidon\|Q163490\|Point(35.375272 33.560413)\|LB\|Sidon\|صيدا\|צידון\|صیدا\|Sidon\|صيدا@ar
+@@Tyre, Lebanon\|Q82070\|Point(35.2 33.266666666)\|LB\|Tyre\|صور\|צוֹר\|صور\|Tir\|صور@ar
+@@Tripoli, Lebanon\|Q168954\|Point(35.834444444 34.436666666)\|LB\|Tripoli\|طرابلس\|טריפולי\|طرابلس\|Tripoli\|طرابلس@ar
+@@Palestine\|Q219060\|Point(35.25 32.0)\|PS\|Palestine\|دولة فلسطين\|מדינה פלסטינית\|دولت فلسطین\|Država Palestina\|دولة فلسطين@ar
+@@Nazareth\|Q430776\|Point(35.29785 32.702102777)\|IL\|Nazareth\|الناصرة\|נצרת\|ناصره\|Nazaret\|נצרת@he/الناصرة@ar
+@@Eilat\|Q134762\|Point(34.95 29.55)\|IL\|Eilat\|إيلات\|אילת\|ایلات\|Eilat\|אילת@he/ايلات@ar
+@@Alexandria, Virginia\|Q88\|Point(-77.047222222 38.804722222)\|US\|Alexandria\|الإسكندرية\|אלכסנדריה\|الکساندریا\|\|Alexandria@en
+@@Valencia, Venezuela\|Q54880\|Point(-68.0 10.166666666)\|VE\|Valencia\|بلنسية\|ולנסיה\|والنسیا، ونزوئلا\|\|
+@@Perth, Scotland\|Q203000\|Point(-3.433333333 56.395833333)\|GB\|Perth\|برث\|פרת'\|پرت\|\|Perth@en/Perth@sco/Peairt@gd/Pairth@sco

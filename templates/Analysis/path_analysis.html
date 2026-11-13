@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Path Analysis') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/path-analysis.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title"><i class="bi bi-folder2-open me-2"></i> {{ _('Path Analysis') }}</h1>
+            <p class="text-muted mb-0">{{ _('Explore files organized by directory structure with detailed metrics and analytics') }}</p>
+        </div>
+    </div>
+
+    <!-- Page Tips -->
+    {% from 'components/page_tips.html' import page_tips %}
+        {% call page_tips() %}
+
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-folder2-open"></i>
+            {{ _('Path Analysis Overview') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Path Analysis displays your files organized by their directory structure') }}</li>
+            <li>{{ _('Navigate through the directory tree in the sidebar to explore different folders') }}</li>
+            <li>{{ _('View file statistics and metrics for each directory and subdirectory') }}</li>
+            <li>{{ _('Use the expand/collapse buttons to control the tree view') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-diagram-3"></i>
+            {{ _('Directory Tree Navigation') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Click on any folder in the tree to view its contents and statistics') }}</li>
+            <li>{{ _('Use "Expand All" to show all directories, or "Collapse All" to hide them') }}</li>
+            <li>{{ _('The tree shows file counts and other metrics for each directory') }}</li>
+            <li>{{ _('Filter the tree view using the search box to find specific directories') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-table"></i>
+            {{ _('File Details View') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Selecting a directory shows its files in the main panel') }}</li>
+            <li>{{ _('View file details including name, size, type, status, and analysis results') }}</li>
+            <li>{{ _('Sort files by any column header to organize the view') }}</li>
+            <li>{{ _('Click on a file to view its full details and content') }}</li>
+        </ul>
+    </div>
+    {% endcall %}
+
+    <!-- Analysis View Navigation -->
+    <div class="analysis-view-navigation section-card">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('archives_page') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'archives_page' %}active{% endif %}" data-view="file">
+                <i class="bi bi-archive"></i> {{ _('File Analysis') }}
+            </a>
+            <a href="{{ url_for('path_analysis_page') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'path_analysis_page' %}active{% endif %}" data-view="path">
+                <i class="bi bi-briefcase"></i> {{ _('Path Analysis') }}
+            </a>
+            <a href="{{ url_for('analysis_batch') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'analysis_batch' %}active{% endif %}" data-view="batch">
+                <i class="bi bi-lightning-charge"></i> {{ _('Batch Analysis') }}
+            </a>
+            <a href="{{ url_for('file_classification_page') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'file_classification_page' %}active{% endif %}" data-view="classification">
+                <i class="bi bi-file-earmark-text"></i> {{ _('Classification') }}
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="path-layout">
+        <!-- Path Tree Sidebar -->
+        <div class="path-tree-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0;"><i class="bi bi-diagram-3"></i> {{ _('Directory Structure') }}</h3>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="expandAllBtn" class="tree-controls-btn" title="{{ _('Expand All') }}">
+                        <i class="bi bi-arrows-expand"></i> {{ _('Expand') }}
+                    </button>
+                    <button id="collapseAllBtn" class="tree-controls-btn" title="{{ _('Collapse All') }}">
+                        <i class="bi bi-arrows-collapse"></i> {{ _('Collapse') }}
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filters Section -->
+            <div class="section-card" style="margin-bottom: 1rem;">
+                <div class="section-header">
+                    <div>
+                        <i class="bi bi-funnel me-2"></i>
+                        <strong>{{ _('Filters') }}</strong>
+                    </div>
+                    <span id="filterStatus" class="badge bg-success" style="display: none;">
+                        <i class="bi bi-check-circle-fill"></i> <span id="filterCount">0</span> {{ _('active') }}
+                    </span>
+                </div>
+                
+                <div class="filter-controls-grid" style="grid-template-columns: 1fr;">
+                    <!-- Source Filter -->
+                    <div class="filter-group">
+                        <label for="sourceFilter" class="filter-label">
+                            <i class="bi bi-person-circle me-1"></i> {{ _('Source') }}
+                        </label>
+                        <select id="sourceFilter" class="form-select">
+                            <option value="">{{ _('All Sources') }}</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Side Filter -->
+                    <div class="filter-group">
+                        <label for="sideFilter" class="filter-label">
+                            <i class="bi bi-diagram-2 me-1"></i> {{ _('Side') }}
+                        </label>
+                        <select id="sideFilter" class="form-select">
+                            <option value="">{{ _('All Sides') }}</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Clear Filters Button -->
+                    <button id="clearFiltersBtn" class="btn btn-danger btn-sm" style="display: none;">
+                        <i class="bi bi-x-circle"></i> {{ _('Clear Filters') }}
+                    </button>
+                </div>
+            </div>
+            
+            <ul class="path-tree" id="pathTree">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>{{ _('Loading paths...') }} </p>
+                </div>
+            </ul>
+        </div>
+
+        <!-- Path Details -->
+        <div>
+            <div class="path-details-card" id="pathDetailsCard" style="display: none;">
+                <div class="path-details-header">
+                    <div>
+                        <div class="path-details-title" id="pathTitle">{{ _('Select a path') }}</div>
+                        <div class="path-breadcrumb" id="pathBreadcrumb"></div>
+                    </div>
+                </div>
+
+                <!-- Path Statistics -->
+                <div class="path-stats-grid" id="pathStatsGrid">
+                    <div class="path-stat-card">
+                        <div class="path-stat-value" id="pathFileCount">0</div>
+                        <div class="path-stat-label">{{ _('Files') }}</div>
+                    </div>
+                    <div class="path-stat-card">
+                        <div class="path-stat-value" id="pathProcessedCount">0</div>
+                        <div class="path-stat-label">{{ _('Processed') }}</div>
+                    </div>
+                    <div class="path-stat-card">
+                        <div class="path-stat-value" id="pathTotalSize">0 B</div>
+                        <div class="path-stat-label">{{ _('Total Size') }}</div>
+                    </div>
+                    <div class="path-stat-card">
+                        <div class="path-stat-value" id="pathProcessingRate">0%</div>
+                        <div class="path-stat-label">{{ _('Processing Rate') }}</div>
+                    </div>
+                </div>
+
+                <!-- Analytics Section -->
+                <div class="analytics-section" id="analyticsSection">
+                    <h3 style="margin-bottom: 1.5rem;"><i class="bi bi-bar-chart"></i> {{ _('Folder Analytics') }}</h3>
+                    
+                    <div class="charts-grid">
+                        <!-- File Type Distribution -->
+                        <div class="chart-card">
+                            <h3><i class="bi bi-pie-chart"></i> {{ _('File Type Distribution') }}</h3>
+                            <div class="chart-container">
+                                <canvas id="fileTypeChart"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Status Distribution -->
+                        <div class="chart-card">
+                            <h3><i class="bi bi-check-circle"></i> {{ _('Processing Status') }}</h3>
+                            <div class="chart-container">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Classification Analysis -->
+                    <div class="chart-card" style="margin-bottom: 2rem;">
+                        <h3><i class="bi bi-tags"></i> {{ _('Classification Distribution') }}</h3>
+                        <div id="classificationSummary" style="display: flex; justify-content: space-around; padding: 1rem; background: var(--bg-section); border-radius: 0.5rem; margin-bottom: 1rem;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color);" id="totalFilesCount">0</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">{{ _('Total Files') }}</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--success-color);" id="categorizedFilesCount">0</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">{{ _('Categorized') }}</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--danger-color);" id="uncategorizedFilesCount">0</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">{{ _('Uncategorized') }}</div>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="classificationChart"></canvas>
+                        </div>
+                        <div id="classificationDetails" style="margin-top: 1.5rem;"></div>
+                    </div>
+
+                    <!-- Category Words Analysis -->
+                    <div class="chart-card" style="margin-bottom: 2rem;">
+                        <h3><i class="bi bi-diagram-3"></i> {{ _('Category Words Breakdown') }}</h3>
+                        <div id="categoryWordsSummary" style="display: flex; justify-content: space-around; padding: 1rem; background: var(--bg-section); border-radius: 0.5rem; margin-bottom: 1rem;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--primary-color);" id="totalCategoriesCount">0</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">{{ _('Total Categories') }}</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--success-color);" id="totalCategoryWordsCount">0</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">{{ _('Total Words') }}</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 2rem; font-weight: 700; color: var(--warning-color);" id="totalCategoryFilesCount">0</div>
+                                <div style="font-size: 0.875rem; color: var(--text-light);">{{ _('Files Analyzed') }}</div>
+                            </div>
+                        </div>
+                        <div id="categoryWordsDetails"></div>
+                    </div>
+
+                    <!-- Word Frequency -->
+                    <div class="charts-grid" style="margin-bottom: 2rem;">
+                        <div class="chart-card">
+                            <h3><i class="bi bi-bar-chart-fill"></i> {{ _('Top Keywords (Bar Chart)') }}</h3>
+                            <div class="chart-container">
+                                <canvas id="wordFrequencyChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-card">
+                            <h3><i class="bi bi-cloud"></i> {{ _('Word Cloud') }}</h3>
+                            <div class="word-cloud" id="wordCloud">
+                                <div class="loading-state">
+                                    <div class="spinner"></div>
+                                    <p>{{ _('Loading keywords...') }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Timeline Chart -->
+                    <div class="chart-card">
+                        <h3><i class="bi bi-calendar-event"></i> {{ _('File Creation Timeline (Last 30 Days)') }}</h3>
+                        <div class="chart-container large">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files in Path -->
+                <div class="files-section" id="filesSection">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                        <h3 style="margin: 0;"><i class="bi bi-files"></i> {{ _('Files in This Folder') }}</h3>
+                        <small id="scrollHint" style="color: var(--text-light); display: none;">
+                            <i class="bi bi-arrows-expand"></i> {{ _('Scroll horizontally for more') }}
+                        </small>
+                    </div>
+                    <div class="files-grid" id="filesGrid" style="max-height: 600px; overflow-y: auto; overflow-x: hidden; padding-right: 0.5rem;">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>{{ _('Loading files...') }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empty State (shown when no path is selected) -->
+            <div class="path-details-card" id="emptyState">
+                <div class="empty-state" style="min-height: 400px;">
+                    <i class="bi bi-folder" style="font-size: 4rem;"></i>
+                    <h3>{{ _('Select a Directory to Begin') }}</h3>
+                    <p style="max-width: 500px; margin-top: 0.5rem;">
+                        {{ _('Click on any folder name in the directory tree on the left to view:') }}
+                    </p>
+                    <ul style="text-align: left; margin-top: 1rem; color: var(--text-light);">
+                        <li><i class="bi bi-bar-chart-line me-2 text-primary" aria-hidden="true"></i>{{ _('File statistics and metrics') }}</li>
+                        <li><i class="bi bi-pie-chart me-2 text-primary" aria-hidden="true"></i>{{ _('File type distribution charts') }}</li>
+                        <li><i class="bi bi-tags me-2 text-primary" aria-hidden="true"></i>{{ _('Top keywords from folder contents') }}</li>
+                        <li><i class="bi bi-calendar3 me-2 text-primary" aria-hidden="true"></i>{{ _('File creation timeline') }}</li>
+                        <li><i class="bi bi-folder2-open me-2 text-primary" aria-hidden="true"></i>{{ _('All files in the folder') }}</li>
+                    </ul>
+                    <p style="margin-top: 1.5rem; font-size: 0.875rem; color: var(--text-muted);">
+                        <strong>{{ _('Tip:') }}</strong> {{ _('Click the') }} <i class="bi bi-chevron-right"></i> {{ _('button to expand folders and see subfolders') }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Files Modal -->
+    <div class="modal-overlay" id="categoryFilesModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="bi bi-files"></i>
+                    <span id="modalCategoryTitle">{{ _('Category Files') }}</span>
+                </div>
+                <button class="modal-close-btn" id="closeCategoryModalBtn">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalFilesContent">
+                <div class="modal-loading">
+                    <div class="spinner"></div>
+                    <p>{{ _('Loading files...') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Words Modal -->
+    <div class="modal-overlay" id="categoryWordsModal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="bi bi-text-left"></i>
+                    <span id="modalCategoryWordsTitle">{{ _('Category Words') }}</span>
+                </div>
+                <button class="modal-close-btn" id="closeCategoryWordsModalBtn">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="modalCategoryWordsContent">
+                <div class="modal-loading">
+                    <div class="spinner"></div>
+                    <p>{{ _('Loading words...') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
+<script type="application/json" id="path-analysis-page-data">
+    {{ {
+    "translations": {
+        "loading": _('Loading...'),
+        "loadingPaths": _('Loading paths...'),
+        "loadingFiles": _('Loading files...'),
+        "loadingKeywords": _('Loading keywords...'),
+        "loadingWords": _('Loading words...'),
+        "error": _('Error'),
+        "noPathsFound": _('No paths found'),
+        "addFilesToSeeStructure": _('Add files to see directory structure'),
+        "errorLoadingPaths": _('Error loading paths'),
+        "pleaseTryRefreshing": _('Please try refreshing the page'),
+        "noFileTypeData": _('No file type data available'),
+        "noStatusData": _('No status data available'),
+        "noTimelineData": _('No timeline data available for the last 30 days'),
+        "errorLoadingChart": _('Error loading chart data'),
+        "filesCreated": _('Files Created'),
+        "files": _('Files'),
+        "appearsInFiles": _('Appears in {count} files'),
+        "noKeywordsFound": _('No keywords found'),
+        "noExtractableKeywords": _('This folder contains no extractable keywords'),
+        "errorLoadingKeywords": _('Error loading keywords'),
+        "noWordFrequencyData": _('No word frequency data available'),
+        "noFilesInPath": _('No files in this path'),
+        "emptyFolderOrNoMatch": _("This folder appears to be empty or the path pattern doesn't match any files"),
+        "errorLoadingFiles": _('Error loading files'),
+        "noClassificationData": _('No classification data available'),
+        "errorLoadingClassification": _('Error loading classification data'),
+        "category": _('Category'),
+        "keywords": _('Keywords'),
+        "percentage": _('Percentage'),
+        "noCategoryData": _('No category data available for this folder'),
+        "errorLoadingCategoryAnalysis": _('Error loading category analysis'),
+        "noWordsFound": _('No Words Found'),
+        "noWordsInCategory": _('No words found in the "{category}" category.'),
+        "errorLoadingWords": _('Error Loading Words'),
+        "clickWordToSeeFiles": _('Click any word to see files'),
+        "wordsInCategory": _('word{s} in this category'),
+        "foundInFiles": _('Found in {count} file{s}'),
+        "categoryFiles": _('Category Files'),
+        "categoryWords": _('Category Words'),
+        "filesInCategory": _('Files in "{category}" Category'),
+        "wordsInCategoryTitle": _('Words in "{category}" Category'),
+        "filesContaining": _('Files containing "{word}"'),
+        "loadingFilesFor": _('Loading files for {category}...'),
+        "loadingWordsFor": _('Loading words for {category}...'),
+        "loadingFilesContaining": _('Loading files containing "{word}"...'),
+        "noFilesFound": _('No Files Found'),
+        "noFilesInCategory": _('No files found in the "{category}" category for this folder.'),
+        "errorLoadingFilesModal": _('Error Loading Files'),
+        "fileFound": _('file{s} found'),
+        "filesContain": _('file{s} contain "{word}"'),
+        "sortedByFrequency": _('Sorted by word frequency'),
+        "appearsTimesInFile": _('Appears {count} time{s} in file'),
+        "wordsInFile": _('Words in file'),
+        "noWordsInFile": _('No words found in this file'),
+        "noSpecificKeywords": _('No specific keywords found'),
+        "theseFilesNoKeywords": _('These files have no assigned keywords'),
+        "classificationBasedOnKeywords": _('Classification based on keywords below'),
+        "categoryName": _('Category Name'),
+        "distribution": _('Distribution'),
+        "detailedBreakdown": _('Detailed Classification Breakdown'),
+        "clickRowToSeeFiles": _('(Click on any row to see files)'),
+        "categoryWordsBreakdown": _('Category Words Breakdown'),
+        "clickRowToSeeWords": _('(Click on any row to see words, then click word to see files)'),
+        "fileCount": _('File Count'),
+        "unknown": _('Unknown'),
+        "read": _('Read'),
+        "unread": _('Unread'),
+        "unknownType": _('Unknown'),
+        "nA": _('N/A')
+    }
+}|tojson }}
+
+</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/path-analysis-page.js') }}"></script>
+{% endblock %}

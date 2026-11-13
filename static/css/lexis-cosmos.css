@@ -1,0 +1,745 @@
+/* ==========================================================================
+   LEXIS Cosmos - the galaxy browser (/lexis)
+
+   Everything here is scoped to .lexis-app: the interface is a dark, full-height
+   workspace inside the application shell, and none of its tokens may leak into
+   the rest of the product (the shell still honours the operator's theme).
+   Logical properties (inline-start/end) are used for the sidebar edge and the
+   card offsets so the layout mirrors correctly under RTL.
+   ========================================================================== */
+
+.lexis-app {
+    --bg: #070914;
+    --panel: #0b0e1f;
+    --line: #23264a;
+    --line2: #161a3a;
+    --text: #e8ecff;
+    --mute: #8a92c2;
+    --nb: #2dd4bf;
+    --bad: #ff6b6b;
+    --ok: #3ddc97;
+    --word: #2dd4bf;
+    --keyword: #a78bfa;
+    --focus: #8b7bff;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 132px);
+    min-height: 520px;
+    margin: 0 -12px -24px;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    border-top: 1px solid var(--line);
+}
+
+@media (max-width: 991.98px) {
+    .lexis-app { height: calc(100vh - 96px); margin-inline: -8px; }
+}
+
+.lexis-app *,
+.lexis-app *::before,
+.lexis-app *::after { box-sizing: border-box; }
+
+.lexis-app button,
+.lexis-app input,
+.lexis-app select,
+.lexis-app textarea {
+    font: inherit;
+    color: var(--text);
+}
+
+.lexis-app button {
+    background: #141834;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 6px 11px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.lexis-app button:hover:not(:disabled) { border-color: #4a53a0; background: #1b2148; }
+.lexis-app button:disabled { opacity: .4; cursor: default; }
+.lexis-app button:focus-visible,
+.lexis-app input:focus-visible,
+.lexis-app select:focus-visible,
+.lexis-app textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.lexis-app button.primary {
+    background: linear-gradient(90deg, #2dd4bf, #a78bfa);
+    color: #06101a;
+    border: 0;
+    font-weight: 700;
+}
+.lexis-app button.danger { border-color: #7a2d3a; color: #ffb3b3; }
+.lexis-app button.small { padding: 3px 8px; font-size: 12px; border-radius: 8px; }
+
+.lexis-app input[type=text],
+.lexis-app input[type=search],
+.lexis-app input[type=date],
+.lexis-app input[type=number],
+.lexis-app select,
+.lexis-app textarea {
+    background: #0b0e22;
+    border: 1px solid #2a3070;
+    border-radius: 9px;
+    padding: 6px 9px;
+    color: var(--text);
+}
+
+.lexis-app textarea { width: 100%; min-height: 90px; resize: vertical; }
+.lexis-app :is(input, select, textarea)::placeholder { color: #6b74a8; }
+.lexis-app .muted { color: var(--mute); font-size: 12.5px; }
+.lexis-app .ok { color: var(--ok); font-size: 12.5px; }
+.lexis-app .warn { color: #ffc857; font-size: 12.5px; }
+.lexis-app .bad { color: var(--bad); }
+
+/* ---- header ------------------------------------------------------------ */
+.lexis-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    background: #0a0c1c;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+    flex: none;
+}
+.lexis-brand { font-weight: 800; letter-spacing: .2em; font-size: 13px; margin-inline-end: 4px; }
+.lexis-brand span { color: var(--mute); font-weight: 500; }
+.lexis-crumbs {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 160px;
+    font-size: 13px;
+    color: var(--mute);
+}
+.lexis-crumbs button { padding: 3px 9px; border-radius: 999px; background: transparent; border-color: transparent; }
+.lexis-crumbs button.cur { color: var(--text); background: #1b2150; border-color: #3a4285; }
+.lexis-crumbs i { font-style: normal; opacity: .5; }
+.lexis-hbtns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+
+.lexis-find-wrap { position: relative; }
+.lexis-find-wrap input {
+    background: #0b0e22;
+    border: 1px solid #2a3070;
+    border-radius: 9px;
+    padding: 6px 10px;
+    width: 210px;
+}
+.lexis-find-res {
+    position: absolute;
+    inset-inline-start: 0;
+    top: calc(100% + 4px);
+    width: 340px;
+    background: #0d1128;
+    border: 1px solid #2a3070;
+    border-radius: 10px;
+    z-index: 60;
+    display: none;
+    max-height: 340px;
+    overflow: auto;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .5);
+}
+.lexis-find-res.open { display: block; }
+.lexis-find-res button {
+    display: block;
+    width: 100%;
+    text-align: start;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    border-bottom: 1px solid var(--line2);
+    white-space: normal;
+}
+.lexis-find-res button:hover { background: #171d42; }
+.lexis-find-res small { display: block; color: var(--mute); font-size: 11px; }
+.lexis-find-res .lh { padding: 6px 10px; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+
+/* ---- stage & canvas ---------------------------------------------------- */
+.lexis-main { flex: 1; display: flex; min-height: 0; }
+.lexis-stage { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; flex: 1; }
+.lexis-chart-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    position: relative;
+    cursor: grab;
+    background:
+        radial-gradient(ellipse at 20% 0%, rgba(45, 212, 191, .06), transparent 55%),
+        radial-gradient(ellipse at 90% 100%, rgba(167, 139, 250, .06), transparent 55%),
+        var(--bg);
+}
+.lexis-chart-wrap.panning,
+.lexis-chart-wrap.panning * { cursor: grabbing !important; }
+.lexis-sizer { position: relative; margin: 0 auto; }
+.lexis-chart { position: absolute; inset-inline-start: 0; top: 0; margin: 0; transform-origin: 0 0; }
+.lexis-chart svg { position: absolute; inset-inline-start: 0; top: 0; pointer-events: none; }
+.lexis-chart svg path { fill: none; stroke: rgba(140, 150, 230, .42); stroke-width: 1.5; }
+
+.lexis-card {
+    position: absolute;
+    width: 190px;
+    height: 66px;
+    background: #0e1229;
+    border: 1px solid #2a3070;
+    border-inline-start: 4px solid var(--c, #8a92c2);
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .35);
+    overflow: hidden;
+}
+.lexis-card:hover { border-color: #4a53a0; background: #121736; }
+.lexis-card:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.lexis-card.focus { box-shadow: 0 0 0 2px var(--nb), 0 4px 18px rgba(0, 0, 0, .4); }
+.lexis-card.root { background: linear-gradient(135deg, #131a3d, #0e1229); }
+.lexis-card.file { height: 50px; padding: 6px 8px 6px 10px; background: #0c1024; }
+.lexis-card .t {
+    font-weight: 700;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-inline-end: 70px;
+}
+.lexis-card .m {
+    font-size: 11px;
+    color: var(--mute);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-inline-end: 60px;
+}
+.lexis-card .k {
+    font-size: 10px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--c, #8a92c2);
+    opacity: .9;
+}
+.lexis-card .ops {
+    position: absolute;
+    inset-inline-end: 5px;
+    top: 5px;
+    display: flex;
+    gap: 3px;
+    align-items: center;
+}
+.lexis-card.file .t { padding-inline-end: 44px; }
+.lexis-card.file .ops { top: 50%; transform: translateY(-50%); }
+.lexis-op {
+    width: 21px;
+    height: 21px;
+    border-radius: 6px;
+    border: 1px solid #2f3872;
+    background: #141a3a;
+    color: var(--text);
+    font-size: 11px;
+    line-height: 1;
+    display: grid;
+    place-items: center;
+    padding: 0;
+}
+.lexis-op.on { background: #1f3b4a; border-color: #2dd4bf; color: #9ff5e8; }
+.lexis-card input[type=checkbox] { margin: 0; accent-color: #8b7bff; width: 15px; height: 15px; }
+
+.lexis-toolbar {
+    position: absolute;
+    top: 10px;
+    inset-inline-start: 10px;
+    z-index: 20;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: rgba(10, 12, 28, .92);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 6px 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .4);
+    max-width: calc(100% - 20px);
+}
+.lexis-toolbar .grp {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    padding-inline-end: 10px;
+    border-inline-end: 1px solid var(--line2);
+}
+.lexis-toolbar .grp:last-child { border-inline-end: 0; padding-inline-end: 0; }
+.lexis-toolbar .tb { padding: 4px 9px; font-size: 12.5px; border-radius: 8px; }
+.lexis-toolbar .tb.lbl { min-width: 58px; text-align: center; font-variant-numeric: tabular-nums; }
+.lexis-toolbar .tb.on { background: #1f3b4a; border-color: var(--nb); }
+.lexis-toolbar select { background: #0b0e22; border: 1px solid #2a3070; border-radius: 8px; padding: 4px 6px; font-size: 12.5px; }
+
+.lexis-statusbar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    font-size: 12px;
+    color: var(--mute);
+    padding: 6px 14px;
+    border-top: 1px solid var(--line);
+    background: rgba(8, 9, 22, .9);
+    white-space: nowrap;
+    overflow: hidden;
+    flex: none;
+}
+.lexis-statusbar b { color: var(--text); }
+.lexis-statusbar .grow { flex: 1; }
+
+/* ---- sidebar ----------------------------------------------------------- */
+.lexis-panel {
+    position: relative;
+    width: var(--pw, 440px);
+    flex: none;
+    background: var(--panel);
+    border-inline-start: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.lexis-panel.hidden { display: none; }
+.lexis-panel-resize {
+    position: absolute;
+    inset-inline-start: -3px;
+    top: 0;
+    bottom: 0;
+    width: 7px;
+    cursor: col-resize;
+    z-index: 6;
+}
+.lexis-panel-resize:hover,
+.lexis-panel-resize.drag { background: linear-gradient(90deg, transparent, rgba(125, 139, 255, .55), transparent); }
+
+.lexis-phead { padding: 12px 16px 10px; border-bottom: 1px solid var(--line); }
+.lexis-kicker { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--nb); }
+.lexis-phead h2 { margin: 4px 0 2px; font-size: 19px; line-height: 1.25; word-break: break-word; color: var(--text); }
+.lexis-phead .sub { color: var(--mute); font-size: 12.5px; }
+.lexis-stats { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.lexis-stat { background: #10142e; border: 1px solid #262b58; border-radius: 10px; padding: 5px 10px; font-size: 12px; }
+.lexis-stat b { font-size: 15px; margin-inline-end: 4px; }
+/* The show/hide switch in the filter cards. It says the same thing as the
+   canvas's "Empty items" button; the two are kept in step by one function. */
+.lexis-switch {
+    display: flex; align-items: center; gap: 10px; cursor: pointer;
+    font-size: 12.5px; color: var(--text); user-select: none;
+}
+.lexis-switch input {
+    position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0;
+}
+.lexis-switch-track {
+    position: relative; flex: none; width: 34px; height: 18px; border-radius: 999px;
+    background: #1a1e3c; border: 1px solid #2f3566;
+    transition: background .15s ease, border-color .15s ease;
+}
+.lexis-switch-dot {
+    position: absolute; top: 2px; inset-inline-start: 2px; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--mute);
+    transition: transform .15s ease, background .15s ease;
+}
+.lexis-switch input:checked + .lexis-switch-track {
+    background: rgba(45, 212, 191, .22); border-color: var(--nb);
+}
+.lexis-switch input:checked + .lexis-switch-track .lexis-switch-dot {
+    transform: translateX(16px); background: var(--nb);
+}
+html[dir="rtl"] .lexis-switch input:checked + .lexis-switch-track .lexis-switch-dot {
+    transform: translateX(-16px);
+}
+.lexis-switch input:focus-visible + .lexis-switch-track {
+    outline: 2px solid var(--focus); outline-offset: 2px;
+}
+.lexis-fhelp { margin: 8px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--mute); }
+
+.lexis-lens-strip { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.lexis-lens-chip {
+    display: flex; flex-direction: column; gap: 2px; text-align: start;
+    background: #0e1230; border: 1px solid #2a2f5e; border-radius: 10px;
+    padding: 5px 10px; cursor: pointer; color: var(--text); font-size: 12px;
+}
+.lexis-lens-chip:hover, .lexis-lens-chip:focus-visible { border-color: var(--focus); }
+.lexis-lens-chip b { font-size: 12.5px; font-weight: 700; color: var(--nb); }
+.lexis-lens-chip span { color: var(--mute); font-size: 11.5px; }
+button.linkish {
+    background: none; border: 0; padding: 0; margin: 0; cursor: pointer;
+    color: var(--nb); font: inherit; text-align: start;
+}
+button.linkish:hover, button.linkish:focus-visible { text-decoration: underline; }
+.lexis-pbar { display: flex; gap: 6px; margin-top: 10px; align-items: center; }
+.lexis-pbar input { flex: 1; min-width: 0; width: auto; }
+.lexis-pbar button { white-space: nowrap; font-size: 12px; padding: 5px 9px; }
+
+.lexis-active-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line2);
+    background: #0b0f26;
+}
+.lexis-active-bar:empty { display: none; }
+.lexis-ab-lbl { font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); margin-inline-end: 2px; }
+.lexis-achip {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    max-width: 100%;
+    background: #1b2456;
+    border: 1px solid #3a4590;
+    color: #dfe4ff;
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.lexis-achip:hover { border-color: #7d8bff; background: #222c66; }
+.lexis-achip b { color: #9fb0ff; font-weight: 700; }
+.lexis-ab-all { margin-inline-start: auto; background: none; border: 0; color: #9fb0ff; font-size: 12px; cursor: pointer; text-decoration: underline; padding: 2px 4px; }
+
+.lexis-filters {
+    flex: none;
+    /* The cards scroll, so the area needs enough height to show a whole card -
+       at 34vh a laptop showed half a filter under the active bar - and a soft
+       edge, so a scrolled card reads as "there is more" rather than clipped. */
+    max-height: min(42vh, 430px);
+    overflow: auto;
+    scrollbar-gutter: stable;
+    padding: 10px 12px 12px;
+    border-bottom: 1px solid var(--line);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 8px,
+                        #000 calc(100% - 8px), transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 8px,
+                #000 calc(100% - 8px), transparent 100%);
+}
+.lexis-filters[hidden] { display: none; }
+.lexis-fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 8px; align-items: start; }
+.lexis-fcard { background: #0c1029; border: 1px solid #232a5e; border-radius: 12px; min-width: 0; }
+.lexis-fcard:hover { border-color: #354184; }
+.lexis-fcard.wide { grid-column: 1 / -1; }
+.lexis-fhead { display: flex; align-items: center; padding-inline-end: 4px; }
+.lexis-ftog {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: 0;
+    color: var(--text);
+    padding: 9px 10px;
+    cursor: pointer;
+    text-align: start;
+    border-radius: 12px;
+}
+.lexis-ftitle { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #aab3e0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lexis-fcnt { font-size: 11px; min-width: 18px; text-align: center; border-radius: 999px; background: #1d2450; color: var(--mute); padding: 1px 6px; font-weight: 700; }
+.lexis-fcnt.on { background: #7d8bff; color: #0a0d1f; }
+.lexis-fcar { margin-inline-start: auto; color: var(--mute); font-size: 11px; }
+.lexis-fcard.closed .lexis-fcar { transform: rotate(-90deg); }
+.lexis-fclr { background: none; border: 0; color: #9fb0ff; font-size: 11.5px; padding: 4px 7px; cursor: pointer; border-radius: 6px; }
+.lexis-fclr:hover { background: #17204a; }
+.lexis-fbody { padding: 0 10px 10px; }
+.lexis-fcard.closed .lexis-fbody { display: none; }
+.lexis-fcard .lexis-dates { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.lexis-fcard .lexis-dates label { font-size: 11px; color: var(--mute); display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lexis-fcard .lexis-dates input { width: 100%; min-width: 0; font-size: 12px; padding: 5px 6px; }
+.lexis-fbar { margin-bottom: 6px; font-size: 12px; }
+.lexis-fbar button { background: none; border: 0; color: #9fb0ff; cursor: pointer; padding: 2px 0; }
+.lexis-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.lexis-chip {
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: #10142e;
+    border: 1px solid #262b58;
+    cursor: pointer;
+    color: #c9cfef;
+}
+.lexis-chip.on { background: #1e2a5c; border-color: #7d8bff; color: #fff; }
+.lexis-chip.on::before { content: '\2713 '; color: #8fa0ff; font-weight: 700; }
+.lexis-chip.zero { opacity: .42; }
+.lexis-chip small { opacity: .7; margin-inline-start: 3px; }
+
+/* multi-select dropdown */
+.lexis-ms { position: relative; }
+.lexis-ms-trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0b0e22;
+    border: 1px solid #2a3070;
+    border-radius: 9px;
+    padding: 7px 10px;
+    color: var(--text);
+    text-align: start;
+    cursor: pointer;
+}
+.lexis-ms-trigger:hover { border-color: #4a53a0; }
+.lexis-ms-trigger.open { border-color: #7d8bff; }
+.lexis-ms-sum { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.lexis-ms-sum.muted { color: var(--mute); }
+.lexis-ms-badge { background: #7d8bff; color: #0a0d1f; border-radius: 999px; font-size: 11px; font-weight: 700; padding: 1px 7px; }
+.lexis-ms-caret { color: var(--mute); font-size: 12px; }
+.lexis-ms-menu { margin-top: 6px; background: #0b0e22; border: 1px solid #2a3070; border-radius: 10px; padding: 8px; }
+.lexis-ms-menu[hidden] { display: none; }
+.lexis-ms-search { width: 100%; margin-bottom: 6px; }
+.lexis-ms-actions { display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--mute); margin-bottom: 4px; }
+.lexis-ms-actions button { background: none; border: 0; color: #9fb0ff; cursor: pointer; padding: 0; }
+.lexis-ms-actions .grow { flex: 1; }
+.lexis-ms-opts { max-height: 220px; overflow: auto; display: flex; flex-direction: column; gap: 1px; }
+.lexis-ms-opt { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 7px; font-size: 13px; cursor: pointer; }
+.lexis-ms-opt:hover { background: #151b3d; }
+.lexis-ms-opt[hidden] { display: none; }
+.lexis-ms-opt input { accent-color: #8b7bff; margin: 0; width: 14px; height: 14px; }
+.lexis-ms-opt small { margin-inline-start: auto; color: var(--mute); }
+.lexis-ms-opt.zero span { opacity: .5; }
+.lexis-ms-opt.on span { color: #fff; font-weight: 600; }
+
+/* ---- selection bar, pager, list ---------------------------------------- */
+.lexis-selbar {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12.5px;
+    flex-wrap: wrap;
+    flex: none;
+}
+.lexis-selbar .grow { flex: 1; }
+.lexis-selbar button { padding: 5px 9px; font-size: 12.5px; }
+.lexis-selbar .dd { position: relative; }
+.lexis-selbar #lexisSelToggle { border-color: #8b7bff; }
+.lexis-seln b { color: #fff; }
+.lexis-ddmenu {
+    position: absolute;
+    inset-inline-end: 0;
+    bottom: calc(100% + 6px);
+    width: 340px;
+    max-height: min(70vh, 560px);
+    overflow: auto;
+    background: #0b0e23;
+    border: 1px solid #2c3370;
+    border-radius: 12px;
+    padding: 6px;
+    z-index: 60;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, .55);
+}
+.lexis-ddmenu[hidden] { display: none; }
+.lexis-ddmenu h5 { margin: 8px 8px 4px; font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--mute); }
+.lexis-ddmenu button {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    border: 0;
+    background: transparent;
+    border-radius: 8px;
+    padding: 7px 9px;
+    text-align: start;
+    font-size: 12.5px;
+    white-space: normal;
+}
+.lexis-ddmenu button:hover { background: #1a2150; }
+.lexis-ddmenu button:disabled { opacity: .4; cursor: default; }
+
+.lexis-pager {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 16px;
+    border-bottom: 1px solid var(--line2);
+    font-size: 12px;
+    color: var(--mute);
+    flex: none;
+}
+.lexis-pager .pg-row { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.lexis-pager .grow { flex: 1; }
+.lexis-pager button { padding: 2px 7px; font-size: 12px; }
+.lexis-pager select { width: auto; padding: 3px 6px; font-size: 12px; }
+.lexis-pager label { display: flex; gap: 4px; align-items: center; }
+.lexis-pager input { width: 72px; padding: 3px 6px; font-size: 12px; }
+.lexis-pager .pnum.on { font-weight: 700; text-decoration: underline; }
+.lexis-pager .gap { padding: 0 4px; }
+
+.lexis-list { flex: 1; overflow: auto; min-height: 160px; }
+.lexis-row {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto 30px;
+    align-items: center;
+    gap: 9px;
+    padding: 9px 16px;
+    border-bottom: 1px solid var(--line2);
+    cursor: pointer;
+}
+.lexis-row:hover { background: #121736; }
+.lexis-row.sel { background: #1a1f4a; }
+.lexis-row input { margin: 0; accent-color: #8b7bff; }
+.lexis-rname { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lexis-rmeta { font-size: 11.5px; color: var(--mute); display: flex; gap: 5px; flex-wrap: wrap; margin-top: 3px; align-items: center; }
+.lexis-mchip { background: #16204a; border-radius: 6px; padding: 1px 6px; color: #cfd7ff; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lexis-tbadge { font-size: 10px; font-weight: 800; padding: 3px 6px; border-radius: 6px; color: #06101a; letter-spacing: .04em; }
+.lexis-rhits { font-weight: 700; color: #ffc857; text-align: end; font-size: 13px; }
+.lexis-rbtn { background: none; border: 0; padding: 0; color: var(--mute); font-size: 13px; }
+.lexis-empty { padding: 30px 22px; color: var(--mute); text-align: center; font-size: 13px; }
+
+.lexis-pfoot {
+    padding: 8px 16px;
+    font-size: 11.5px;
+    color: var(--mute);
+    border-top: 1px solid var(--line);
+    flex: none;
+}
+
+/* ---- modal sheets ------------------------------------------------------ */
+.lexis-modal { position: absolute; inset: 0; background: rgba(2, 3, 10, .74); display: none; align-items: center; justify-content: center; z-index: 70; }
+.lexis-modal.open { display: flex; }
+.lexis-sheet {
+    background: #0b0e23;
+    border: 1px solid #2c3370;
+    border-radius: 16px;
+    width: min(960px, 95vw);
+    max-height: 90vh;
+    overflow: auto;
+    padding: 18px 20px;
+    box-shadow: 0 0 60px rgba(90, 80, 255, .2);
+    position: relative;
+    color: var(--text);
+}
+.lexis-sheet.narrow { width: min(520px, 94vw); }
+.lexis-sheet.wide { width: min(1080px, 96vw); }
+.lexis-sheet h3 { margin: 0 0 4px; font-size: 18px; color: var(--text); }
+.lexis-sheet .close { position: absolute; inset-inline-end: 14px; top: 14px; }
+.lexis-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 14px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+.lexis-tabs button { border-radius: 999px; }
+.lexis-tabs button.on { background: linear-gradient(90deg, #2dd4bf, #a78bfa); color: #06101a; font-weight: 700; border: 0; }
+.lexis-grid4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.lexis-kpi { background: #10142e; border: 1px solid #232a5a; border-radius: 12px; padding: 10px 12px; }
+.lexis-kpi b { display: block; font-size: 22px; }
+.lexis-kpi span { color: var(--mute); font-size: 12px; }
+.lexis-bars { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.lexis-bar { display: grid; grid-template-columns: 110px 1fr 40px; gap: 8px; align-items: center; font-size: 12.5px; }
+.lexis-bar .track { background: #10142e; border-radius: 6px; height: 12px; overflow: hidden; }
+.lexis-bar .fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #2dd4bf, #a78bfa); }
+.lexis-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.lexis-table th,
+.lexis-table td { padding: 7px 8px; border-bottom: 1px solid var(--line2); text-align: start; vertical-align: middle; }
+.lexis-table th { color: var(--mute); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; position: sticky; top: 0; background: #0b0e23; }
+.lexis-table td.num { text-align: end; }
+.lexis-table input[type=text] { width: 100%; }
+.lexis-toolbar-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.lexis-toolbar-row input[type=search] { flex: 1; min-width: 180px; }
+.lexis-bulk { display: flex; gap: 8px; align-items: center; background: #15193a; border: 1px solid #3a4285; border-radius: 10px; padding: 8px 10px; margin-bottom: 10px; flex-wrap: wrap; font-size: 13px; }
+.lexis-tree-node { border-inline-start: 2px solid #262b58; margin: 6px 0 6px 10px; padding-inline-start: 12px; }
+.lexis-tree-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 5px 0; }
+.lexis-tree-row b { font-weight: 700; }
+.lexis-pill { font-size: 11px; color: var(--mute); background: #10142e; border: 1px solid #232a5a; border-radius: 999px; padding: 1px 8px; }
+.lexis-doc { background: #080a1c; border: 1px solid #232a5a; border-radius: 12px; padding: 16px 18px; line-height: 1.75; font-size: 14.5px; margin-top: 10px; white-space: pre-wrap; word-break: break-word; max-height: 46vh; overflow: auto; }
+.lexis-app mark { background: rgba(255, 200, 87, .3); color: #fff3c4; border-radius: 4px; padding: 0 2px; box-shadow: 0 0 0 1px rgba(255, 200, 87, .5); }
+.lexis-vrow { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-top: 14px; }
+.lexis-fmt { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin: 10px 0; }
+.lexis-fmt button { text-align: start; }
+.lexis-fmt button.on { border-color: #8b7bff; background: #1d2656; }
+.lexis-fmt small { display: block; color: var(--mute); font-size: 11px; }
+.lexis-preview { background: #060819; border: 1px solid #232a5a; border-radius: 12px; padding: 12px; font: 12px/1.5 ui-monospace, Menlo, Consolas, monospace; max-height: 300px; overflow: auto; white-space: pre-wrap; word-break: break-all; color: #cfd7ff; margin: 0; }
+.lexis-radios { display: flex; gap: 14px; flex-wrap: wrap; margin: 8px 0; font-size: 13px; }
+.lexis-radios label { display: flex; gap: 6px; align-items: center; }
+.lexis-meta { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 12px 0; }
+.lexis-meta div { background: #10142e; border: 1px solid #232a5a; border-radius: 10px; padding: 7px 10px; font-size: 12px; color: var(--mute); }
+.lexis-meta div b { display: block; color: var(--text); font-size: 13.5px; font-weight: 600; }
+.lexis-shortcut { display: grid; grid-template-columns: 150px 1fr; gap: 6px 12px; font-size: 13px; }
+.lexis-app kbd { background: #141a3a; border: 1px solid #3a4285; border-radius: 6px; padding: 1px 6px; font: 12px ui-monospace, Menlo, monospace; }
+.lexis-log { font-size: 12.5px; max-height: 460px; overflow: auto; }
+.lexis-log > div { padding: 5px 0; border-bottom: 1px solid var(--line2); display: grid; grid-template-columns: 150px 1fr; gap: 8px; }
+.lexis-log time { color: var(--mute); font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; }
+.lexis-views .vitem { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid #232a5a; border-radius: 10px; margin-bottom: 6px; background: #0f1330; }
+.lexis-views .vitem small { color: var(--mute); display: block; font-size: 11.5px; }
+.lexis-badge-n { display: inline-block; min-width: 18px; text-align: center; background: #23306a; border-radius: 999px; padding: 0 6px; font-size: 11px; margin-inline-start: 4px; }
+.lexis-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: 12px; color: var(--mute); }
+.lexis-field input,
+.lexis-field select,
+.lexis-field textarea { color: var(--text); font-size: 14px; }
+.lexis-field .err { color: var(--bad); font-size: 12px; }
+.lexis-xgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+.lexis-xgrid label { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+.lexis-xcard { background: #10142e; border: 1px solid #262b58; border-radius: 10px; padding: 10px 12px; margin: 8px 0; }
+.lexis-xcard h5 { margin: 0 0 6px; font-size: 12px; color: #cfd7ff; }
+.lexis-tag { display: inline-block; border-radius: 6px; padding: 1px 7px; margin: 2px 3px 2px 0; font-size: 11.5px; color: #06101a; font-weight: 600; }
+.lexis-tag-w { background: #7fe7d6; }
+.lexis-tag-k { background: #c9b6ff; }
+
+/* the page's own toast (the application has one shared live region too) */
+.lexis-toast {
+    position: absolute;
+    inset-inline-start: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    background: #131a3d;
+    border: 1px solid #4a53a0;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+    z-index: 120;
+}
+.lexis-toast.show { opacity: 1; }
+
+/* ---- print: the structure document ------------------------------------ */
+.lexis-print-root { display: none; }
+.lexis-print-opts { border: 1px solid var(--lex-border, #2a3150); border-radius: 10px;
+    padding: 10px 12px; margin: 10px 0; display: grid; gap: 6px; }
+.lexis-print-opts legend { padding: 0 6px; font-size: .78rem; text-transform: uppercase;
+    letter-spacing: .06em; opacity: .75; }
+.lexis-print-opts label { display: flex; align-items: center; gap: 8px; font-size: .85rem; }
+
+@page { size: A4 portrait; margin: 14mm 12mm 16mm; }
+@page landscape { size: A4 landscape; }
+body.lexis-printing-landscape { page: landscape; }
+
+@media print {
+    body.lexis-printing > *:not(.lexis-print-root) { display: none !important; }
+    .lexis-print-root { display: block !important; position: static; }
+    .lexis-print-root .p-page { background: #fff; color: #15193a; padding: 0; }
+    .lexis-print-root .p-head { border-bottom: 2pt solid #333; padding-bottom: 4pt; margin-bottom: 8pt; }
+    .lexis-print-root h1 { font-size: 20pt; margin: 0 0 2pt; }
+    .lexis-print-root .p-scope { font-size: 12pt; font-weight: 600; }
+    .lexis-print-root .p-meta { font-size: 9pt; color: #444; margin-bottom: 8pt; }
+    .lexis-print-root .p-lens-block { margin-top: 10pt; }
+    .lexis-print-root h2 { font-size: 13pt; margin: 10pt 0 4pt; border-bottom: 1.5pt solid #333;
+        padding-bottom: 2pt; break-after: avoid; }
+    .lexis-print-root .p-count { font-size: 9pt; font-weight: 400; color: #555; }
+    .lexis-print-root h3.p-cat { font-size: 11pt; margin: 8pt 0 3pt; break-after: avoid; }
+    .lexis-print-root h4.p-sub { font-size: 10pt; margin: 4pt 0 2pt; color: #333; break-after: avoid; }
+    .lexis-print-root .p-summary { width: auto; margin: 0 0 8pt; }
+    .lexis-print-root .p-summary th { text-align: start; padding-right: 8pt; color: #444;
+        font-weight: 600; border: 0; }
+    .lexis-print-root .p-summary td { padding-right: 18pt; border: 0; font-weight: 600; }
+    .lexis-print-root .p-figure { margin: 8pt 0 10pt; break-inside: avoid; }
+    .lexis-print-root .p-figure svg { max-height: 120mm; border: .5pt solid #ccc; }
+    .lexis-print-root .p-figure figcaption { font-size: 8pt; color: #555; margin-top: 2pt; }
+    .lexis-print-root .p-empty { font-size: 10pt; color: #333; font-style: italic; }
+    .lexis-print-root table { width: 100%; border-collapse: collapse; }
+    .lexis-print-root th,
+    .lexis-print-root td { border-bottom: .5pt solid #ccc; padding: 2pt 4pt;
+        text-align: start; vertical-align: top; font-size: 9pt; }
+    .lexis-print-root th.num, .lexis-print-root td.num { text-align: end; width: 18mm; }
+    .lexis-print-root thead { display: table-header-group; }
+    .lexis-print-root tr { break-inside: avoid; }
+    .lexis-print-root .p-foot { position: fixed; bottom: 3mm; inset-inline: 0; font-size: 7.5pt;
+        color: #666; display: flex; justify-content: space-between; }
+}

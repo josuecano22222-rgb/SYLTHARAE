@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Translation Management') }}{% endblock %}
+{% block page_type %}translation-management{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/translation-management.css') }}">
+{% endblock %}
+
+{% block content %}
+<main class="tm-page" id="mainContent" data-translation-manager
+      data-catalog-url="{{ url_for('translations.translation_management_catalog_api') }}"
+      data-save-url="{{ url_for('translations.save_translation_management_catalog_api') }}"
+      data-default-locale="{{ translation_default_locale }}"
+      data-page-size="50">
+    <header class="tm-header">
+        <div>
+            <p class="tm-eyebrow">{{ _('Administration') }}</p>
+            <h1 class="tm-title">
+                <i class="bi bi-translate" aria-hidden="true"></i>
+                {{ _('Translation Management') }}
+            </h1>
+            <p class="tm-intro">{{ _('Review and edit the localized text used throughout every screen.') }}</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('settings_page_direct') }}">
+            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>
+            {{ _('Back to Settings') }}
+        </a>
+    </header>
+
+    <div class="tm-callout" role="note">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <p>{{ _('Saved edits take effect across server-rendered and browser-rendered screens. Reset a row to return to the checked-in catalog translation.') }}</p>
+    </div>
+
+    <section class="tm-filters" aria-labelledby="tm-filters-title">
+        <h2 class="visually-hidden" id="tm-filters-title">{{ _('Translation filters') }}</h2>
+        <div class="tm-filter-field tm-language-field">
+            <label for="tm-locale">{{ _('Target language') }}</label>
+            <select id="tm-locale" class="form-select">
+                {% for code, label in translation_languages.items() %}
+                <option value="{{ code }}" {% if code == translation_default_locale %}selected{% endif %}>{{ label }} ({{ code }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="tm-filter-field tm-screen-field">
+            <label for="tm-screen">{{ _('Screen or source file') }}</label>
+            <select id="tm-screen" class="form-select">
+                <option value="">{{ _('All screens') }}</option>
+            </select>
+        </div>
+        <div class="tm-filter-field tm-search-field">
+            <label for="tm-query">{{ _('Search') }}</label>
+            <div class="tm-search-control">
+                <input id="tm-query" class="form-control" type="search" maxlength="200"
+                       placeholder="{{ _('Search source, translation, or file') }}"
+                       autocomplete="off">
+                <button id="tm-search-button" class="btn btn-primary" type="button" aria-label="{{ _('Search translations') }}">
+                    <i class="bi bi-search" aria-hidden="true"></i>
+                    <span>{{ _('Search') }}</span>
+                </button>
+            </div>
+        </div>
+        <div class="tm-filter-field tm-status-field">
+            <label for="tm-status-filter">{{ _('Translation status') }}</label>
+            <select id="tm-status-filter" class="form-select">
+                <option value="all">{{ _('All statuses') }}</option>
+                <option value="translated">{{ _('Translated') }}</option>
+                <option value="missing">{{ _('Missing') }}</option>
+                <option value="overridden">{{ _('Custom overrides') }}</option>
+            </select>
+        </div>
+        <button id="tm-refresh-button" class="btn btn-outline-secondary tm-refresh-button" type="button">
+            <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+            <span>{{ _('Refresh') }}</span>
+        </button>
+    </section>
+
+    <section class="tm-summary" aria-label="{{ _('Catalog summary') }}" aria-live="polite">
+        <div class="tm-stat-card"><span>{{ _('Catalog strings') }}</span><strong id="tm-stat-total">—</strong></div>
+        <div class="tm-stat-card"><span>{{ _('Translated') }}</span><strong id="tm-stat-translated">—</strong></div>
+        <div class="tm-stat-card"><span>{{ _('Missing') }}</span><strong id="tm-stat-missing">—</strong></div>
+        <div class="tm-stat-card"><span>{{ _('Custom overrides') }}</span><strong id="tm-stat-overridden">—</strong></div>
+    </section>
+
+    <section class="tm-results" aria-labelledby="tm-results-title">
+        <div class="tm-results-heading">
+            <div>
+                <h2 id="tm-results-title">{{ _('Screen translations') }}</h2>
+                <p id="tm-result-count" class="tm-result-count" aria-live="polite">{{ _('Loading translations…') }}</p>
+            </div>
+            <button id="tm-save-button" class="btn btn-success" data-tm-save type="button" disabled>
+                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+                <span>{{ _('Save changes') }}</span>
+                <span class="tm-dirty-count" data-tm-dirty-count aria-hidden="true"></span>
+            </button>
+        </div>
+
+        <div id="tm-feedback" class="tm-feedback" role="status" aria-live="polite" hidden></div>
+        <div class="tm-table-wrap">
+            <table class="tm-table">
+                <thead>
+                    <tr>
+                        <th scope="col">{{ _('Source text') }}</th>
+                        <th scope="col">{{ _('Translation') }}</th>
+                        <th scope="col">{{ _('Status') }}</th>
+                        <th scope="col"><span class="visually-hidden">{{ _('Row actions') }}</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tm-rows"></tbody>
+            </table>
+            <div id="tm-empty" class="tm-empty" hidden>
+                <i class="bi bi-inbox" aria-hidden="true"></i>
+                <strong>{{ _('No strings match these filters') }}</strong>
+                <span>{{ _('Try another screen, status, or search phrase.') }}</span>
+            </div>
+            <div id="tm-loading" class="tm-loading" role="status">
+                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                <span>{{ _('Loading translations…') }}</span>
+            </div>
+        </div>
+
+        <div class="tm-bottom-actions">
+            <button id="tm-save-button-bottom" class="btn btn-success" data-tm-save type="button" disabled>
+                <i class="bi bi-cloud-arrow-up" aria-hidden="true"></i>
+                {{ _('Save changes') }}
+                <span class="tm-dirty-count" data-tm-dirty-count aria-hidden="true"></span>
+            </button>
+        </div>
+        <nav class="tm-pagination" aria-label="{{ _('Translation catalog pages') }}">
+            <button id="tm-previous" class="btn btn-outline-secondary" type="button" disabled>
+                <i class="bi bi-chevron-left" aria-hidden="true"></i>
+                {{ _('Previous') }}
+            </button>
+            <span id="tm-page-label" aria-live="polite">—</span>
+            <button id="tm-next" class="btn btn-outline-secondary" type="button" disabled>
+                {{ _('Next') }}
+                <i class="bi bi-chevron-right" aria-hidden="true"></i>
+            </button>
+        </nav>
+    </section>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script id="page-translations" type="application/json">{{ {
+    'A translation cannot be blank.': _('A translation cannot be blank.'),
+    'Catalog unavailable': _('Catalog unavailable'),
+    'Could not load translations.': _('Could not load translations.'),
+    'Could not save translations.': _('Could not save translations.'),
+    'Custom override': _('Custom override'),
+    'Discard unsaved changes?': _('Discard unsaved changes?'),
+    'Fix blank translations and placeholders before saving.': _('Fix blank translations and placeholders before saving.'),
+    'Keep every named placeholder from the source text.': _('Keep every named placeholder from the source text.'),
+    'Keep named placeholders unchanged.': _('Keep named placeholders unchanged.'),
+    'Loading translations…': _('Loading translations…'),
+    'matching strings': _('matching strings'),
+    'Missing': _('Missing'),
+    'of': _('of'),
+    'Page': _('Page'),
+    'Reset to catalog translation': _('Reset to catalog translation'),
+    'Translated': _('Translated'),
+    'Translation for': _('Translation for'),
+    'Translations saved successfully.': _('Translations saved successfully.'),
+    'Unassigned source': _('Unassigned source'),
+    'Unsaved changes': _('Unsaved changes'),
+    'Will reset': _('Will reset')
+}|tojson }}</script>
+{% endblock %}

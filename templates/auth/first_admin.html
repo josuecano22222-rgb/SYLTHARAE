@@ -1,0 +1,271 @@
+{% set password_min = password_min_length|default(12) %}
+<!DOCTYPE html>
+<html lang="{{ current_language|default('en') }}" dir="{% if current_language|default('en') in ['ar', 'fa', 'he', 'ur'] %}rtl{% else %}ltr{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ _('Create administrator') }} - {{ user_settings.get('system', 'app_name', _('SYLTHARAE System')) if user_settings else _('SYLTHARAE System') }}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logos/logo_347c1538.png') }}">
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='icons/bootstrap-icons.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='fonts/inter.css') }}" rel="stylesheet">
+    <style>
+        :root{
+            --brand-1:#4f46e5;
+            --brand-2:#06b6d4;
+            --brand-grad:linear-gradient(135deg,#4f46e5 0%,#06b6d4 100%);
+            --ink-900:#0f172a;
+            --ink-700:#334155;
+            --ink-500:#64748b;
+            --ink-400:#94a3b8;
+            --line:#e2e8f0;
+            --line-soft:#eef2f7;
+            --surface:#f8fafc;
+            --ok:#10b981;
+            --ok-soft:#ecfdf5;
+            --ok-line:#a7f3d0;
+            --err:#ef4444;
+            --err-soft:#fef2f2;
+            --err-line:#fecaca;
+            --focus-ring:rgba(99,102,241,.16);
+        }
+        *{box-sizing:border-box}
+        body{
+            margin:0;
+            font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;
+            color:var(--ink-900);
+            min-height:100vh;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            padding:40px 16px;
+            background-color:#0b1020;
+            background-image:
+                radial-gradient(900px 520px at 12% -8%,  rgba(79,70,229,.38), transparent 62%),
+                radial-gradient(820px 520px at 104% 12%, rgba(6,182,212,.30), transparent 62%),
+                radial-gradient(720px 620px at 50% 112%, rgba(99,102,241,.26), transparent 62%);
+            background-attachment:fixed;
+            -webkit-font-smoothing:antialiased;
+            -moz-osx-font-smoothing:grayscale;
+            text-rendering:optimizeLegibility;
+        }
+        body::before{
+            content:'';
+            position:fixed;inset:0;
+            background-image:radial-gradient(rgba(255,255,255,.055) 1px, transparent 1.4px);
+            background-size:26px 26px;
+            pointer-events:none;
+        }
+
+        .admin-card{
+            position:relative;
+            max-width:470px;width:100%;
+            background:#fff;
+            border:0;border-radius:22px;
+            box-shadow:0 30px 80px -20px rgba(2,6,23,.55), 0 0 0 1px rgba(255,255,255,.07);
+            overflow:hidden;
+            animation:cardIn .5s cubic-bezier(.22,.9,.32,1) both;
+        }
+        .admin-card::before{
+            content:'';display:block;height:4px;background:var(--brand-grad);
+        }
+        @keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+
+        .card-body{padding:34px 34px 30px}
+
+        .head-icon{
+            width:62px;height:62px;
+            border-radius:18px;
+            margin:0 auto 18px;
+            display:flex;align-items:center;justify-content:center;
+            font-size:1.7rem;color:var(--brand-1);
+            background:linear-gradient(135deg,#eef2ff,#cffafe);
+            box-shadow:inset 0 0 0 1px rgba(79,70,229,.14);
+        }
+        h4{
+            font-size:1.26rem;font-weight:800;letter-spacing:-.02em;
+            color:var(--ink-900);margin-bottom:6px;
+        }
+        .head-sub{
+            display:flex;align-items:flex-start;gap:8px;justify-content:center;
+            color:var(--ink-500);font-size:.85rem;line-height:1.5;
+            margin-bottom:24px;
+        }
+        .head-sub .bi{color:var(--ink-400);margin-top:1px;flex:none}
+
+        /* Fields */
+        .field{position:relative;margin-bottom:16px}
+        .field-label{
+            display:flex;align-items:center;gap:6px;
+            font-weight:600;color:var(--ink-700);font-size:.85rem;
+            margin-bottom:6px;
+        }
+        .field-label .req{color:var(--err);font-weight:700}
+        .field-control{
+            display:flex;align-items:stretch;
+            background:#fff;border:1.5px solid var(--line);border-radius:11px;
+            overflow:hidden;transition:border-color .2s ease,box-shadow .2s ease;
+        }
+        .field-control:focus-within{border-color:#6366f1;box-shadow:0 0 0 4px var(--focus-ring)}
+        .field-icon{
+            display:flex;align-items:center;justify-content:center;
+            width:42px;flex:none;
+            color:var(--ink-400);background:var(--surface);
+            border-right:1px solid var(--line-soft);
+            font-size:1rem;transition:color .2s ease,background .2s ease;
+        }
+        .field-control:focus-within .field-icon{color:var(--brand-1);background:#eef2ff;border-right-color:#dbe1ff}
+        .field-control .form-control{
+            flex:1;min-width:0;
+            border:none;box-shadow:none;border-radius:0;
+            padding:11px 13px;font-size:.94rem;height:auto;
+            background:transparent;color:var(--ink-900);font-family:inherit;
+        }
+        .field-control .form-control:focus{box-shadow:none;outline:none}
+        .field-control .form-control::placeholder{color:#cbd5e1}
+        .field-trail{
+            display:flex;align-items:center;
+            padding:0 8px;background:var(--surface);
+            border-left:1px solid var(--line-soft);
+        }
+        .pw-toggle{
+            border:none;background:transparent;
+            width:34px;height:34px;border-radius:9px;
+            display:flex;align-items:center;justify-content:center;
+            color:var(--ink-400);cursor:pointer;
+            transition:background .2s ease,color .2s ease;
+        }
+        .pw-toggle:hover{background:#e2e8f0;color:var(--brand-1)}
+        .pw-toggle:focus-visible{outline:2px solid var(--brand-1);outline-offset:1px}
+
+        .form-text{
+            font-size:.78rem;color:var(--ink-400);
+            margin-top:5px;display:flex;align-items:center;gap:5px;
+        }
+        .pw-bar{
+            height:6px;border-radius:99px;
+            background:var(--line-soft);
+            margin-top:8px;overflow:hidden;
+            box-shadow:inset 0 0 0 1px rgba(148,163,184,.25);
+        }
+        .pw-bar-fill{height:100%;border-radius:inherit;width:0;transition:width .35s ease,background .35s ease}
+
+        /* Error banner */
+        .admin-error{
+            display:none;
+            align-items:flex-start;gap:9px;
+            background:var(--err-soft);border:1px solid var(--err-line);
+            color:#991b1b;border-radius:12px;
+            padding:12px 14px;font-size:.87rem;line-height:1.5;
+            margin-bottom:18px;
+        }
+        .admin-error.show{display:flex;animation:shakeIn .3s ease both}
+        .admin-error .bi{color:var(--err);font-size:1.05rem;margin-top:1px;flex:none}
+        @keyframes shakeIn{
+            0%{opacity:0;transform:translateX(-6px)}
+            50%{transform:translateX(4px)}
+            100%{opacity:1;transform:none}
+        }
+
+        /* Submit */
+        .btn-create{
+            width:100%;margin-top:8px;
+            padding:12px 20px;border:none;border-radius:11px;
+            background:var(--brand-grad);color:#fff;
+            font-weight:700;font-size:.95rem;font-family:inherit;
+            display:inline-flex;align-items:center;justify-content:center;gap:9px;
+            cursor:pointer;
+            box-shadow:0 12px 26px -8px rgba(79,70,229,.55);
+            transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease;
+        }
+        .btn-create:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 16px 30px -8px rgba(79,70,229,.6)}
+        .btn-create:disabled{opacity:.75;cursor:wait;transform:none}
+        .btn-create:focus-visible{outline:2px solid var(--brand-1);outline-offset:2px}
+        .icon-spin{display:inline-block;animation:spin 1s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        .page-footnote{
+            display:flex;align-items:center;justify-content:center;gap:7px;
+            color:rgba(226,232,240,.55);font-size:.8rem;margin-top:22px;
+        }
+        .page-footnote .bi{font-size:.9rem}
+
+        @media(max-width:480px){
+            .card-body{padding:26px 22px 24px}
+        }
+        @media (prefers-reduced-motion: reduce){
+            *,*::before,*::after{animation:none!important;transition:none!important}
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="card admin-card">
+        <div class="card-body p-4">
+            <div class="head-icon"><i class="bi bi-person-workspace"></i></div>
+            <h4 class="text-center">{{ _('Create the administrator account') }}</h4>
+            <p class="head-sub text-center">
+                <i class="bi bi-info-circle" aria-hidden="true"></i>
+                <span>{{ _('This page is available only until the first administrator exists.') }}</span>
+            </p>
+            <div id="err" class="admin-error" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i><span id="err-msg"></span>
+            </div>
+            <form id="form" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="field">
+                    <label class="field-label" for="username"><i class="bi bi-person-badge" aria-hidden="true"></i> {{ _('Admin username') }} <span class="req" aria-hidden="true">*</span><span class="visually-hidden">{{ _('required') }}</span></label>
+                    <div class="field-control">
+                        <span class="field-icon"><i class="bi bi-person-vcard"></i></span>
+                        <input class="form-control" id="username" name="username" required maxlength="64"
+                               autocomplete="username" placeholder="{{ _('e.g. admin') }}">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="field-label" for="password"><i class="bi bi-key-fill" aria-hidden="true"></i> {{ _('Password') }} <span class="req" aria-hidden="true">*</span><span class="visually-hidden">{{ _('required') }}</span></label>
+                    <div class="field-control">
+                        <span class="field-icon"><i class="bi bi-lock-fill"></i></span>
+                        <input class="form-control" id="password" name="password" type="password" required
+                               minlength="{{ password_min }}" autocomplete="new-password" aria-describedby="pw-hint"
+                               placeholder="{{ _('Minimum %(min)s characters.', min=password_min) }}">
+                        <span class="field-trail">
+                            <button type="button" class="pw-toggle" data-target="password" aria-label="{{ _('Show password') }}" title="{{ _('Show password') }}" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </span>
+                    </div>
+                    <div class="pw-bar" aria-hidden="true"><div class="pw-bar-fill" id="pw-strength"></div></div>
+                    <div class="form-text" id="pw-hint"><i class="bi bi-shield-lock" aria-hidden="true"></i> {{ _('Minimum %(min)s characters.', min=password_min) }}</div>
+                </div>
+                <div class="field">
+                    <label class="field-label" for="password2"><i class="bi bi-key" aria-hidden="true"></i> {{ _('Confirm password') }} <span class="req" aria-hidden="true">*</span><span class="visually-hidden">{{ _('required') }}</span></label>
+                    <div class="field-control">
+                        <span class="field-icon"><i class="bi bi-lock"></i></span>
+                        <input class="form-control" id="password2" type="password" required minlength="{{ password_min }}"
+                               autocomplete="new-password" placeholder="{{ _('Re-enter password') }}">
+                        <span class="field-trail">
+                            <button type="button" class="pw-toggle" data-target="password2" aria-label="{{ _('Show password') }}" title="{{ _('Show password') }}" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </span>
+                    </div>
+                </div>
+                <button class="btn-create" id="btn" type="submit">
+                    <i class="bi bi-person-check-fill" aria-hidden="true"></i> {{ _('Create administrator') }}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+<p class="page-footnote"><i class="bi bi-hdd-stack" aria-hidden="true"></i> {{ user_settings.get('system', 'app_name', _('SYLTHARAE System')) if user_settings else _('SYLTHARAE System') }}</p>
+<script type="application/json" id="first-admin-page-data">{{ {
+    "minimumMinSCharacters": _('Minimum %(min)s characters.', min=password_min),
+    "weakPassword": _('Weak password'),
+    "fairPassword": _('Fair password'),
+    "strongPassword": _('Strong password'),
+    "creating": _('Creating…'),
+    "createAdministrator": _('Create administrator'),
+    "passwordsDoNotMatch": _('Passwords do not match'),
+    "failedToCreateAdministrator": _('Failed to create administrator'),
+    "anInternalErrorOccurred": _('An internal error occurred.'),
+    "showPassword": _('Show password'),
+    "hidePassword": _('Hide password')
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/pages/first-admin-page.js') }}"></script>
+</body>
+</html>

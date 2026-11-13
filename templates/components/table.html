@@ -1,0 +1,467 @@
+{# component: table
+   purpose: The frame a list of records is read in, and the rows that stand in
+            for a list that is empty, still loading or failed. Ten tables in
+            this application were written with ten different class
+            combinations; this is the one they become. `record_table` is the
+            complete unit - toolbar, sortable headers, body, states - that
+            every list interface renders through; `data_table` is the bare
+            frame the older pages still call.
+   states: normal, empty, filtered, selected, loading, error
+   classes: table, table-hover, table-sm, table-striped, align-middle,
+            table-responsive, empty-state, spinner-border, ut, ut-toolbar,
+            ut-info, ut-per-page, ut-per-page-label, ut-per-page-select,
+            ut-frame, unified-table, ut-head, ut-col, ut-col-select,
+            ut-col-index, ut-col-actions, ut-sortable, ut-sorted,
+            ut-th-inner, ut-th-label, ut-sort-btn, ut-check-all, ut-body,
+            ut-col-, ut-sorted-, ut-export, ut-export-btn, ut-export-label,
+            ut-export-menu, ut-export-columns, ut-export-column,
+            ut-export-column-check, ut-export-heading, ut-export-scope,
+            ut-export-scope-option, ut-export-scope-check,
+            ut-filter-btn, ut-col-filter, ut-filter-values, ut-filter-value,
+            ut-filter-check, ut-filter-range, ut-filter-range-label,
+            ut-col-filter-actions, ut-columns, ut-columns-btn, ut-columns-label,
+            ut-columns-menu, ut-columns-option, ut-columns-check,
+            ut-load-more, ut-load-more-info,
+            ut-load-more-error, ut-row-hit - defined in static/css/unified-table.css
+   notes: The frame and the standing rows only - a page still writes its own
+          rows, because what a cell means and how it is rendered are the
+          page's business. `record_table` renders the `<thead>` from a
+          `columns` spec, so every list names its columns once and gets the
+          same headers, the same sort control and the same toolbar. The
+          `ut-` classes are the presentation contract with
+          static/css/unified-table.css and static/js/modules/ui/unified-table.js;
+          nothing else may style or script a list table.
+#}
+{% from 'components/states.html' import empty_state, filtered_state, loading_state, error_state %}
+{% from 'components/unified_pagination.html' import load_more_control, showing_range %}
+{#
+   Usage:
+
+       {% from 'components/table.html' import data_table, table_empty_row %}
+       {% from 'components/states.html' import empty_state %}
+
+       {% call data_table(id='wordsTable', variant='hover align-middle') %}
+           <thead>…</thead>
+           <tbody id="wordsTableBody">
+               {% if words %}
+                   {% for word in words %}…{% endfor %}
+               {% else %}
+                   {{ table_empty_row(7, message=_('No words found.'),
+                                      filtered=filters_applied) }}
+               {% endif %}
+           </tbody>
+       {% endcall %}
+#}
+
+{% macro data_table(id=None, variant='hover align-middle', responsive=True,
+                    extra_class=None, caption=None, extra_style=None,
+                    selected_ids=None) %}
+{%- set class_name = 'table table-' ~ variant ~ (' ' ~ extra_class if extra_class) -%}
+{%- if responsive -%}<div class="table-responsive">{%- endif -%}
+<table class="{{ class_name }}"{% if id %} id="{{ id }}"{% endif %}
+       {% if extra_style %}style="{{ extra_style }}"{% endif %}
+       {% if selected_ids is not none %}data-selected-count="{{ selected_ids|length }}"{% endif %}>
+    {% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
+    {{ caller() }}
+</table>
+{%- if responsive -%}</div>{%- endif -%}
+{% endmacro %}
+
+
+{% macro table_empty_row(columns, title=None, message=None, icon='bi-inbox',
+                         filtered=False, action_label=None, action_href=None,
+                         action_onclick=None, action_icon=None) %}
+{#- The stand-in row for a list with nothing to show. `filtered` says the
+    records exist but the filters exclude them, which is a different thing to
+    tell a reader than "there is nothing here". -#}
+<tr data-ut-state="empty">
+    <td colspan="{{ columns }}" class="text-center py-4">
+        {% if filtered %}
+            {{ filtered_state(title=title, message=message, icon='bi-funnel',
+                              action_label=action_label, action_href=action_href,
+                              action_onclick=action_onclick,
+                              action_icon=action_icon or 'bi-x-circle') }}
+        {% else %}
+            {{ empty_state(title=title, message=message, icon=icon,
+                           action_label=action_label, action_href=action_href,
+                           action_onclick=action_onclick,
+                           action_icon=action_icon) }}
+        {% endif %}
+    </td>
+</tr>
+{% endmacro %}
+
+
+{% macro table_loading_row(columns, message=None) %}
+<tr data-ut-state="loading">
+    <td colspan="{{ columns }}" class="text-center py-4">{{ loading_state(message=message) }}</td>
+</tr>
+{% endmacro %}
+
+
+{% macro table_error_row(columns, message=None, retry_onclick=None) %}
+<tr>
+    <td colspan="{{ columns }}" class="text-center py-4">
+        {{ error_state(message=message, action_label=(_('Try again') if retry_onclick else None),
+                       action_onclick=retry_onclick) }}
+    </td>
+</tr>
+{% endmacro %}
+
+
+{% macro select_all_checkbox(target_id='selectAllCheckbox', onchange='toggleSelectAll()') %}
+{#- The one way this application offers "choose every row on this page". -#}
+<input type="checkbox" id="{{ target_id }}" data-on-change="{{ onchange }}"
+       aria-label="{{ _('Select all rows on this page') }}">
+{% endmacro %}
+
+
+{% macro export_menu(interface_id, columns, extra_columns=None, menu_id=None,
+                     export_params=None, export_scope_base=None) %}
+{#- The one export control: this view, every row of it, the reader's chosen
+    columns, CSV or Excel - plus print. `columns` are the table's own columns
+    (key + label); `extra_columns` are database columns the table does not
+    display but the export may carry. The download itself is a link to
+    /api/export/<interface>, so nothing here reads the rows.
+
+    The scope is explicit: `view` (the default) exports the filtered, sorted
+    set on screen; `all` exports the whole dataset with the filters cleared.
+    `export_scope_base` names the parameters that survive that clearing (the
+    list's identity - a category id, a file type) as a query string. A table
+    that lives inside a panel passes `export_params` - its own query string -
+    because the page URL is not this table's view. -#}
+{%- set dom_id = menu_id if menu_id else (interface_id ~ 'ExportMenu') -%}
+<div class="dropdown ut-export" id="{{ dom_id }}"
+     data-export-interface="{{ interface_id }}"
+     {% if export_params %}data-export-params="{{ export_params }}"{% endif %}
+     {% if export_scope_base %}data-export-scope-base="{{ export_scope_base }}"{% endif %}>
+    <button type="button" class="btn btn-sm btn-outline-secondary ut-export-btn"
+            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+            aria-label="{{ _('Export') }}">
+        <i class="bi bi-download" aria-hidden="true"></i>
+        <span class="ut-export-label">{{ _('Export') }}</span>
+    </button>
+    <div class="dropdown-menu dropdown-menu-end ut-export-menu">
+        <div class="ut-export-columns" role="group" aria-label="{{ _('Columns to export') }}">
+            <span class="dropdown-header ut-export-heading">{{ _('Columns') }}</span>
+            <div class="ut-export-column-actions px-3 pb-1">
+                <button type="button" class="btn btn-link btn-sm p-0 me-2" data-export-columns-all>{{ _('Select all') }}</button>
+                <button type="button" class="btn btn-link btn-sm p-0" data-export-columns-none>{{ _('Select none') }}</button>
+            </div>
+            {%- set offered = columns + (extra_columns or []) -%}
+            {%- for column in offered -%}
+            {%- if column.key -%}
+            <label class="dropdown-item-text ut-export-column">
+                <input type="checkbox" class="form-check-input ut-export-column-check"
+                       data-export-column="{{ column.key }}" checked>
+                {{ column.label }}
+            </label>
+            {%- endif -%}
+            {%- endfor -%}
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="ut-export-scope" role="radiogroup" aria-label="{{ _('Export scope') }}">
+            <span class="dropdown-header ut-export-heading">{{ _('Scope') }}</span>
+            <label class="dropdown-item-text ut-export-scope-option">
+                <input type="radio" class="form-check-input ut-export-scope-check"
+                       name="{{ dom_id }}-scope" value="view" checked>
+                {{ _('Filtered data (current view)') }}
+            </label>
+            <label class="dropdown-item-text ut-export-scope-option">
+                <input type="radio" class="form-check-input ut-export-scope-check"
+                       name="{{ dom_id }}-scope" value="all">
+                {{ _('All data (entire database)') }}
+            </label>
+        </div>
+        <div class="dropdown-divider"></div>
+        <button type="button" class="dropdown-item" data-export-download="csv">
+            <i class="bi bi-filetype-csv me-2" aria-hidden="true"></i>{{ _('Export as CSV') }}
+        </button>
+        <button type="button" class="dropdown-item" data-export-download="xlsx">
+            <i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>{{ _('Export as Excel') }}
+        </button>
+        <div class="dropdown-divider"></div>
+        <button type="button" class="dropdown-item" data-export-print>
+            <i class="bi bi-printer me-2" aria-hidden="true"></i>{{ _('Print') }}
+        </button>
+    </div>
+</div>
+{% endmacro %}
+
+
+{% macro column_filter(filter, dom_id) %}
+{#- The filter control one column carries: values (checkboxes with
+    show-only / hide), a number range or a date range. The config travels
+    as JSON; the unified table script reads it and builds the request. -#}
+<button type="button" class="ut-filter-btn" data-ut-filter-btn
+        aria-expanded="false" aria-controls="{{ dom_id }}"
+        aria-label="{{ _('Filter this column') }}">
+    <i class="bi bi-funnel" aria-hidden="true"></i>
+</button>
+<div class="ut-col-filter" id="{{ dom_id }}" data-ut-filter-pop hidden
+     data-ut-filter-config='{{ filter|tojson }}'>
+    {%- set kind = filter.kind -%}
+    {%- if kind == 'values' -%}
+    <div class="ut-filter-values" role="group" aria-label="{{ _('Values') }}">
+        {%- for option in filter.options -%}
+        <label class="ut-filter-value">
+            <input type="checkbox" class="form-check-input ut-filter-check"
+                   value="{{ option.value }}">
+            <span>{{ option.label }}</span>
+        </label>
+        {%- endfor -%}
+    </div>
+    <div class="ut-col-filter-actions">
+        <button type="button" class="btn btn-sm btn-outline-primary" data-ut-filter-only>
+            {{ _('Show only') }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-ut-filter-hide>
+            {{ _('Hide') }}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-ut-filter-clear>
+            {{ _('Clear') }}
+        </button>
+    </div>
+    {%- elif kind == 'number' -%}
+    <div class="ut-filter-range">
+        <label class="ut-filter-range-label">{{ _('From') }}
+            <input type="number" class="form-control form-control-sm" data-ut-filter-min
+                   value="{{ filter.min|default('') }}" min="0"></label>
+        <label class="ut-filter-range-label">{{ _('To') }}
+            <input type="number" class="form-control form-control-sm" data-ut-filter-max
+                   value="{{ filter.max|default('') }}" min="0"></label>
+    </div>
+    <div class="ut-col-filter-actions">
+        <button type="button" class="btn btn-sm btn-primary" data-ut-filter-apply>{{ _('Apply') }}</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-ut-filter-clear>{{ _('Clear') }}</button>
+    </div>
+    {%- elif kind == 'date' -%}
+    <div class="ut-filter-range">
+        <label class="ut-filter-range-label">{{ _('From') }}
+            <input type="date" class="form-control form-control-sm" data-ut-filter-from
+                   value="{{ filter['from']|default('') }}"></label>
+        <label class="ut-filter-range-label">{{ _('To') }}
+            <input type="date" class="form-control form-control-sm" data-ut-filter-to
+                   value="{{ filter.to|default('') }}"></label>
+    </div>
+    <div class="ut-col-filter-actions">
+        <button type="button" class="btn btn-sm btn-primary" data-ut-filter-apply>{{ _('Apply') }}</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-ut-filter-clear>{{ _('Clear') }}</button>
+    </div>
+    {%- elif kind == 'text' -%}
+    {#- The column's own search field: contains-match, dedicated to this
+        column (the reader asked for one search field per column). -#}
+    <div class="ut-filter-range">
+        <label class="ut-filter-range-label">{{ _('Search this column') }}
+            <input type="search" class="form-control form-control-sm" data-ut-filter-text
+                   value="{{ filter.value|default('') }}"
+                   placeholder="{{ filter.placeholder|default(_('Contains…')) }}"></label>
+    </div>
+    <div class="ut-col-filter-actions">
+        <button type="button" class="btn btn-sm btn-primary" data-ut-filter-apply>{{ _('Apply') }}</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-ut-filter-clear>{{ _('Clear') }}</button>
+    </div>
+    {%- endif -%}
+</div>
+{% endmacro %}
+
+
+{% macro columns_menu(table_id, columns) %}
+{#- Column visibility: every data column, shown or hidden by the reader.
+    The unified table script applies the choice to the headers and to every
+    body row, including the rows a Load More brings in later. -#}
+{%- set data_columns = columns | selectattr('key', 'defined') | list -%}
+{%- if data_columns -%}
+<div class="dropdown ut-columns" data-ut-columns>
+    <button type="button" class="btn btn-sm btn-outline-secondary ut-columns-btn"
+            data-bs-toggle="dropdown" aria-expanded="false"
+            aria-label="{{ _('Choose the visible columns') }}">
+        <i class="bi bi-layout-three-columns" aria-hidden="true"></i>
+        <span class="ut-columns-label">{{ _('Columns') }}</span>
+    </button>
+    <div class="dropdown-menu dropdown-menu-end ut-columns-menu" data-ut-columns-menu>
+        {%- for column in data_columns -%}
+        <label class="dropdown-item-text ut-columns-option">
+            <input type="checkbox" class="form-check-input ut-columns-check"
+                   data-ut-column-index="{{ loop.index0 }}" checked>
+            {{ column.label }}
+        </label>
+        {%- endfor -%}
+    </div>
+</div>
+{%- endif -%}
+{% endmacro %}
+
+
+{% macro sort_header(label, key, onclick='sortBy', width=None, extra_class=None) %}
+{#- A column that can be sorted, with the control screen readers can use. -#}
+<th{% if width %} style="width:{{ width }}"{% endif %}{{ ' class=' ~ extra_class if extra_class }}>
+    <div class="d-flex align-items-center">
+        <span>{{ label }}</span>
+        <button class="btn btn-sm btn-link p-0 ms-1"
+                data-on-click="{{ onclick }}('{{ key }}')"
+                title="{{ _('Sort by') }} {{ label }}" id="sortBtn-{{ key }}">
+            <i class="bi bi-arrow-down-up" id="sortIcon-{{ key }}"></i>
+        </button>
+    </div>
+</th>
+{% endmacro %}
+
+
+{#- ------------------------------------------------------------------------- -
+    record_table: the one table the list interfaces render through.
+
+    A list table is one unit, and the unit is the component: the toolbar that
+    answers "how much is here" and "how much at once", the sortable headers
+    that carry the sort control instead of a dropdown beside the table, the
+    body (the page's rows, or the standing state row), and the config the
+    unified table script reads. Every list interface - files, keywords, words,
+    categories, words in a category, sources, sides - calls this macro and
+    wears static/css/unified-table.css; static/js/modules/ui/unified-table.js
+    owns the sorting and the selection.
+
+    `columns` is the page's one statement of what its table shows. A column is
+    a dict; three kinds are structural and the rest are data:
+
+        {'kind': 'select'}                       the choosing column
+        {'kind': 'index'}                        the row number
+        {'kind': 'actions', 'label': ..., 'width': ...}
+        {'key': 'name', 'label': _('Name'),      a data column
+         'sortable': True, 'type': 'text',       text | number | date
+         'width': '30%', 'align': 'end'}
+
+    `mode` decides what a header click does:
+        'client' - reorder the loaded rows in place (a fully loaded list);
+        'server' - the list is fetched in order: a page registered with
+                   UnifiedTable.onSort() is told, or the URL is rewritten
+                   with `sort`/`order` and page 1.
+
+    The body is the caller's: `{% call record_table(...) %}<tr>…{% endcall %}`.
+    With no caller the component stands in the right state row instead -
+    loading while `loading`, otherwise empty (or filtered, when
+    `empty_filtered` says the records exist but not under these filters).
+
+   - ------------------------------------------------------------------------- -#}
+{% macro record_table(id, columns, mode='server',
+                      sort_key=None, sort_dir=None,
+                      info_text=None, info_id=None,
+                      per_page=None, per_page_id=None,
+                      per_page_options=(10, 25, 50, 100, 200),
+                      per_page_label=_('Per Page:'),
+                      on_per_page_change=None,
+                      select_all_onchange=None, select_all_id=None,
+                      sort_param='sort', order_param='order', page_param='page',
+                      extra_class=None, caption=None, responsive=True,
+                      loading=False, loading_message=None,
+                      empty_message=None, empty_filtered=False,
+                      empty_action_label=None, empty_action_href=None,
+                      empty_action_onclick=None, empty_action_icon=None,
+                      export_interface=None, export_columns=None,
+                      export_params=None, export_scope_base=None,
+                      page=None, total_pages=None, total_count=None,
+                      rows_shown=None, append=False, load_more_label=None, pager=False) %}
+{%- set table_id = id if id else 'recordsTable' -%}
+{%- set info_dom_id = info_id if info_id else (table_id ~ 'Info') -%}
+{%- set per_page_dom_id = per_page_id if per_page_id else (table_id ~ 'PerPage') -%}
+{%- set table_config = {
+        'mode': mode,
+        'sortParam': sort_param,
+        'orderParam': order_param,
+        'pageParam': page_param
+    } -%}
+<div class="ut" data-unified-table='{{ table_config|tojson }}'>
+    <div class="ut-toolbar">
+        <div class="ut-info" id="{{ info_dom_id }}" aria-live="polite">{% if append %}{{ showing_range(((page or 1)|int - 1) * (per_page or 0)|int + 1 if per_page else 1, rows_shown, total_count) }}{% else %}{{ info_text if info_text else '' }}{% endif %}</div>
+        {% if per_page_options %}
+        <div class="ut-per-page">
+            <label class="ut-per-page-label" for="{{ per_page_dom_id }}">{{ per_page_label }}</label>
+            <select class="form-select form-select-sm ut-per-page-select" id="{{ per_page_dom_id }}"
+                    {% if on_per_page_change %}data-on-change="{{ on_per_page_change }}"{% endif %}>
+                {#- The selector shows the size the table is actually using: a size
+                    that is not one of the offered options joins them, so the
+                    control never displays a value the rows do not have. -#}
+                {%- set size_options = per_page_options|list -%}
+                {%- if per_page and (per_page|int) not in (size_options|map('int')|list) -%}
+                {%- set size_options = (size_options + [per_page|int])|sort -%}
+                {%- endif -%}
+                {% for option in size_options %}
+                <option value="{{ option }}" {% if per_page|int == option|int %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        {{ columns_menu(table_id, columns) }}
+        {% if export_interface %}
+        {{ export_menu(export_interface, columns, extra_columns=export_columns,
+                       menu_id=(table_id ~ 'Export'),
+                       export_params=export_params,
+                       export_scope_base=export_scope_base) }}
+        {% endif %}
+    </div>
+    {%- if responsive -%}<div class="table-responsive ut-frame">{%- else -%}<div class="ut-frame">{%- endif -%}
+    <table class="table table-hover align-middle unified-table{{ ' ' ~ extra_class if extra_class }}"{% if table_id %} id="{{ table_id }}"{% endif %}>
+        {% if caption %}<caption class="visually-hidden">{{ caption }}</caption>{% endif %}
+        <thead class="ut-head">
+            <tr>
+                {%- for column in columns -%}
+                {%- if column.kind == 'select' -%}
+                <th class="ut-col ut-col-select" style="width:{{ column.width or '3rem' }}">
+                    <input type="checkbox" class="ut-check-all"
+                           {% if select_all_id %}id="{{ select_all_id }}"{% endif %}
+                           aria-label="{{ _('Select all rows on this page') }}"
+                           {% if select_all_onchange %}data-on-change="{{ select_all_onchange }}"{% endif %}>
+                </th>
+                {%- elif column.kind == 'index' -%}
+                <th class="ut-col ut-col-index" style="width:{{ column.width or '4rem' }}" scope="col">{{ column.label or '#' }}</th>
+                {%- elif column.kind == 'actions' -%}
+                <th class="ut-col ut-col-actions" style="width:{{ column.width or '12rem' }}" scope="col">{{ column.label or _('Actions') }}</th>
+                {%- else -%}
+                {%- set is_sorted = column.sortable and sort_key == column.key -%}
+                <th class="ut-col ut-col-{{ column.key }}{% if column.sortable %} ut-sortable{% endif %}{% if is_sorted %} ut-sorted ut-sorted-{{ sort_dir or 'asc' }}{% endif %}{% if column.align %} text-{{ column.align }}{% endif %}"
+                    scope="col"
+                    {% if column.width %}style="width:{{ column.width }}"{% endif %}
+                    {% if column.sortable %}data-ut-sort="{{ column.key }}" data-ut-type="{{ column.type or 'text' }}"{% endif %}
+                    {% if is_sorted %}aria-sort="{{ 'ascending' if (sort_dir or 'asc') == 'asc' else 'descending' }}"{% endif %}>
+                    <div class="ut-th-inner{% if column.align == 'end' %} justify-content-end{% endif %}{% if column.align == 'center' %} justify-content-center{% endif %}">
+                        <span class="ut-th-label">{{ column.label }}</span>
+                        {% if column.sortable %}
+                        <button type="button" class="ut-sort-btn" id="sortBtn-{{ column.key }}"
+                                title="{{ _('Sort by') }} {{ column.label }}"
+                                aria-label="{{ _('Sort by') }} {{ column.label }}">
+                            <i class="bi {% if is_sorted %}{{ 'bi-sort-up' if (sort_dir or 'asc') == 'asc' else 'bi-sort-down' }}{% else %}bi-arrow-down-up{% endif %}"
+                               id="sortIcon-{{ column.key }}" aria-hidden="true"></i>
+                        </button>
+                        {% endif %}
+                        {% if column.filter %}
+                        {{ column_filter(column.filter, table_id ~ '-' ~ column.key ~ '-filter') }}
+                        {% endif %}
+                    </div>
+                </th>
+                {%- endif -%}
+                {%- endfor -%}
+            </tr>
+        </thead>
+        <tbody class="ut-body"{% if table_id %} id="{{ table_id }}Body"{% endif %}>
+            {%- if caller -%}
+                {{ caller() }}
+            {%- elif loading -%}
+                {{ table_loading_row(columns|length, message=loading_message) }}
+            {%- else -%}
+                {{ table_empty_row(columns|length,
+                                   message=empty_message,
+                                   filtered=empty_filtered,
+                                   action_label=empty_action_label,
+                                   action_href=empty_action_href,
+                                   action_onclick=empty_action_onclick,
+                                   action_icon=empty_action_icon) }}
+            {%- endif -%}
+        </tbody>
+    </table>
+    </div>
+    {#- A numbered pager on the page renders this control itself (one control,
+        not two). Without one, the table renders it under itself. -#}
+    {%- if append and not pager -%}
+    {{ load_more_control(table_id, page, total_pages, total_count, rows_shown, load_more_label, per_page) }}
+    {%- endif -%}
+</div>
+{% endmacro %}

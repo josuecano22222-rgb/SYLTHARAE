@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% from 'components/table.html' import data_table %}
+{% from 'components/states.html' import state_panel %}
+
+{% block title %}{{ _('Audit Log') }}{% endblock %}
+
+{% block content %}
+<div class="page-container" id="auditPage">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                <i class="bi bi-journal-check me-2"></i>
+                {{ _('Audit Log') }}
+            </h1>
+            <p class="text-muted mb-0">{{ _('Who did what, to what, when and from where. This page only reads the log; nothing here changes it.') }}</p>
+        </div>
+    </div>
+
+    {% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+    <div class="tips-section">
+        <div class="tips-section-title"><i class="bi bi-info-circle"></i> {{ _('Reading the audit log') }}</div>
+        <ul class="tips-list">
+            <li>{{ _('DATA_EXPORTED entries record every file that left the system: who took it, which report, search or record it came from, how many rows, and its SHA-256 checksum.') }}</li>
+            <li>{{ _('Newest entries come first. Use Older and Newer to move through the log; the total is not counted because the log grows without limit.') }}</li>
+            <li>{{ _('Select a user or a resource in the list to show only its entries.') }}</li>
+        </ul>
+    </div>
+    {% endcall %}
+
+    {# Filled with the server's message by audit-page.js (showError). #}
+    <div id="auditError" class="d-none">
+        {{ state_panel('error', 'bi-exclamation-octagon', title=_('The request failed'), message=' ',
+                       tone='text-danger', role='alert') }}
+    </div>
+
+    <form id="auditForm" class="card mb-3" autocomplete="off">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small" for="auditAction">{{ _('Action') }}</label>
+                    <select class="form-select form-select-sm" id="auditAction">
+                        <option value="">{{ _('Any action') }}</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small" for="auditUsername">{{ _('User name') }}</label>
+                    <input class="form-control form-control-sm" id="auditUsername" maxlength="64" dir="auto">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small" for="auditResource">{{ _('Resource starts with') }}</label>
+                    <input class="form-control form-control-sm" id="auditResource" maxlength="255" dir="auto">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small" for="auditSince">{{ _('From (inclusive)') }}</label>
+                    <input class="form-control form-control-sm" id="auditSince" type="datetime-local">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small" for="auditUntil">{{ _('Until (exclusive)') }}</label>
+                    <input class="form-control form-control-sm" id="auditUntil" type="datetime-local">
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-2">
+                <button type="submit" class="btn btn-primary btn-sm" id="auditApply"><i class="bi bi-funnel me-1"></i>{{ _('Show entries') }}</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="auditReset"><i class="bi bi-x-circle me-1"></i>{{ _('Clear') }}</button>
+            </div>
+        </div>
+    </form>
+
+    <div id="auditNote" class="small mb-2" role="status"></div>
+    {% call data_table(id='auditTable', variant='sm table-hover align-middle') %}
+        <thead><tr>
+            <th>{{ _('When') }}</th><th>{{ _('User') }}</th><th>{{ _('Action') }}</th>
+            <th>{{ _('Resource') }}</th><th>{{ _('IP address') }}</th><th></th>
+        </tr></thead>
+        <tbody id="auditRows"></tbody>
+    {% endcall %}
+    <nav id="auditPager" class="d-flex justify-content-between align-items-center mb-3"></nav>
+
+    <section id="auditDetail" class="card mb-3 d-none" aria-labelledby="auditDetailTitle">
+        <div class="card-body">
+            <h2 class="fs-5 mb-2" id="auditDetailTitle"></h2>
+            <dl id="auditDetailFields" class="row small mb-2"></dl>
+            <h3 class="fs-6">{{ _('Detail') }}</h3>
+            <pre id="auditDetailJson" class="small border rounded p-2 mb-0" dir="ltr"></pre>
+        </div>
+    </section>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="audit-page-data">{{ page_data|tojson }}</script>
+<script type="application/json" id="audit-page-labels">{{ {
+    "none": _('none'),
+    "any_action": _('Any action'),
+    "no_user": _('no user (system or anonymous)'),
+    "details": _('Details'),
+    "older": _('Older'),
+    "newer": _('Newer'),
+    "empty": _('No entries match these filters.'),
+    "empty_log": _('The audit log is empty.'),
+    "shown": _('Showing %(count)s entries, newest first.'),
+    "more": _('More entries exist; use Older to continue.'),
+    "no_more": _('These are the oldest matching entries.'),
+    "not_counted": _('The total is not counted.'),
+    "actions_capped": _('Only the first %(cap)s action names are listed.'),
+    "entry_title": _('Audit entry %(id)s'),
+    "filter_user": _('Show only this user\'s entries'),
+    "filter_resource": _('Show only entries for resources starting with this'),
+    "f_id": _('Entry'),
+    "f_when": _('When'),
+    "f_user": _('User'),
+    "f_user_id": _('User id'),
+    "f_action": _('Action'),
+    "f_resource": _('Resource'),
+    "f_ip": _('IP address'),
+    "request_failed": _('The request failed'),
+} |tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/audit-page.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Source Categories & Keywords') }}{% endblock %}
+
+{% from 'components/breadcrumbs.html' import breadcrumbs %}
+{% block breadcrumb %}{{ breadcrumbs(parent='sources_list', intermediate=[{'label': source.name, 'url': url_for('source_detail', source_id=source.id)}], current=_('Categories & Keywords')) }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-building me-2"></i>
+        {{ _('Categories & Keywords') }} - {{ source.name }}
+    </h1>
+    <a href="{{ url_for('source_detail', source_id=source.id) }}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-left me-2"></i>
+        {{ _('Back to Source Details') }}
+    </a>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-tags"></i>
+        {{ _('Source Categories & Keywords Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('This page shows all categories and keywords associated with this source') }}</li>
+        <li>{{ _('View categories and keywords to understand the content profile of this source') }}</li>
+        <li>{{ _('See statistics showing how many files are associated with each category or keyword') }}</li>
+        <li>{{ _('Use this information to understand the types of documents from this source') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-graph-up"></i>
+        {{ _('Understanding Associations') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Categories show the main themes and classifications for files from this source') }}</li>
+        <li>{{ _('Keywords identify important terms and concepts in documents from this source') }}</li>
+        <li>{{ _('File counts indicate how many files are linked to each category or keyword') }}</li>
+        <li>{{ _('Use this data to understand the content characteristics of this source') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="stat-card">
+            <h5 class="mb-3">
+                <i class="bi bi-tags me-2"></i>{{ _('Categories') }}
+            </h5>
+            <div id="categoriesContainer">
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ _('Loading...') }}</span>
+                    </div>
+                </div>
+            </div>
+            <nav aria-label="{{ _('Categories pagination') }}" id="categoriesPagination">
+                <!-- Pagination will be inserted here -->
+            </nav>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <h5 class="mb-3">
+                <i class="bi bi-key me-2"></i>{{ _('Keywords') }}
+            </h5>
+            <div id="keywordsContainer">
+                <div class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ _('Loading...') }}</span>
+                    </div>
+                </div>
+            </div>
+            <nav aria-label="{{ _('Keywords pagination') }}" id="keywordsPagination">
+                <!-- Pagination will be inserted here -->
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="source-categories-keywords-page-data">{{ {
+    "source_id": source.id,
+    "source_name": source.name,
+    "translations": {
+        "loading": _('Loading...'),
+        "noCategories": _('No categories found'),
+        "noKeywords": _('No keywords found'),
+        "files": _('files'),
+        "viewFiles": _('View Files')
+    }
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/source-categories-keywords-page.js') }}"></script>
+{% endblock %}
+

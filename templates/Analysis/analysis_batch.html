@@ -1,0 +1,645 @@
+<!-- templates/analysis_batch.html - COMPLETELY ENHANCED -->
+{% extends "base.html" %}
+
+{% block title %}{{ _('Batch Analysis') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/multi-select-dropdown.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-lightning-charge me-2"></i>
+            {{ _('Batch Analysis') }}
+        </h1>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#templatesModal">
+            <i class="bi bi-bookmark me-1"></i>
+            {{ _('Templates') }}
+        </button>
+        <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#historyModal">
+            <i class="bi bi-clock-history me-1"></i>
+            {{ _('History') }}
+        </button>
+    </div>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-lightning-charge"></i>
+        {{ _('Batch Analysis Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Batch Analysis allows you to process multiple files or folders simultaneously') }}</li>
+        <li>{{ _('Upload files or enter folder paths to analyze large collections efficiently') }}</li>
+        <li>{{ _('Monitor processing progress in real-time with detailed status updates') }}</li>
+        <li>{{ _('View performance metrics including processing speed and success rates') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-bookmark"></i>
+        {{ _('Using Templates') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Save analysis configurations as templates for quick reuse') }}</li>
+        <li>{{ _('Templates store processing options, filters, and analysis settings') }}</li>
+        <li>{{ _('Load saved templates to apply consistent analysis settings across multiple batches') }}</li>
+        <li>{{ _('Manage templates: create, edit, delete, or share with team members') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-clock-history"></i>
+        {{ _('Analysis History') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('View history of all batch analysis operations you\'ve performed') }}</li>
+        <li>{{ _('Review past analysis results, configurations, and outcomes') }}</li>
+        <li>{{ _('Re-run previous analyses or use them as templates for new batches') }}</li>
+        <li>{{ _('Track processing times and success rates to optimize your workflow') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<!-- Analysis View Navigation -->
+<div class="analysis-view-navigation" style="margin-bottom: 2rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; background: var(--bg-section); padding: 1rem; border-radius: 8px;">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('archives_page') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'archives_page' %}active{% endif %}" data-view="file">
+            <i class="bi bi-archive"></i> {{ _('File Analysis') }}
+        </a>
+        <a href="{{ url_for('path_analysis_page') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'path_analysis_page' %}active{% endif %}" data-view="path">
+            <i class="bi bi-briefcase"></i> {{ _('Path Analysis') }}
+        </a>
+        <a href="{{ url_for('analysis_batch') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'analysis_batch' %}active{% endif %}" data-view="batch">
+            <i class="bi bi-lightning-charge"></i> {{ _('Batch Analysis') }}
+        </a>
+        <a href="{{ url_for('file_classification_page') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'file_classification_page' %}active{% endif %}" data-view="classification">
+            <i class="bi bi-file-earmark-text"></i> {{ _('Classification') }}
+        </a>
+    </div>
+</div>
+<!-- Performance Metrics -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-card-icon me-3" style="background: var(--alert-success-bg); color: var(--success-color);">
+                    <i class="bi bi-speedometer2"></i>
+                </div>
+                <div>
+                    <div class="stat-card-title">{{ _('Avg Speed') }}</div>
+                    {% if avg_processing_time.available %}
+                    <h3 class="stat-card-value mb-0">
+                        {% if avg_processing_time.label %}<span class="measurement-label">{{ avg_processing_time.label }}</span>{% endif %}
+                        {{ avg_processing_time.display }}
+                    </h3>
+                    {% else %}
+                    <h3 class="stat-card-value mb-0 measurement-unavailable">
+                        {{ avg_processing_time.display }}
+                    </h3>
+                    {% endif %}
+                    {% if avg_processing_time.detail %}
+                    <div class="measurement-detail">{{ avg_processing_time.detail }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-card-icon me-3" style="background: var(--alert-info-bg); color: var(--primary-color);">
+                    <i class="bi bi-check-circle"></i>
+                </div>
+                <div>
+                    <div class="stat-card-title">{{ _('Success Rate') }}</div>
+                    {% if success_rate.available %}
+                    <h3 class="stat-card-value mb-0">
+                        {% if success_rate.label %}<span class="measurement-label">{{ success_rate.label }}</span>{% endif %}
+                        {{ success_rate.display }}
+                    </h3>
+                    {% else %}
+                    <h3 class="stat-card-value mb-0 measurement-unavailable">
+                        {{ success_rate.display }}
+                    </h3>
+                    {% endif %}
+                    {% if success_rate.detail %}
+                    <div class="measurement-detail">{{ success_rate.detail }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-card-icon me-3" style="background: var(--alert-warning-bg); color: var(--warning-color);">
+                    <i class="bi bi-clock"></i>
+                </div>
+                <div>
+                    <div class="stat-card-title">{{ _('Est. Time') }}</div>
+                    {% if estimated_time.available %}
+                    <h3 class="stat-card-value mb-0" id="estimatedTime">
+                        {% if estimated_time.label %}<span class="measurement-label">{{ estimated_time.label }}</span>{% endif %}
+                        {{ estimated_time.display }}
+                    </h3>
+                    {% else %}
+                    <h3 class="stat-card-value mb-0 measurement-unavailable" id="estimatedTime">
+                        {{ estimated_time.display }}
+                    </h3>
+                    {% endif %}
+                    {% if estimated_time.detail %}
+                    <div class="measurement-detail">{{ estimated_time.detail }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-card-icon me-3" style="background: var(--alert-danger-bg); color: var(--danger-color);">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+                <div>
+                    <div class="stat-card-title">{{ _('Queue Size') }}</div>
+                    <h3 class="stat-card-value mb-0">{{ queue_size }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Controls -->
+<div class="stat-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="bi bi-hourglass-split me-2"></i>
+            {{ _('Pending Analysis') }}: {{ unanalyzed|length }} {{ _('files') }}
+        </h5>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-select-toggle" id="batchSelectToggleBtn"
+                    data-on-click="toggleAllSelection()" aria-pressed="false"
+                    data-text-select-all="{{ _('Select All') }}"
+                    data-text-select-none="{{ _('Select None') }}"
+                    aria-label="{{ _('Select All') }}" title="{{ _('Select All') }}">
+                <i class="bi bi-check-square-fill select-toggle-icon" aria-hidden="true"></i>
+                <span class="select-toggle-label">{{ _('Select All') }}</span>
+                <span class="select-toggle-count" id="batchSelectToggleCount" hidden>0</span>
+            </button>
+            <button class="btn btn-outline-success btn-sm" data-on-click="selectHighPriority()">
+                <i class="bi bi-star"></i> {{ _('High Priority') }}
+            </button>
+        </div>
+    </div>
+    
+    <!-- Priority & Scheduling -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <label class="form-label small">{{ _('Priority Level') }}</label>
+            <select id="prioritySelect" class="form-select form-select-sm">
+                <option value="">{{ _('All Priorities') }}</option>
+                <option value="high">{{ _('High') }}</option>
+                <option value="medium">{{ _('Medium') }}</option>
+                <option value="low">{{ _('Low') }}</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">{{ _('Schedule') }}</label>
+            <select id="scheduleSelect" class="form-select form-select-sm">
+                <option value="now">{{ _('Run Now') }}</option>
+                <option value="off-hours">{{ _('Off-Hours (11 PM)') }}</option>
+                <option value="custom">{{ _('Custom Time') }}</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">{{ _('Error Handling') }}</label>
+            <select id="errorHandling" class="form-select form-select-sm">
+                <option value="retry">{{ _('Retry Failed') }}</option>
+                <option value="skip">{{ _('Skip Failed') }}</option>
+                <option value="stop">{{ _('Stop on Error') }}</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">{{ _('Resource Limit') }}</label>
+            <select id="resourceLimit" class="form-select form-select-sm">
+                <option value="unlimited">{{ _('Unlimited') }}</option>
+                <option value="50">50% {{ _('CPU') }}</option>
+                <option value="25">25% {{ _('CPU') }}</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- Enhanced Filters -->
+    <div class="row g-3 mb-3">
+        <div class="col-md-3">
+            <label class="form-label small">{{ _('Source Filter') }}</label>
+            <select id="sourceFilter" class="form-select form-select-sm">
+                <option value="">{{ _('All Sources') }}</option>
+                {% for sid, sname in sources.items() %}
+                <option value="{{ sid }}">{{ sname }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">{{ _('Side Filter') }}</label>
+            <select id="sideFilter" class="form-select form-select-sm">
+                <option value="">{{ _('All Sides') }}</option>
+                {% for sid, sname in sides.items() %}
+                <option value="{{ sid }}">{{ sname }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">{{ _('File Type') }}</label>
+            <select id="fileTypeFilter" class="form-select form-select-sm msdd-enhance" multiple
+                    data-compact-multi="type" data-placeholder="{{ _('All types') }}"
+                    title="{{ _('Filter by one or more file types') }}"
+                    aria-label="{{ _('Filter by one or more file types') }}">
+                <option value=".PDF">PDF</option>
+                <option value=".DOCX">{{ _('Word') }}</option>
+                <option value=".XLSX">{{ _('Excel') }}</option>
+                <option value=".TXT">{{ _('Text') }}</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small">{{ _('Size Range') }}</label>
+            <select id="sizeFilter" class="form-select form-select-sm">
+                <option value="">{{ _('All Sizes') }}</option>
+                <option value="small">< 1MB</option>
+                <option value="medium">1-10MB</option>
+                <option value="large">> 10MB</option>
+            </select>
+        </div>
+    </div>
+    
+    <!-- File List with Numbering -->
+    <div style="max-height: 400px; overflow-y: auto;">
+        <table class="table table-hover table-sm mb-0">
+            <thead class="sticky-top bg-white">
+                <tr>
+                    <th width="40"><input type="checkbox" id="selectAllCheckbox" data-on-change="toggleAll(this)"></th>
+                    <th width="50">#</th>
+                    <th>{{ _('File Name') }}</th>
+                    <th>{{ _('Type') }}</th>
+                    <th>{{ _('Size') }}</th>
+                    <th>{{ _('Source') }}</th>
+                    <th>{{ _('Priority') }}</th>
+                </tr>
+            </thead>
+            <tbody id="fileTableBody">
+                {% for file in unanalyzed %}
+                <tr class="file-row" data-source="{{ file[4] }}" data-side="{{ file[5] }}" data-type="{{ file[3] }}">
+                    <td><input type="checkbox" class="file-checkbox" value="{{ file[0] }}"></td>
+                    <td><span class="badge bg-secondary">{{ loop.index }}</span></td>
+                    <td>
+                        <i class="bi bi-file-earmark me-1"></i>
+                        {{ file[1][:50] }}{% if file[1]|length > 50 %}...{% endif %}
+                    </td>
+                    <td><span class="badge bg-secondary">{{ file[3] }}</span></td>
+                    <td>{{ (file[2] / 1024)|round|int }} KB</td>
+                    <td>{{ file[4] }}</td>
+                    <td>
+                        <span class="priority-badge priority-medium">
+                            <i class="bi bi-star"></i>
+                            {{ _('Medium') }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="d-flex justify-content-between mt-3">
+        <div>
+            <small class="text-muted">
+                <span id="selectedCount">0</span> {{ _('files selected') }}
+            </small>
+        </div>
+        <button class="btn btn-primary" data-on-click="startAnalysis()" id="analyzeBtn">
+            <i class="bi bi-play-circle me-2"></i>
+            {{ _('Start Analysis') }}
+        </button>
+    </div>
+</div>
+
+<!-- Progress Card -->
+<div id="progressCard" class="stat-card" style="display: none;">
+    <h5 class="mb-3">
+        <i class="bi bi-gear me-2"></i>
+        {{ _('Processing...') }}
+    </h5>
+    
+    <div class="mb-3">
+        <div class="d-flex justify-content-between mb-2">
+            <span>{{ _('Overall Progress') }}</span>
+            <span id="progressText">0%</span>
+        </div>
+        <div class="progress" style="height: 20px;">
+            <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" 
+                 style="width: 0%"></div>
+        </div>
+    </div>
+    
+    <div class="row g-3 text-center mb-3">
+        <div class="col-md-3">
+            <div class="p-3 bg-light rounded">
+                <div class="text-muted small">{{ _('Completed') }}</div>
+                <div class="h4 mb-0" id="completedCount">0</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 bg-light rounded">
+                <div class="text-muted small">{{ _('Processing') }}</div>
+                <div class="h4 mb-0" id="processingCount">0</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 bg-light rounded">
+                <div class="text-muted small">{{ _('Remaining') }}</div>
+                <div class="h4 mb-0" id="remainingCount">0</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 bg-light rounded">
+                <div class="text-muted small">{{ _('Errors') }}</div>
+                <div class="h4 mb-0 text-danger" id="errorCount">0</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <h6>{{ _('Per-File Progress') }}</h6>
+        <div id="fileProgressList" style="max-height: 300px; overflow-y: auto;">
+            <!-- File progress items will be added here -->
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <small class="text-muted">{{ _('Current') }}: <span id="currentFile">-</span></small>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-warning" data-on-click="pauseAnalysis()" id="pauseBtn">
+            <i class="bi bi-pause-fill me-1"></i>
+            {{ _('Pause') }}
+        </button>
+        <button class="btn btn-sm btn-danger" data-on-click="stopAnalysis()" id="stopBtn">
+            <i class="bi bi-stop-fill me-1"></i>
+            {{ _('Stop') }}
+        </button>
+    </div>
+</div>
+
+<!-- Templates Modal -->
+<div class="modal fade" id="templatesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ _('Batch Templates') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3" id="templatesContainer">
+                    <div class="col-md-6">
+                        <div class="template-card">
+                            <h6 class="mb-2">{{ _('Quick Analysis') }}</h6>
+                            <small class="text-muted d-block mb-2">{{ _('Fast processing, standard settings') }}</small>
+                            <button class="btn btn-sm btn-primary w-100" data-on-click="applyTemplate('quick')">
+                                <i class="bi bi-play me-1"></i>
+                                {{ _('Apply') }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="template-card">
+                            <h6 class="mb-2">{{ _('Deep Analysis') }}</h6>
+                            <small class="text-muted d-block mb-2">{{ _('Thorough processing, all features') }}</small>
+                            <button class="btn btn-sm btn-primary w-100" data-on-click="applyTemplate('deep')">
+                                <i class="bi bi-play me-1"></i>
+                                {{ _('Apply') }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="template-card">
+                            <h6 class="mb-2">{{ _('Off-Hours') }}</h6>
+                            <small class="text-muted d-block mb-2">{{ _('Scheduled for 11 PM') }}</small>
+                            <button class="btn btn-sm btn-primary w-100" data-on-click="applyTemplate('offhours')">
+                                <i class="bi bi-play me-1"></i>
+                                {{ _('Apply') }}
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="template-card">
+                            <h6 class="mb-2">{{ _('Save New Template') }}</h6>
+                            <small class="text-muted d-block mb-2">{{ _('Create custom template') }}</small>
+                            <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#saveTemplateModal">
+                                <i class="bi bi-plus me-1"></i>
+                                {{ _('Create') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ _('Batch Analysis History') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="history-timeline">
+                    {% for job in recent_jobs %}
+                    <div class="history-item">
+                        <h6 class="mb-1">
+                            <span class="font-monospace">{{ job.job_id }}</span> -
+                            {{ job.status|replace('_', ' ')|title }}
+                        </h6>
+                        <small class="text-muted">
+                            {{ job.job_type }}{% if job.created_at %} &middot; {{ job.created_at.strftime('%Y-%m-%d %H:%M') }}{% endif %}
+                        </small>
+                        <div class="mt-2">
+                            <span class="badge bg-success">{{ job.files_completed }} {{ _('files') }}</span>
+                            {% if job.files_failed %}
+                            <span class="badge bg-danger">{{ job.files_failed }} {{ _('failed') }}</span>
+                            {% endif %}
+                            {% if job.success_rate is not none %}
+                            {# Measured from this job's own counts, so it is a
+                               reading rather than an estimate. #}
+                            <span class="badge bg-info">{{ "%.1f"|format(job.success_rate) }}% {{ _('success') }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ _('No measurement available') }}</span>
+                            {% endif %}
+                            {% if job.duration_seconds is not none %}
+                            <span class="badge bg-secondary">{{ "%.0f"|format(job.duration_seconds) }}s {{ _('elapsed') }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="history-item">
+                        <h6 class="mb-1">{{ _('No jobs recorded yet') }}</h6>
+                        <small class="text-muted">
+                            {{ _('Batch and ingestion runs appear here once the job system has executed one.') }}
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Failed Files Section -->
+{% if failed_files|length > 0 %}
+<div class="stat-card mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="bi bi-exclamation-triangle me-2 text-warning"></i>
+            {{ _('Failed Files') }}: {{ failed_files|length }} {{ _('files') }}
+        </h5>
+    </div>
+    
+    <div class="alert alert-warning mb-3" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        {{ _('These files failed to save, were not saved, or had processing errors. Click Retry to attempt reading and saving again.') }}
+    </div>
+    
+    <div style="max-height: 400px; overflow-y: auto;">
+        <table class="table table-hover table-sm mb-0">
+            <thead class="sticky-top bg-white">
+                <tr>
+                    <th width="50">#</th>
+                    <th>{{ _('File Name') }}</th>
+                    <th>{{ _('Type') }}</th>
+                    <th>{{ _('Size') }}</th>
+                    <th>{{ _('Source') }}</th>
+                    <th>{{ _('Error') }}</th>
+                    <th width="120">{{ _('Action') }}</th>
+                </tr>
+            </thead>
+            <tbody id="failedFilesTableBody">
+                {% for file in failed_files %}
+                <tr class="failed-file-row" data-file-id="{{ file[0] }}">
+                    <td><span class="badge bg-warning">{{ loop.index }}</span></td>
+                    <td>
+                        <i class="bi bi-file-earmark me-1"></i>
+                        {{ file[1][:50] }}{% if file[1]|length > 50 %}...{% endif %}
+                    </td>
+                    <td><span class="badge bg-secondary">{{ file[3] }}</span></td>
+                    <td>{{ (file[2] / 1024)|round|int }} KB</td>
+                    <td>{{ file[4] }}</td>
+                    <td>
+                        {% if file[6] %}
+                        <span class="text-danger" title="{{ file[6] }}">
+                            <i class="bi bi-exclamation-circle me-1"></i>
+                            {{ file[6][:50] }}{% if file[6]|length > 50 %}...{% endif %}
+                        </span>
+                        {% else %}
+                        <span class="text-muted">{{ _('No error message') }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary retry-file-btn" 
+                                data-file-id="{{ file[0] }}"
+                                data-on-click="retryFile({{ file[0] }}, this)">
+                            <i class="bi bi-arrow-clockwise me-1"></i>
+                            {{ _('Retry') }}
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Resource Optimization -->
+<div class="stat-card mt-4">
+    <h5 class="mb-3">
+        <i class="bi bi-sliders me-2"></i>
+        {{ _('Resource Optimization') }}
+    </h5>
+    
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div>
+                <div class="d-flex justify-content-between mb-1">
+                    <small>{{ _('CPU Usage') }}</small>
+                    <small class="fw-bold">45%</small>
+                </div>
+                <div class="resource-meter">
+                    <div class="resource-fill" style="width: 45%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div>
+                <div class="d-flex justify-content-between mb-1">
+                    <small>{{ _('Memory Usage') }}</small>
+                    <small class="fw-bold">62%</small>
+                </div>
+                <div class="resource-meter">
+                    <div class="resource-fill" style="width: 62%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div>
+                <div class="d-flex justify-content-between mb-1">
+                    <small>{{ _('Disk I/O') }}</small>
+                    <small class="fw-bold">38%</small>
+                </div>
+                <div class="resource-meter">
+                    <div class="resource-fill" style="width: 38%"></div>
+                </div>
+            </div>
+        </div>
+     </div>
+ </div>
+ 
+ {% endblock %}
+ 
+ {% block extra_js %}
+<script type="application/json" id="analysis-batch-page-data">{{ {
+    "translations": {
+        "pleaseSelectFiles": _('Please select files to analyze'),
+        "analysisPaused": _('Analysis paused'),
+        "stopAnalysisConfirm": _('Stop analysis? Progress will be lost.'),
+        "analysisComplete": _('Analysis Complete!'),
+        "error": _('Error'),
+        "file": _('File'),
+        "success": _('Success'),
+        "templateApplied": _('Template applied'),
+        "processing": _('Processing...'),
+        "failed": _('Failed'),
+        "processed": _('Processed'),
+        "fileRetrySuccess": _('File processed and saved successfully!'),
+        "fileRetryPartial": _('File processed but may not have been saved. Check logs for details.'),
+        "fileRetryError": _('Error retrying file')
+    }
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/analysis-batch-page.js') }}"></script>
+{% endblock %}

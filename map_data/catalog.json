@@ -1,0 +1,125 @@
+{
+  "version": 2,
+  "online_layers": [
+    {
+      "id": "standard-osm",
+      "layer_kind": "standard",
+      "map_type": "street",
+      "requires_network": true,
+      "builtin": true,
+      "sources": [
+        {
+          "id": "base",
+          "type": "raster",
+          "tiles": ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+          "tile_size": 256,
+          "maxzoom": 19,
+          "attribution": "© OpenStreetMap contributors"
+        }
+      ]
+    },
+    {
+      "id": "satellite-esri",
+      "layer_kind": "satellite",
+      "map_type": "imagery",
+      "requires_network": true,
+      "builtin": true,
+      "sources": [
+        {
+          "id": "imagery",
+          "type": "raster",
+          "tiles": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+          "tile_size": 256,
+          "maxzoom": 19,
+          "attribution": "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community"
+        }
+      ]
+    },
+    {
+      "id": "hybrid-esri",
+      "layer_kind": "hybrid",
+      "map_type": "hybrid",
+      "requires_network": true,
+      "builtin": true,
+      "sources": [
+        {
+          "id": "imagery",
+          "type": "raster",
+          "tiles": ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"],
+          "tile_size": 256,
+          "maxzoom": 19,
+          "attribution": "Imagery © Esri"
+        },
+        {
+          "id": "reference",
+          "type": "raster",
+          "tiles": ["https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"],
+          "tile_size": 256,
+          "maxzoom": 19,
+          "opacity": 0.85,
+          "attribution": "Labels © Esri"
+        }
+      ]
+    },
+    {
+      "id": "terrain-opentopo",
+      "layer_kind": "terrain",
+      "map_type": "topographic",
+      "requires_network": true,
+      "builtin": true,
+      "sources": [
+        {
+          "id": "terrain",
+          "type": "raster",
+          "tiles": ["https://tile.opentopomap.org/{z}/{x}/{y}.png"],
+          "tile_size": 256,
+          "maxzoom": 17,
+          "attribution": "© OpenStreetMap contributors, SRTM | Style: © OpenTopoMap (CC-BY-SA)"
+        }
+      ]
+    },
+    {
+      "id": "dark-carto",
+      "layer_kind": "dark",
+      "map_type": "dark",
+      "requires_network": true,
+      "builtin": true,
+      "sources": [
+        {
+          "id": "dark",
+          "type": "raster",
+          "tiles": ["https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],
+          "tile_size": 256,
+          "maxzoom": 19,
+          "attribution": "© OpenStreetMap contributors © CARTO"
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "id": "offline-standard-demo",
+      "name": "Offline standard map (sample pack)",
+      "description": "Compressed raster pyramid for offline street viewing. Set download_url to your mirror or install manually under map_data/installed/.",
+      "layer_kind": "standard",
+      "map_type": "offline_street",
+      "type": "raster_archive",
+      "download_url": "",
+      "archive_name": "offline-standard-demo.tar.gz",
+      "size_bytes": 0,
+      "attribution": "© OpenStreetMap contributors (offline excerpt)"
+    },
+    {
+      "id": "offline-imagery-demo",
+      "name": "Offline aerial imagery (sample pack)",
+      "description": "Compressed imagery tiles for offline satellite-style viewing.",
+      "layer_kind": "satellite",
+      "map_type": "offline_imagery",
+      "type": "raster_archive",
+      "download_url": "",
+      "archive_name": "offline-imagery-demo.tar.gz",
+      "size_bytes": 0,
+      "attribution": "Imagery © your data provider"
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{#
+  The Reports page. Every label below is an existing msgid: present, translated,
+  non-fuzzy and non-plural in each of ar/he/fa/hr, so the page is fully
+  translated without adding a single catalog entry. Where a concept has no
+  translated label (a partial or skipped count, for example), the page does not
+  invent one — the number is shown under a label that does exist and the JSON
+  endpoint carries the full breakdown.
+
+  The page is server-rendered on purpose: no inline script (CSP), no page module,
+  and the same statement fills the filters, the totals and the tables.
+#}
+
+{% block title %}{{ _('Reports') }}{% endblock %}
+
+{% block content %}
+{% from 'components/table.html' import data_table %}
+<div class="page-container" id="reportsPage">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                <i class="bi bi-file-earmark-bar-graph me-2"></i>
+                {{ _('Reports') }}
+            </h1>
+            <p class="text-muted mb-0">{{ _('Report catalog') }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-primary" href="/reports/dashboard{{ query_suffix }}">
+                <i class="bi bi-speedometer2 me-1"></i> {{ _('Reports Dashboard') }}
+            </a>
+            <a class="btn btn-outline-secondary" href="/reports/entries/print{{ query_suffix }}"
+               target="_blank" rel="noopener">
+                <i class="bi bi-printer me-1"></i> {{ _('Print') }}
+            </a>
+            <button class="btn btn-outline-primary" type="submit" form="reportFilters">
+                <i class="bi bi-arrow-clockwise me-1"></i> {{ _('Refresh') }}
+            </button>
+        </div>
+    </div>
+
+    {% if page_data.error %}
+    <div class="alert alert-warning" role="alert">{{ page_data.error }}</div>
+    {% endif %}
+
+    <form class="card card-body mb-3" id="reportFilters" method="get" action="/reports">
+        <div class="row g-2 align-items-end">
+            <div class="col-sm-3">
+                <label class="form-label" for="fReportSource">{{ _('Source') }}</label>
+                <select class="form-select form-select-sm" id="fReportSource" name="source_id">
+                    <option value="">{{ _('All Sources') }}</option>
+                    {% for source in filter_options.sources %}
+                    <option value="{{ source.id }}"
+                        {% if page_data.filters.get('source_id') == source.id|string %}selected{% endif %}>
+                        {{ source.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-3">
+                <label class="form-label" for="fReportSide">{{ _('Side') }}</label>
+                <select class="form-select form-select-sm" id="fReportSide" name="side_id">
+                    <option value="">{{ _('All Sides') }}</option>
+                    {% for side in filter_options.sides %}
+                    <option value="{{ side.id }}"
+                        {% if page_data.filters.get('side_id') == side.id|string %}selected{% endif %}>
+                        {{ side.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-2">
+                <label class="form-label" for="fReportFrom">{{ _('From') }}</label>
+                <input type="date" class="form-control form-control-sm" id="fReportFrom"
+                       name="date_from" value="{{ page_data.filters.get('date_from', '') }}">
+            </div>
+            <div class="col-sm-2">
+                <label class="form-label" for="fReportTo">{{ _('To') }}</label>
+                <input type="date" class="form-control form-control-sm" id="fReportTo"
+                       name="date_to" value="{{ page_data.filters.get('date_to', '') }}">
+            </div>
+            <div class="col-sm-2 d-flex gap-2">
+                <button class="btn btn-primary btn-sm" type="submit">{{ _('Apply') }}</button>
+                <a class="btn btn-outline-secondary btn-sm" href="/reports">{{ _('Reset') }}</a>
+            </div>
+        </div>
+    </form>
+
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-body">
+                <div class="text-muted small">{{ _('Total Files') }}</div>
+                <div class="fs-3 fw-semibold" id="reportTotal">{{ totals.total }}</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-body">
+                <div class="text-muted small">{{ _('Processed') }}</div>
+                <div class="fs-3 fw-semibold text-success" id="reportProcessed">{{ totals.success }}</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-body">
+                <div class="text-muted small">{{ _('Failed') }}</div>
+                <div class="fs-3 fw-semibold text-danger" id="reportFailed">{{ totals.failed }}</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-body">
+                <div class="text-muted small">{{ _('Success Rate') }}</div>
+                <div class="fs-3 fw-semibold" id="reportSuccessRate">{{ totals.success_pct }}%</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">
+            <h5 class="mb-0">{{ _('File type') }}</h5>
+        </div>
+        {% call data_table(id='reportByType', variant='sm table-hover align-middle', extra_class='mb-0') %}
+                <thead>
+                    <tr>
+                        <th scope="col">{{ _('File type') }}</th>
+                        <th scope="col" class="text-end">{{ _('Total') }}</th>
+                        <th scope="col" class="text-end">{{ _('Processed') }}</th>
+                        <th scope="col" class="text-end">{{ _('Failed') }}</th>
+                        <th scope="col" class="text-end">{{ _('Success Rate') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in report.by_file_type %}
+                    <tr>
+                        <td>{{ row.file_type }}</td>
+                        <td class="text-end">{{ row.total }}</td>
+                        <td class="text-end">{{ row.success }}</td>
+                        <td class="text-end">{{ row.failed }}</td>
+                        <td class="text-end">{{ row.success_pct }}%</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-muted">{{ _('No results found') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            
+        {% endcall %}
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">{{ _('Categories') }}</h5></div>
+                <ul class="list-group list-group-flush" id="reportClassifications">
+                    {% for row in report.classifications %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ row.category_term }}</span>
+                        <span class="badge text-bg-secondary">{{ row.paths }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">{{ _('No results found') }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">{{ _('Keywords') }}</h5></div>
+                <ul class="list-group list-group-flush" id="reportKeywords">
+                    {% for row in report.keywords %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>{{ row.keyword }}</span>
+                        <span class="badge text-bg-secondary">{{ row.paths }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">{{ _('No results found') }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

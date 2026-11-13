@@ -1,0 +1,60 @@
+{# component: breadcrumbs
+   purpose: Where the reader is, rendered from the interface registry: a page
+            says what it is about, the registry supplies the words and icons.
+   states: normal
+   classes: breadcrumb, breadcrumb-item, active
+   notes: No page supplies a breadcrumb label or icon map; if a label is
+          missing the registry does not know that page, which the coverage
+          test reports.
+#}
+{# ==========================================================================
+   Breadcrumbs.
+
+   A page passes *what it is about* - a parent list and the record it is
+   showing - and this component supplies the labels and icons from the
+   registry. Pages used to write the whole trail by hand, which duplicated
+   product names and icons in markup ("Sources" with bi-building here, a
+   different icon there) and drifted from the registry silently.
+
+   Usage:
+       {% from 'components/breadcrumbs.html' import breadcrumbs %}
+       {% block breadcrumb %}{{ breadcrumbs(parent='sources_list') }}{% endblock %}
+       {% block breadcrumb %}{{ breadcrumbs(parent='sides_list',
+                                            intermediate=[{'label': side.name,
+                                                           'url': url_for('side_detail', side_id=side.id)}],
+                                            current=_('Categories & Keywords')) }}{% endblock %}
+
+   `interface_for(endpoint)` is prepared by the application context; it returns
+   the registry's own label and icon for a route, so a component never invents
+   a product name.
+   ========================================================================== #}
+{% macro breadcrumbs(parent=None, intermediate=(), current=None) %}
+    {% set home_label = _('Home') %}
+    <li class="breadcrumb-item">
+        <a href="{{ url_for('index') }}">
+            <i class="bi bi-house-door me-1" aria-hidden="true"></i>{{ home_label }}
+        </a>
+    </li>
+    {% if parent %}
+        {% set parent_interface = interface_for(parent) %}
+        <li class="breadcrumb-item">
+            <a href="{{ url_for(parent) }}">
+                {% if parent_interface and parent_interface.icon %}<i class="bi {{ parent_interface.icon }} me-1" aria-hidden="true"></i>{% endif %}
+                {{ _(parent_interface.label) if parent_interface else parent }}
+            </a>
+        </li>
+    {% endif %}
+    {% for crumb in intermediate %}
+        <li class="breadcrumb-item">
+            {% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}{{ crumb.label }}{% endif %}
+        </li>
+    {% endfor %}
+    {% set current_interface = interface_for(request.endpoint) %}
+    <li class="breadcrumb-item active" aria-current="page">
+        {% if current %}
+            {{ current }}
+        {% elif current_interface %}
+            {{ _(current_interface.label) }}
+        {% endif %}
+    </li>
+{% endmacro %}

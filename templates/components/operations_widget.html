@@ -1,0 +1,36 @@
+{# component: operations_widget
+   purpose: What the ingestion and processing system is doing right now:
+            active jobs, throughput, and the shortcuts into Operations.
+   states: normal, loading, empty, error
+   classes: card, card-header, card-body, ops-widget
+   notes: Reads real job numbers from the jobs API. When a number is not
+          measured it is reported as unavailable, never invented (§8).
+#}
+<!-- Dashboard operations widget: active jobs, throughput, quick actions.
+     Real data from /api/jobs/summary + /api/jobs - no fake increments. -->
+<div class="card shadow-sm mb-3" id="opsWidget">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-list-check me-2"></i>{{ _('Operations') }}</span>
+    <span class="small text-muted" id="opsActive"></span>
+  </div>
+  <div class="card-body py-2">
+    <div class="d-flex flex-wrap gap-2 mb-2">
+      <a href="/operations/input" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> {{ _('New Ingestion') }}</a>
+      <a href="/operations/import" class="btn btn-sm btn-outline-primary"><i class="bi bi-box-arrow-in-down"></i> {{ _('New Import') }}</a>
+      <a href="/operations/jobs" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clock-history"></i> {{ _('View Jobs') }}</a>
+      <a href="/search" class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i> {{ _('Search Files') }}</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-sm mb-0 small">
+        <tbody id="opsRows">
+          <tr><td class="text-muted">{{ _('Loading active jobs…') }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+<script type="application/json" id="operations-widget-data">{{ {
+    "active": _('active'),
+    "noOperationsYetStartAnIngestion": _('No operations yet - start an ingestion.')
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/modules/core/operations-widget.js') }}"></script>

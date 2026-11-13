@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ _('Import Center') }}{% endblock %}
+{% block page_type %}default{% endblock %}
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h3 mb-0">
+      <i class="bi bi-box-arrow-in-down me-2" aria-hidden="true"></i>{{ _('Import Center') }}
+    </h1>
+    <a href="/operations/jobs" class="btn btn-outline-primary btn-sm"><i class="bi bi-list-task"></i> {{ _('Jobs') }}</a>
+  </div>
+
+  <div class="alert alert-info">
+    {{ _('Importing existing data is a distinct operation from file ingestion. Validate and preview before you commit - large imports run as jobs you can monitor and cancel.') }}
+  </div>
+
+  <div class="row g-3">
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-database me-2"></i>{{ _('Domain data') }}</h5>
+          <p class="text-muted small">{{ _('Import domain classification data (Excel/CSV/JSON from the application import-data directory).') }}</p>
+          <input type="text" id="diFile" class="form-control form-control-sm mb-2" placeholder="{{ _('data file name (optional)') }}">
+          <button class="btn btn-sm btn-outline-secondary" id="diValidate">{{ _('Validate') }}</button>
+          <button class="btn btn-sm btn-outline-secondary" id="diPreview">{{ _('Preview (dry run)') }}</button>
+          <button class="btn btn-sm btn-primary" id="diStart">{{ _('Start import') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-archive me-2"></i>{{ _('Backup restore') }} <span class="badge bg-danger">{{ _('admin') }}</span></h5>
+          <p class="text-muted small">{{ _('Restore previously exported application data (allowlist-validated JSON backup, transactional).') }}</p>
+          <input type="file" id="buFile" class="form-control form-control-sm mb-2">
+          <button class="btn btn-sm btn-outline-secondary" id="buValidate">{{ _('Validate') }}</button>
+          <button class="btn btn-sm btn-primary" id="buStart">{{ _('Restore backup') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title"><i class="bi bi-folder2-open me-2"></i>{{ _('Server file batch') }}</h5>
+          <p class="text-muted small">{{ _('Ingest a list of server-side files (restricted to configured ingestion roots). One path per line.') }}</p>
+          <textarea id="biPaths" class="form-control form-control-sm mb-2" rows="4"
+                    placeholder="/data/inbox/file1.pdf&#10;/data/inbox/file2.docx"></textarea>
+          <div class="row g-1 mb-2">
+            <div class="col-6"><select id="biSource" class="form-select form-select-sm"></select></div>
+            <div class="col-6"><select id="biSide" class="form-select form-select-sm"></select></div>
+          </div>
+          <button class="btn btn-sm btn-outline-secondary" id="biValidate">{{ _('Validate') }}</button>
+          <button class="btn btn-sm btn-primary" id="biStart">{{ _('Start batch import') }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mt-3">
+    <div class="card-body">
+      <h5 class="card-title">{{ _('Preview & confirmation') }}</h5>
+      <div id="previewBox" class="border rounded p-3 bg-light small text-muted">
+        {{ _('Run Validate or Preview on an import source to see what would happen. Nothing is imported until you confirm.') }}
+      </div>
+      <div class="d-none mt-2" id="confirmRow">
+        <button class="btn btn-success" id="btnConfirmStart">{{ _('Start Import') }}</button>
+        <button class="btn btn-outline-secondary" id="btnClearPreview">{{ _('Clear') }}</button>
+      </div>
+      <div id="importMsg" class="mt-2"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="import-center-page-data">{{ {
+    "select": (_('-- select --')|e),
+    "reviewCarefullyImportsRunAsJobs": _('Review carefully. Imports run as jobs with full error reporting.'),
+    "validationFailed": _('Validation failed'),
+    "previewFailed": _('Preview failed'),
+    "chooseABackupFileFirst": _('Choose a backup file first.'),
+    "backupStagedStartingValidationJob": _('Backup staged. Starting validation job…'),
+    "stagingFailed": _('Staging failed'),
+    "restoreJobFailedToStart": _('Restore job failed to start'),
+    "selectASourceAndASide": _('Select a source and a side.'),
+    "nothingToStartRunAPreview": _('Nothing to start - run a preview first.'),
+    "cleared": _('Cleared.'),
+    "importJobCouldNotBeCreated": _('Import job could not be created.'),
+    "csrfToken": csrf_token()
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/pages/import-center-page.js') }}"></script>
+{% endblock %}

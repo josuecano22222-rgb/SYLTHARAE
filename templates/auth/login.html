@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="{{ current_language }}" dir="{% if current_language in ['ar', 'fa', 'he', 'ur'] %}rtl{% else %}ltr{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ _('Sign in') }} - File Analysis System</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logos/logo_347c1538.png') }}">
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='icons/bootstrap-icons.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='fonts/inter.css') }}" rel="stylesheet">
+    {% if current_language in ['ar', 'fa', 'ur'] %}
+    <link href="{{ url_for('static', filename='fonts/noto-arabic.css') }}" rel="stylesheet">
+    {% elif current_language == 'he' %}
+    <link href="{{ url_for('static', filename='fonts/noto-hebrew.css') }}" rel="stylesheet">
+    {% endif %}
+    <style>
+        :root{
+            --brand-1:#4f46e5;
+            --brand-2:#06b6d4;
+            --brand-grad:linear-gradient(135deg,#4f46e5 0%,#06b6d4 100%);
+            --ink-900:#0f172a;
+            --ink-700:#334155;
+            --ink-500:#64748b;
+            --ink-400:#94a3b8;
+            --line:#e2e8f0;
+            --line-soft:#eef2f7;
+            --surface:#f8fafc;
+            --err:#ef4444;
+            --err-soft:#fef2f2;
+            --err-line:#fecaca;
+            --focus-ring:rgba(99,102,241,.16);
+        }
+        *{box-sizing:border-box}
+        body{
+            margin:0;
+            font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;
+            color:var(--ink-900);
+            min-height:100vh;
+            display:flex;flex-direction:column;align-items:center;justify-content:center;
+            padding:40px 16px;
+            background-color:#0b1020;
+            background-image:
+                radial-gradient(900px 520px at 12% -8%,  rgba(79,70,229,.38), transparent 62%),
+                radial-gradient(820px 520px at 104% 12%, rgba(6,182,212,.30), transparent 62%),
+                radial-gradient(720px 620px at 50% 112%, rgba(99,102,241,.26), transparent 62%);
+            background-attachment:fixed;
+            -webkit-font-smoothing:antialiased;
+            -moz-osx-font-smoothing:grayscale;
+            text-rendering:optimizeLegibility;
+        }
+        body::before{
+            content:'';
+            position:fixed;inset:0;
+            background-image:radial-gradient(rgba(255,255,255,.055) 1px, transparent 1.4px);
+            background-size:26px 26px;
+            pointer-events:none;
+        }
+        [dir="rtl"] body{font-family:'Noto Sans Arabic','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+        [lang="he"] body{font-family:'Noto Sans Hebrew','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+
+        .login-card{
+            position:relative;
+            max-width:430px;width:100%;
+            background:#fff;
+            border:0;border-radius:22px;
+            box-shadow:0 30px 80px -20px rgba(2,6,23,.55), 0 0 0 1px rgba(255,255,255,.07);
+            overflow:hidden;
+            animation:cardIn .5s cubic-bezier(.22,.9,.32,1) both;
+        }
+        .login-card::before{
+            content:'';display:block;height:4px;background:var(--brand-grad);
+        }
+        @keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+
+        .card-body{padding:34px 34px 30px}
+
+        .brand-badge{
+            width:64px;height:64px;
+            border-radius:18px;
+            margin:0 auto 18px;
+            display:flex;align-items:center;justify-content:center;
+            background:#fff;
+            box-shadow:0 14px 30px -10px rgba(37,64,247,.5), inset 0 0 0 1px rgba(15,23,42,.06);
+            overflow:hidden;
+        }
+        .brand-badge img{width:100%;height:100%;object-fit:cover;display:block}
+
+        h4{
+            font-size:1.3rem;font-weight:800;letter-spacing:-.02em;
+            color:var(--ink-900);margin-bottom:4px;
+        }
+        .login-sub{color:var(--ink-500);font-size:.9rem;margin-bottom:24px}
+
+        /* Language switcher */
+        .lang-switch{position:absolute;top:14px;inset-inline-end:14px;z-index:20}
+        .lang-btn{
+            display:inline-flex;align-items:center;gap:7px;
+            border:1.5px solid var(--line);background:#fff;color:var(--ink-700);
+            border-radius:999px;padding:6px 12px;font-size:.8rem;font-weight:600;
+            font-family:inherit;cursor:pointer;
+            transition:border-color .18s ease,box-shadow .18s ease,color .18s ease;
+        }
+        .lang-btn .bi{font-size:.9rem;color:var(--brand-1)}
+        .lang-btn:hover{border-color:#c7d2fe;color:var(--brand-1);box-shadow:0 4px 14px -6px rgba(79,70,229,.35)}
+        .lang-btn:focus-visible{outline:2px solid var(--brand-1);outline-offset:2px}
+        .lang-btn .bi-chevron-down{color:var(--ink-400);font-size:.7rem;transition:transform .18s ease}
+        .lang-switch.open .lang-btn .bi-chevron-down{transform:rotate(180deg)}
+        .lang-menu{
+            display:none;position:absolute;top:calc(100% + 8px);inset-inline-end:0;
+            min-width:190px;background:#fff;border:1px solid var(--line);
+            border-radius:14px;box-shadow:0 18px 40px -12px rgba(2,6,23,.28);
+            padding:6px;margin:0;list-style:none;
+        }
+        .lang-switch.open .lang-menu{display:block;animation:menuIn .16s ease both}
+        @keyframes menuIn{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+        .lang-menu button{
+            display:flex;align-items:center;gap:9px;width:100%;
+            border:none;background:transparent;border-radius:9px;
+            padding:8px 10px;font-size:.85rem;font-family:inherit;cursor:pointer;
+            color:var(--ink-900);text-align:start;
+            transition:background .15s ease;
+        }
+        .lang-menu button:hover{background:#eef2ff}
+        .lang-menu .lang-native{font-weight:600;flex:1}
+        .lang-menu .lang-en{color:var(--ink-400);font-size:.75rem}
+        .lang-menu .bi-check{color:var(--brand-1);font-weight:700;visibility:hidden}
+        .lang-menu button[aria-checked="true"] .bi-check{visibility:visible}
+        .lang-menu button[aria-checked="true"]{background:#eef2ff}
+
+        /* Fields */
+        .field{position:relative;margin-bottom:16px}
+        .field-label{
+            display:flex;align-items:center;gap:6px;
+            font-weight:600;color:var(--ink-700);font-size:.85rem;
+            margin-bottom:6px;
+        }
+        .field-control{
+            display:flex;align-items:stretch;
+            background:#fff;border:1.5px solid var(--line);border-radius:11px;
+            overflow:hidden;transition:border-color .2s ease,box-shadow .2s ease;
+        }
+        .field-control:focus-within{border-color:#6366f1;box-shadow:0 0 0 4px var(--focus-ring)}
+        .field-icon{
+            display:flex;align-items:center;justify-content:center;
+            width:42px;flex:none;
+            color:var(--ink-400);background:var(--surface);
+            border-right:1px solid var(--line-soft);
+            font-size:1rem;transition:color .2s ease,background .2s ease;
+        }
+        .field-control:focus-within .field-icon{color:var(--brand-1);background:#eef2ff;border-right-color:#dbe1ff}
+        .field-control .form-control{
+            flex:1;min-width:0;
+            border:none;box-shadow:none;border-radius:0;
+            padding:11px 13px;font-size:.94rem;height:auto;
+            background:transparent;color:var(--ink-900);font-family:inherit;
+        }
+        .field-control .form-control:focus{box-shadow:none;outline:none}
+        .field-control .form-control::placeholder{color:#cbd5e1}
+        .field-trail{
+            display:flex;align-items:center;
+            padding:0 8px;background:var(--surface);
+            border-left:1px solid var(--line-soft);
+        }
+        .pw-toggle{
+            border:none;background:transparent;
+            width:34px;height:34px;border-radius:9px;
+            display:flex;align-items:center;justify-content:center;
+            color:var(--ink-400);cursor:pointer;
+            transition:background .2s ease,color .2s ease;
+        }
+        .pw-toggle:hover{background:#e2e8f0;color:var(--brand-1)}
+        .pw-toggle:focus-visible{outline:2px solid var(--brand-1);outline-offset:1px}
+
+        /* RTL mirroring for the field chrome */
+        [dir="rtl"] .field-icon{border-right:none;border-left:1px solid var(--line-soft)}
+        [dir="rtl"] .field-control:focus-within .field-icon{border-left-color:#dbe1ff}
+        [dir="rtl"] .field-trail{border-left:none;border-right:1px solid var(--line-soft)}
+        [dir="rtl"] .field-control .form-control{direction:ltr;text-align:start}
+        [dir="rtl"] .field-control .form-control::placeholder{direction:rtl;text-align:end}
+
+        /* Error banner */
+        .login-error{
+            display:none;
+            align-items:flex-start;gap:9px;
+            background:var(--err-soft);border:1px solid var(--err-line);
+            color:#991b1b;border-radius:12px;
+            padding:12px 14px;font-size:.87rem;line-height:1.5;
+            margin-bottom:18px;
+        }
+        .login-error.show{display:flex;animation:shakeIn .3s ease both}
+        .login-error .bi{color:var(--err);font-size:1.05rem;margin-top:1px;flex:none}
+        @keyframes shakeIn{
+            0%{opacity:0;transform:translateX(-6px)}
+            50%{transform:translateX(4px)}
+            100%{opacity:1;transform:none}
+        }
+
+        /* Submit */
+        .btn-signin{
+            width:100%;margin-top:8px;
+            padding:12px 20px;border:none;border-radius:11px;
+            background:var(--brand-grad);color:#fff;
+            font-weight:700;font-size:.95rem;font-family:inherit;
+            display:inline-flex;align-items:center;justify-content:center;gap:9px;
+            cursor:pointer;
+            box-shadow:0 12px 26px -8px rgba(79,70,229,.55);
+            transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease;
+        }
+        .btn-signin:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 16px 30px -8px rgba(79,70,229,.6)}
+        .btn-signin:disabled{opacity:.75;cursor:wait;transform:none}
+        .btn-signin:focus-visible{outline:2px solid var(--brand-1);outline-offset:2px}
+        .icon-spin{display:inline-block;animation:spin 1s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        .login-footnote{
+            display:flex;align-items:center;justify-content:center;gap:7px;
+            color:#94a3b8;font-size:.8rem;margin-top:22px;
+        }
+        .login-footnote .bi{font-size:.9rem}
+        .page-footnote{
+            display:flex;align-items:center;justify-content:center;gap:7px;
+            color:rgba(226,232,240,.55);font-size:.8rem;margin-top:22px;
+        }
+        .page-footnote .bi{font-size:.9rem}
+        .page-footnote a{color:inherit;text-decoration:underline}
+
+        @media(max-width:480px){
+            .card-body{padding:26px 22px 24px}
+        }
+        @media (prefers-reduced-motion: reduce){
+            *,*::before,*::after{animation:none!important;transition:none!important}
+        }
+    </style>
+</head>
+<body>
+<div class="card login-card">
+    <div class="lang-switch" id="langSwitch">
+        <button type="button" class="lang-btn" id="langBtn" aria-haspopup="true" aria-expanded="false">
+            <i class="bi bi-globe2" aria-hidden="true"></i>
+            <span id="langBtnLabel">{{ languages.get(current_language, current_language) }}</span>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </button>
+        <ul class="lang-menu" id="langMenu" role="listbox" aria-label="{{ _('Language') }}">
+            {% for lang_code, lang_name in languages.items() %}
+            <li role="none">
+                <button type="button" role="option" data-lang="{{ lang_code }}"
+                        aria-checked="{{ 'true' if lang_code == current_language else 'false' }}">
+                    <i class="bi bi-check" aria-hidden="true"></i>
+                    <span class="lang-native">{{ lang_name }}</span>
+                    <span class="lang-en">{{ {'en':'English','ar':'Arabic','he':'Hebrew','fa':'Persian'}.get(lang_code, lang_code) }}</span>
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="card-body">
+        <div class="brand-badge">
+            <img src="{{ url_for('static', filename='logos/logo_347c1538.png') }}" alt="File Analysis logo">
+        </div>
+        <h4 class="text-center">File Analysis System</h4>
+        <p class="text-center login-sub">{{ _('Sign in to continue') }}</p>
+
+        <div id="login-error" class="login-error" role="alert">
+            <i class="bi bi-exclamation-triangle-fill"></i><span id="login-error-msg"></span>
+        </div>
+
+        <form id="login-form" method="post" action="{{ url_for('auth.login') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if request.args.get('next') %}<input type="hidden" name="next" value="{{ request.args.get('next') }}">{% endif %}
+            <div class="field">
+                <label class="field-label" for="username"><i class="bi bi-person-fill"></i> {{ _('Username') }}</label>
+                <div class="field-control">
+                    <span class="field-icon"><i class="bi bi-person"></i></span>
+                    <input type="text" class="form-control" id="username" name="username"
+                           autocomplete="username" autofocus required maxlength="64" placeholder="{{ _('Your username') }}">
+                </div>
+            </div>
+            <div class="field">
+                <label class="field-label" for="password"><i class="bi bi-key-fill"></i> {{ _('Password') }}</label>
+                <div class="field-control">
+                    <span class="field-icon"><i class="bi bi-lock-fill"></i></span>
+                    <input type="password" class="form-control" id="password" name="password"
+                           autocomplete="current-password" required placeholder="{{ _('Your password') }}">
+                    <span class="field-trail">
+                        <button type="button" class="pw-toggle" data-target="password" aria-label="{{ _('Show password') }}" title="{{ _('Show password') }}" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                    </span>
+                </div>
+            </div>
+            <button type="submit" class="btn-signin" id="login-btn">
+                <i class="bi bi-box-arrow-in-right"></i> {{ _('Sign in') }}
+            </button>
+        </form>
+
+        <p class="login-footnote">
+            <i class="bi bi-shield-lock"></i> {{ _('Accounts are managed by your administrator.') }}
+        </p>
+    </div>
+</div>
+<p class="page-footnote"><i class="bi bi-hdd-stack"></i> File Analysis System {{ version }} &middot;
+    <a href="{{ source_code_url }}" rel="noopener" target="_blank">{{ _('Source code') }}</a> (AGPL-3.0)</p>
+
+<script id="page-translations" type="application/json">
+{
+"Signing in…": {{ _('Signing in…')|tojson }},
+"Sign in": {{ _('Sign in')|tojson }},
+"Sign-in failed": {{ _('Sign-in failed')|tojson }},
+"An internal error occurred. Please try again.": {{ _('An internal error occurred. Please try again.')|tojson }},
+"Show password": {{ _('Show password')|tojson }},
+"Hide password": {{ _('Hide password')|tojson }}
+}
+</script>
+<script src="{{ url_for('static', filename='js/i18n/locales/en.js') }}?v=20260912b" defer></script>
+<script src="{{ url_for('static', filename='js/i18n/locales/ar.js') }}?v=20260912b" defer></script>
+<script src="{{ url_for('static', filename='js/i18n/locales/he.js') }}?v=20260912b" defer></script>
+<script src="{{ url_for('static', filename='js/i18n/locales/fa.js') }}?v=20260912b" defer></script>
+<script src="{{ url_for('static', filename='js/modules/core/app-i18n.js') }}?v=20260912b" defer></script>
+<script src="{{ url_for('static', filename='js/pages/login-page.js') }}"></script>
+</body>
+</html>

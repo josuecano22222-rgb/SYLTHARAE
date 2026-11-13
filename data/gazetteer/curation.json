@@ -1,0 +1,50 @@
+{
+ "_comment": "Reviewed corrections and additions applied by tools/gazetteer/build_seed.py on top of the raw Wikidata rows. Every entry states its reason; see SOURCES.md. Re-authored on 2026-09-28 after the original file was lost (it was never committed: data/ was git-ignored).",
+ "country_codes": [
+  {"qid": "Q727", "codes": ["NL"], "reason": "Amsterdam: the query returns no P17->P297 code for this item; capital of the Netherlands (ISO 3166-1 NL)."},
+  {"qid": "Q34370", "codes": ["NL"], "reason": "Rotterdam: the query returns no P17->P297 code for this item; city in the Netherlands (ISO 3166-1 NL)."},
+  {"qid": "Q225", "codes": ["BA"], "reason": "Bosnia and Herzegovina (the country itself): the query returns no P17->P297 code; ISO 3166-1 BA."}
+ ],
+ "drop_native": [
+  {"qid": "Q384", "native": "mak. Скопје alb. Shkup@az", "reason": "Malformed P1705 value: two annotated names in one string, tagged Azerbaijani."},
+  {"qid": "Q810", "native": "االْمَمْلَكَةُ الْأُرْدُنِيَةُ الْهَاشِمِيَة@ar", "reason": "P1705 value begins with a doubled alef (typo); it would become an Arabic endonym that matches nothing."}
+ ],
+ "replace_label": [
+  {"qid": "Q60", "language": "hr", "from": "New York City, New York", "to": "New York", "reason": "The hr label carries a disambiguating state qualifier; the name used in running text is New York."},
+  {"qid": "Q612", "language": "fa", "from": "شهر دبی", "to": "دبی", "reason": "The fa label is 'city of Dubai'; the name used in running text is دبی."},
+  {"qid": "Q44210", "language": "fa", "from": "کوردوبا، آرژانتین", "to": "کوردوبا", "reason": "The fa label carries a ', Argentina' disambiguation qualifier."},
+  {"qid": "Q54880", "language": "fa", "from": "والنسیا، ونزوئلا", "to": "والنسیا", "reason": "The fa label carries a ', Venezuela' disambiguation qualifier."}
+ ],
+ "split_label": [
+  {"qid": "Q1156", "language": "fa", "separator": "/", "reason": "The fa label lists two spellings, بمبئی and مومبای, joined by a slash."}
+ ],
+ "names": [
+  {"qid": "Q1647", "language": "hr", "name": "Fiume", "name_type": "historical", "source": "wikidata:alias", "reason": "Italian/Hungarian name of Rijeka, used in Croatian historical writing (Wikidata hr alias)."},
+  {"qid": "Q1647", "language": "en", "name": "Fiume", "name_type": "historical", "source": "wikidata:alias", "reason": "Historical English name of Rijeka (Wikidata en alias)."},
+  {"qid": "Q1722", "language": "en", "name": "Ragusa", "name_type": "historical", "source": "wikidata:alias", "reason": "Historical name of Dubrovnik (Republic of Ragusa) (Wikidata en alias)."},
+  {"qid": "Q1722", "language": "hr", "name": "Ragusa", "name_type": "historical", "source": "wikidata:alias", "reason": "Historical name of Dubrovnik (Wikidata hr alias)."},
+  {"qid": "Q1156", "language": "en", "name": "Bombay", "name_type": "historical", "source": "wikidata:alias", "reason": "Official English name of Mumbai until 1995 (Wikidata en alias)."},
+  {"qid": "Q1352", "language": "en", "name": "Madras", "name_type": "historical", "source": "wikidata:alias", "reason": "Official English name of Chennai until 1996 (Wikidata en alias)."},
+  {"qid": "Q1854", "language": "en", "name": "Saigon", "name_type": "historical", "source": "wikidata:alias", "reason": "Name of Ho Chi Minh City until 1976 (Wikidata en alias)."},
+  {"qid": "Q1355", "language": "en", "name": "Bangalore", "name_type": "historical", "source": "wikidata:alias", "reason": "Official English name of Bengaluru until 2014 (Wikidata en alias)."},
+  {"qid": "Q956", "language": "en", "name": "Peking", "name_type": "historical", "source": "wikidata:alias", "reason": "Former English romanisation of Beijing."},
+  {"qid": "Q219060", "language": "hr", "name": "Palestina", "name_type": "variant", "source": "wikidata:alias", "reason": "Short hr name; the hr label is the long form Država Palestina (Wikidata hr alias)."},
+  {"qid": "Q219060", "language": "en", "name": "State of Palestine", "name_type": "variant", "source": "wikidata:alias", "reason": "Long en form (Wikidata en alias); the label is Palestine."},
+  {"qid": "Q1792", "language": "en", "name": "Gdansk", "name_type": "variant", "source": "legacy:Api/services/geo_gazetteer.py", "reason": "Spelling without diacritics used by the replaced static gazetteer; kept so its names are still detected."},
+  {"qid": "Q174", "language": "en", "name": "Sao Paulo", "name_type": "variant", "source": "legacy:Api/services/geo_gazetteer.py", "reason": "Spelling without diacritics used by the replaced static gazetteer; kept so its names are still detected."},
+  {"qid": "Q2841", "language": "en", "name": "Bogota", "name_type": "variant", "source": "legacy:Api/services/geo_gazetteer.py", "reason": "Spelling without diacritics used by the replaced static gazetteer; kept so its names are still detected."},
+  {"qid": "Q148", "language": "he", "name": "סין", "name_type": "variant", "source": "curation", "reason": "Short he name of China; the he label is the long form (People's Republic of China)."},
+  {"qid": "Q148", "language": "fa", "name": "چین", "name_type": "variant", "source": "curation", "reason": "Short fa name of China; the fa label is the long form (People's Republic of China)."},
+  {"qid": "Q148", "language": "hr", "name": "Kina", "name_type": "variant", "source": "curation", "reason": "Short hr name of China; the hr label is the long form (Narodna Republika Kina)."}
+ ],
+ "homographs": [
+  {"language": "en", "name": "Turkey", "reason": "also the English common noun 'turkey' (the bird) at the start of a sentence."},
+  {"language": "en", "name": "Savannah", "reason": "also the English common noun 'savannah' (grassland) and a given name."},
+  {"language": "en", "name": "New York", "reason": "also the name of New York State, which is not in the gazetteer."},
+  {"language": "en", "name": "Lima", "reason": "also a given name and the NATO phonetic-alphabet word for L."},
+  {"language": "he", "name": "חלב", "reason": "also the common Hebrew noun 'milk' (and 'fat')."},
+  {"language": "ar", "name": "صور", "reason": "also the common Arabic noun 'pictures/images' (plural of صورة)."},
+  {"language": "he", "name": "צוֹר", "reason": "without vowel points identical to the Hebrew noun 'flint/rock' and the verb 'besiege'."},
+  {"language": "he", "name": "קום", "reason": "also the Hebrew imperative 'get up'."}
+ ]
+}

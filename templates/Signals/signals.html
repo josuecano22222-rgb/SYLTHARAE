@@ -1,0 +1,337 @@
+{% extends "base.html" %}
+{% from 'components/table.html' import data_table %}
+{% from 'components/states.html' import state_panel %}
+
+{% block title %}{{ _('Horizon & Signal Explorer') }}{% endblock %}
+
+{% block page_type %}signals{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/signals.css') }}" rel="stylesheet">
+<link href="{{ url_for('static', filename='css/multi-select-dropdown.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-container signals-page" id="signalsPage">
+
+    <div class="page-header signals-header">
+        <div class="signals-header-copy">
+            <h1 class="page-title">
+                <i class="bi bi-calendar-range" aria-hidden="true"></i>
+                {{ _('Horizon & Signal Explorer') }}
+            </h1>
+            <p class="signals-header-sub">{{ _('Dates, places and other signals detected in stored documents, with the evidence for each.') }}</p>
+        </div>
+        <div class="signals-header-actions" role="group" aria-label="{{ _('Signal actions') }}">
+            <button type="submit" form="signalFilters" class="btn btn-primary btn-sm" id="signalsApplyBtn">
+                <i class="bi bi-funnel" aria-hidden="true"></i>{{ _('Apply') }}
+            </button>
+            <button type="reset" form="signalFilters" class="btn btn-outline-secondary btn-sm" id="signalsClearBtn">
+                <i class="bi bi-x-circle" aria-hidden="true"></i>{{ _('Clear') }}
+            </button>
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                        data-bs-toggle="dropdown" aria-expanded="false" id="signalsExportMenuBtn">
+                    <i class="bi bi-download" aria-hidden="true"></i>{{ _('Export') }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="signalsExportMenuBtn">
+                    <li><button type="button" class="dropdown-item" id="signalsExportLoaded">{{ _('Export loaded rows') }}</button></li>
+                    <li><button type="button" class="dropdown-item" id="signalsExportAll">{{ _('Export all matching') }}</button></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    {% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+    <div class="tips-section">
+        <div class="tips-section-title"><i class="bi bi-info-circle" aria-hidden="true"></i> {{ _('What you are looking at') }}</div>
+        <ul class="tips-list">
+            <li>{{ _('Signals are detected once, when a document is stored or re-analysed. This page reads the stored results; it does not re-read documents.') }}</li>
+            <li>{{ _('Horizon groups dated references by where their date falls relative to the reference date: overdue, next 7 days, next 30 days, next 90 days, later.') }}</li>
+            <li>{{ _('Overdue means the sentence spoke of the future and the date has passed. Other past dates are listed under Past.') }}</li>
+            <li>{{ _('Use Sort and Show More to page through large result sets without reloading the filters.') }}</li>
+            <li>{{ _('Place matches come from a gazetteer; a name shared by several places stays ambiguous and lists every candidate.') }}</li>
+            <li>{{ _('Use the value-kind shortcuts (dates, places, email, phone, IP, …) on the Explorer tab, or open Advanced filters for any detector and signal type.') }}</li>
+            <li>{{ _('Email, phone and IP signals are detected when documents are stored or re-analysed. Run signal re-detection on older content to populate them.') }}</li>
+        </ul>
+    </div>
+    {% endcall %}
+
+    <div class="signals-kind-bar" role="group" aria-label="{{ _('Filter by value kind') }}">
+        <span class="signals-kind-bar-label">{{ _('Show') }}</span>
+        <div class="signals-kind-presets" id="signalsKindPresets"></div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="signalsKindClear">
+            {{ _('All kinds') }}
+        </button>
+    </div>
+
+    <form id="signalFilters" class="signals-filters" autocomplete="off">
+        <div class="signals-filters-primary">
+            <div class="signals-field">
+                <label class="signals-label" for="fReferenceDate">{{ _('Reference date') }}</label>
+                <input type="date" class="form-control form-control-sm" id="fReferenceDate" name="reference_date">
+                <div class="form-text">{{ _('Empty: today (UTC)') }}</div>
+            </div>
+            <div class="signals-field signals-multiselect-field">
+                <label class="signals-label" for="fSource">{{ _('Source') }}</label>
+                <select class="form-select form-select-sm msdd-enhance" id="fSource" name="source_id" multiple
+                        data-compact-multi="source" data-placeholder="{{ _('All sources') }}"
+                        aria-label="{{ _('Source') }}"></select>
+                {% if page_data.options_status == 'truncated' %}
+                <div class="form-text text-warning" id="optionsNotice">{{ _('Only the first %(n)s sources and sides by name are listed. Use a saved search to filter by others.', n=page_data.option_limit) }}</div>
+                {% elif page_data.options_status == 'unavailable' %}
+                <div class="form-text text-danger" id="optionsNotice">{{ _('The source and side lists could not be loaded. Other filters still work.') }}</div>
+                {% endif %}
+            </div>
+            <div class="signals-field signals-multiselect-field">
+                <label class="signals-label" for="fSide">{{ _('Side') }}</label>
+                <select class="form-select form-select-sm msdd-enhance" id="fSide" name="side_id" multiple
+                        data-compact-multi="side" data-placeholder="{{ _('All sides') }}"
+                        aria-label="{{ _('Side') }}"></select>
+            </div>
+            <div class="signals-field">
+                <label class="signals-label" for="fSavedSearch">{{ _('Saved search') }}</label>
+                <select class="form-select form-select-sm" id="fSavedSearch" name="saved_search_id">
+                    <option value="">{{ _('None') }}</option>
+                </select>
+                <div class="form-text">{{ _('Replaces the source, side, category and keyword filters') }}</div>
+            </div>
+            <div class="signals-field signals-text-op">
+                <label class="signals-label" for="fEvidence">{{ _('Evidence') }}</label>
+                <div class="signals-op-row">
+                    <select class="form-select form-select-sm" id="fEvidenceMode" name="evidence_mode" aria-label="{{ _('Evidence match') }}">
+                        <option value="contains">{{ _('Contains') }}</option>
+                        <option value="equals">{{ _('Equals') }}</option>
+                        <option value="starts_with">{{ _('Starts with') }}</option>
+                        <option value="ends_with">{{ _('Ends with') }}</option>
+                        <option value="not_contains">{{ _('Does not contain') }}</option>
+                    </select>
+                    <input type="text" class="form-control form-control-sm" id="fEvidence" name="evidence_text" maxlength="200" dir="auto"
+                           placeholder="{{ _('Evidence contains') }}">
+                </div>
+            </div>
+            <div class="signals-field">
+                <label class="signals-label">{{ _('Event dates') }}</label>
+                <div class="signals-date-range">
+                    <input type="date" class="form-control form-control-sm" name="event_from" aria-label="{{ _('Event dates from') }}">
+                    <input type="date" class="form-control form-control-sm" name="event_to" aria-label="{{ _('Event dates to') }}">
+                </div>
+            </div>
+        </div>
+
+        <div id="signalsActiveFilters" class="signals-active-filters" aria-live="polite"></div>
+
+        <details class="signals-advanced" id="signalsAdvanced">
+            <summary class="signals-advanced-summary">
+                <i class="bi bi-sliders" aria-hidden="true"></i>
+                {{ _('Advanced filters') }}
+            </summary>
+            <div class="signals-advanced-body">
+                <div class="signals-field signals-text-op">
+                    <label class="signals-label" for="fSurface">{{ _('Entity / surface') }}</label>
+                    <div class="signals-op-row">
+                        <select class="form-select form-select-sm" id="fSurfaceMode" name="surface_mode" aria-label="{{ _('Surface match') }}">
+                            <option value="contains">{{ _('Contains') }}</option>
+                            <option value="equals">{{ _('Equals') }}</option>
+                            <option value="starts_with">{{ _('Starts with') }}</option>
+                            <option value="ends_with">{{ _('Ends with') }}</option>
+                            <option value="not_contains">{{ _('Does not contain') }}</option>
+                        </select>
+                        <input type="text" class="form-control form-control-sm" id="fSurface" name="surface_text" maxlength="200" dir="auto"
+                               placeholder="{{ _('Place or surface text') }}">
+                    </div>
+                </div>
+                <div class="signals-field signals-text-op">
+                    <label class="signals-label" for="fValue">{{ _('Value') }}</label>
+                    <div class="signals-op-row">
+                        <select class="form-select form-select-sm" id="fValueMode" name="value_mode" aria-label="{{ _('Value match') }}">
+                            <option value="contains">{{ _('Contains') }}</option>
+                            <option value="equals">{{ _('Equals') }}</option>
+                            <option value="starts_with">{{ _('Starts with') }}</option>
+                            <option value="ends_with">{{ _('Ends with') }}</option>
+                            <option value="not_contains">{{ _('Does not contain') }}</option>
+                        </select>
+                        <input type="text" class="form-control form-control-sm" id="fValue" name="value_text" maxlength="200" dir="auto"
+                               placeholder="{{ _('Resolved value') }}">
+                    </div>
+                </div>
+                <div class="signals-field">
+                    <label class="signals-label" for="fPlaceKeys">{{ _('Place keys') }}</label>
+                    <input type="text" class="form-control form-control-sm" id="fPlaceKeys" name="place_key"
+                           placeholder="place:12, place:40"
+                           aria-label="{{ _('Place keys') }}">
+                    <div class="form-text">{{ _('Comma-separated gazetteer keys (multi-select)') }}</div>
+                </div>
+                <input type="hidden" id="fIdentifierKind" name="identifier_kind" value="">
+                <div class="signals-field">
+                    <label class="signals-label" for="fCategory">{{ _('Category IDs') }}</label>
+                    <input type="text" class="form-control form-control-sm" id="fCategory" name="category_id" inputmode="numeric" placeholder="12, 40">
+                </div>
+                <div class="signals-field">
+                    <label class="signals-label" for="fKeyword">{{ _('Keyword IDs') }}</label>
+                    <input type="text" class="form-control form-control-sm" id="fKeyword" name="keyword_id" inputmode="numeric" placeholder="3">
+                </div>
+                <div class="signals-field">
+                    <label class="signals-label" for="fDocText">{{ _('Document text') }}</label>
+                    <input type="text" class="form-control form-control-sm" id="fDocText" name="text" maxlength="500" dir="auto"
+                           placeholder="{{ _('Search inside document text') }}">
+                </div>
+                <fieldset class="signals-chipset">
+                    <legend class="signals-label">{{ _('Confidence') }}</legend>
+                    <div id="fConfidence" class="signals-chips"></div>
+                </fieldset>
+                <fieldset class="signals-chipset">
+                    <legend class="signals-label">{{ _('Language') }}</legend>
+                    <div id="fLanguage" class="signals-chips"></div>
+                </fieldset>
+                <fieldset class="signals-chipset">
+                    <legend class="signals-label">{{ _('Calendar') }}</legend>
+                    <div id="fCalendar" class="signals-chips"></div>
+                </fieldset>
+                <fieldset class="signals-chipset">
+                    <legend class="signals-label">{{ _('Detector') }}</legend>
+                    <div id="fDetector" class="signals-chips"></div>
+                    <div class="form-text">{{ _('Explorer only; Horizon shows dates') }}</div>
+                </fieldset>
+                <fieldset class="signals-chipset">
+                    <legend class="signals-label">{{ _('Signal type') }}</legend>
+                    <div id="fSignalType" class="signals-chips"></div>
+                </fieldset>
+                <fieldset class="signals-chipset">
+                    <legend class="signals-label">{{ _('Resolution') }}</legend>
+                    <div id="fResolution" class="signals-chips"></div>
+                </fieldset>
+                <fieldset class="signals-chipset">
+                    <legend class="signals-label">{{ _('Sentence orientation') }}</legend>
+                    <div id="fOrientation" class="signals-chips"></div>
+                </fieldset>
+            </div>
+        </details>
+    </form>
+
+    <div id="signalError" class="d-none">
+        {{ state_panel('error', 'bi-exclamation-octagon', title=_('The request failed'), message=' ',
+                       tone='text-danger', role='alert') }}
+    </div>
+
+    <nav class="signals-tabs" role="tablist" aria-label="{{ _('Signal views') }}">
+        <button class="signals-tab active" id="tabHorizon" type="button" role="tab"
+                aria-selected="true" aria-controls="panelHorizon">
+            <i class="bi bi-calendar-range" aria-hidden="true"></i>{{ _('Horizon') }}
+        </button>
+        <button class="signals-tab" id="tabExplorer" type="button" role="tab"
+                aria-selected="false" aria-controls="panelExplorer">
+            <i class="bi bi-list-ul" aria-hidden="true"></i>{{ _('Signal Explorer') }}
+        </button>
+    </nav>
+
+    <div class="signals-toolbar" aria-label="{{ _('Results controls') }}">
+        <div class="signals-toolbar-meta" id="signalsToolbarMeta">
+            <span id="explorerSummary" class="signals-summary text-muted small"></span>
+        </div>
+        <div class="signals-toolbar-controls">
+            <label class="signals-inline-control" for="signalsSort">
+                <span>{{ _('Sort') }}</span>
+                <select id="signalsSort" class="form-select form-select-sm" aria-label="{{ _('Sort') }}"></select>
+            </label>
+            {# Keep explorerSort id for compatibility; mirrored by JS #}
+            <select id="explorerSort" class="d-none" aria-hidden="true" tabindex="-1"></select>
+            <label class="signals-inline-control" for="signalsPageSize">
+                <span>{{ _('Page size') }}</span>
+                <select id="signalsPageSize" class="form-select form-select-sm" aria-label="{{ _('Page size') }}">
+                    <option value="25">25</option>
+                    <option value="50" selected>50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                </select>
+            </label>
+        </div>
+    </div>
+
+    <section id="panelHorizon" class="signals-panel" role="tabpanel" aria-labelledby="tabHorizon">
+        <div id="horizonBuckets" class="signals-buckets"></div>
+        <div id="horizonNotices" class="signals-notices"></div>
+        {% call data_table(id='horizonTable', variant='sm table-hover align-middle signals-table') %}
+            <thead><tr>
+                <th>{{ _('When') }}</th><th>{{ _('Group') }}</th><th>{{ _('Reference') }}</th>
+                <th>{{ _('Evidence') }}</th><th>{{ _('Confidence') }}</th><th>{{ _('Document') }}</th>
+            </tr></thead>
+            <tbody id="horizonRows"></tbody>
+        {% endcall %}
+        <div class="ut-load-more-host" id="horizonPager"></div>
+    </section>
+
+    <section id="panelExplorer" class="signals-panel d-none" role="tabpanel" aria-labelledby="tabExplorer">
+        <div class="signals-explorer-layout">
+            <aside class="signals-facets" id="explorerFacets" aria-label="{{ _('Counts') }}"></aside>
+            <div class="signals-explorer-main">
+                {% call data_table(id='explorerTable', variant='sm table-hover align-middle signals-table') %}
+                    <thead><tr>
+                        <th>{{ _('Signal') }}</th><th>{{ _('Value') }}</th><th>{{ _('Evidence') }}</th>
+                        <th>{{ _('Confidence') }}</th><th>{{ _('Method') }}</th>
+                        <th>{{ _('Source') }}</th><th>{{ _('Side') }}</th><th>{{ _('Document') }}</th>
+                    </tr></thead>
+                    <tbody id="explorerRows"></tbody>
+                {% endcall %}
+                <div class="ut-load-more-host" id="explorerPager"></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="signalDetail" aria-labelledby="signalDetailTitle">
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title fs-5" id="signalDetailTitle">{{ _('Signal') }}</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ _('Close') }}"></button>
+        </div>
+        <div class="offcanvas-body" id="signalDetailBody"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+<script type="application/json" id="signals-page-data">{{ page_data|tojson }}</script>
+<script type="application/json" id="signals-page-labels">{{ {
+    "bucket_overdue": _('Overdue'), "bucket_week": _('Next 7 days'), "bucket_month": _('Next 30 days'),
+    "bucket_quarter": _('Next 90 days'), "bucket_later": _('Later'), "bucket_past": _('Past'),
+    "signals": _('signals'), "documents": _('documents'), "no_signals": _('No signals match these filters.'),
+    "undated": _('%(n)s references have no single date (ambiguous: %(a)s, unresolved: %(u)s) and are not placed on the horizon.'),
+    "not_measured": _('%(n)s of %(t)s matching documents have not been analysed by the current date detector (never analysed: %(never)s, older version: %(stale)s, failed: %(failed)s). They contribute nothing here until re-analysed; this is not the same as having no dates.'),
+    "all_measured": _('All %(t)s matching documents were analysed by the current date detector.'),
+    "page": _('%(from)s-%(to)s of %(total)s'), "previous": _('Previous'), "next": _('Next'),
+    "show_more": _('Show More'), "loading_more": _('Loading…'),
+    "total": _('%(total)s signals in %(contents)s documents'),
+    "occurrences": _('%(n)s occurrences'), "ambiguous_places": _('Ambiguous between:'),
+    "detector_version": _('Detector version'), "current": _('current'), "outdated": _('outdated - re-analysis pending'),
+    "method": _('Method'), "confidence": _('Confidence'), "basis": _('Basis'), "language": _('Language'),
+    "calendar": _('Calendar'), "resolution": _('Resolution'), "orientation": _('Sentence orientation'),
+    "offsets": _('Characters'), "evidence": _('Evidence'), "document": _('Document'), "run": _('Analysis run'),
+    "structured_evidence": _('Structured evidence'), "open_file": _('Open file'), "detected_at": _('Detected'),
+    "facet_detector": _('Detector'), "facet_signal_type": _('Type'), "facet_confidence": _('Confidence'),
+    "facet_language": _('Language'), "facet_calendar": _('Calendar'), "facet_resolution": _('Resolution'),
+    "facet_method": _('Method'), "facet_orientation": _('Sentence orientation'),
+    "unrecorded": _('not recorded'), "unspecified": _('not specified'),
+    "sort_event_date": _('Event date'), "sort_detected": _('Recently detected'), "sort_document": _('Document order'),
+    "request_failed": _('The request failed'), "fingerprint": _('Query fingerprint'),
+    "export_empty": _('Nothing to export yet. Apply filters and load results first.'),
+    "export_done": _('Export ready'),
+    "export_all_progress": _('Exporting matching signals…'),
+    "export_all_cap": _('Export stopped at %(n)s matching signals (safety cap).'),
+    "mode_contains": _('contains'), "mode_equals": _('equals'),
+    "mode_starts_with": _('starts with'), "mode_ends_with": _('ends with'),
+    "mode_not_contains": _('does not contain'),
+    "chip_evidence": _('Evidence'), "chip_surface": _('Entity'), "chip_value": _('Value'),
+    "chip_place": _('Place key'), "chip_source": _('Source'), "chip_side": _('Side'),
+    "active_filters": _('Active filters'), "no_active_filters": _('No filters applied'),
+    "preset_dates": _('Dates'), "preset_places": _('Places / geography'),
+    "preset_email": _('Email addresses'), "preset_phone": _('Phone numbers'),
+    "preset_ip": _('IP addresses'), "preset_url": _('Web links'),
+    "preset_identifiers": _('All identifiers'), "preset_all": _('All kinds'),
+    "kind_show": _('Show'), "signal_type_email": _('Email'), "signal_type_phone": _('Phone'),
+    "signal_type_ipv4": _('IPv4'), "signal_type_ipv6": _('IPv6'), "signal_type_url": _('URL'),
+    "signal_type_date_reference": _('Date'), "signal_type_relative_reference": _('Relative date'),
+    "signal_type_place_mention": _('Place'), "signal_type_orientation": _('Orientation'),
+    "source_side_unknown": _('Unknown')
+}|tojson }}</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% from 'components/file_library_table.html' import file_library_table %}
+{#- The documents of one slice of the File Library - a file type, a keyword,
+    a category - as the unified table fragment a side panel adopts. The same
+    rows, the same search highlighting, the same Load More and Export as the
+    File Library page, because they are the same rendering. Rendered only
+    for fetch: the page JS injects it and hands it to UnifiedTable. -#}
+{{ file_library_table(
+        files,
+        id=table_id,
+        info_id=(table_id ~ 'Info'),
+        start_position=start_position,
+        total_files_count=total_count,
+        page=page,
+        total_pages=total_pages,
+        limit=limit,
+        sort_by=sort_by,
+        sort_order=sort_order,
+        search=search,
+        nav_params=nav_params,
+        per_page_onchange=none,
+        select_all_onchange=none,
+        row_select_onchange=none,
+        show_per_page=False,
+        delete_handler=False,
+        export_params=view_string,
+        export_scope_base=identity_string) }}

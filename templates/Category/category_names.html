@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Name') }} - {{ category.name }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/unified-table.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% from 'components/breadcrumbs.html' import breadcrumbs %}
+{% block breadcrumb %}{{ breadcrumbs(parent='categories_list', intermediate=[{'label': category.name, 'url': url_for('category_words', category_id=category.id)}], current=_('Name')) }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-translate me-2"></i>
+            {{ _('Name') }}: <span dir="auto">{{ category.name }}</span>
+        </h1>
+        <p class="text-muted mb-0">
+            {{ _('Language') }}: <strong>{{ interface_language }}</strong>
+            &middot; <code>#{{ category.id }}</code>
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-primary" data-on-click="openAddNameModal()">
+            <i class="bi bi-plus-circle me-2"></i> {{ _('Add') }}
+        </button>
+        <a href="{{ url_for('category_words', category_id=category.id) }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i> {{ _('Back to Categories') }}
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h6 text-muted">{{ _('Import') }}</h2>
+        <p class="small text-muted mb-2">
+            <code>word,language,name,name_type</code> &middot; {{ _('CSV') }}
+        </p>
+        <input type="file" id="nameCsvFile" accept=".csv,text/csv" class="form-control form-control-sm mb-2">
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary" data-on-click="previewNameCsv()">
+                <i class="bi bi-eye me-1"></i> {{ _('Open') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-primary" data-on-click="applyNameCsv()">
+                <i class="bi bi-upload me-1"></i> {{ _('Import') }}
+            </button>
+        </div>
+        <pre id="nameCsvReport" class="small mt-2 mb-0 d-none"></pre>
+    </div>
+</div>
+
+{% from 'components/table.html' import record_table %}
+{% set columns = [
+    {'key': 'language', 'label': _('Language'), 'sortable': False},
+    {'key': 'name', 'label': _('Name'), 'sortable': False},
+    {'key': 'name_type', 'label': _('Translation'), 'sortable': False},
+    {'key': 'source', 'label': _('Status'), 'sortable': False}
+] %}
+
+{% call record_table(id='termNamesTable', columns=columns,
+                     empty_message=_('No data available')) %}
+    {% for row in names %}
+    <tr data-name-id="{{ row.id }}">
+        <td><span class="badge text-bg-secondary">{{ row.language }}</span></td>
+        <td dir="auto">{{ row.name }}</td>
+        <td class="text-muted small">{{ row.name_type }}</td>
+        <td class="text-muted small">{{ row.source }}</td>
+        <td class="text-end">
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    data-on-click="editName({{ row.id }})">
+                <i class="bi bi-pencil"></i> {{ _('Edit') }}
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+                    data-on-click="deleteName({{ row.id }})"
+                    data-confirm="{{ _('Delete') }}">
+                <i class="bi bi-trash"></i> {{ _('Delete') }}
+            </button>
+        </td>
+    </tr>
+    {% endfor %}
+{% endcall %}
+
+<div class="modal fade" id="nameModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ _('Name') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="nameId">
+                <div class="mb-3">
+                    <label class="form-label" for="nameLanguage">{{ _('Language') }}</label>
+                    <select class="form-select" id="nameLanguage">
+                        {# ``languages`` is ``base.html``'s dict (used by the top-bar
+                switcher); iterating the pairs needs its own name, or this page
+                shadows the dict with a list and the base template raises
+                ``'list object' has no attribute 'items'``. -#}
+                        {% for code, label in name_languages.items() %}
+                        <option value="{{ code }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="nameText">{{ _('Name') }}</label>
+                    <input type="text" class="form-control" id="nameText" dir="auto" maxlength="255">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                <button type="button" class="btn btn-primary" data-on-click="saveName()">{{ _('Save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pages/category-names-page.js') }}"></script>
+{% endblock %}

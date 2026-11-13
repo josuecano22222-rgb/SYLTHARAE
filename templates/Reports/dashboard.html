@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% from 'components/table.html' import record_table %}
+
+{#
+  The Reports Dashboard: the same statement as the Reports page, read as a
+  summary. The counts are server-rendered (one statement, one round trip); the
+  per-file-type table is the shared unified table, fed by
+  /api/reports/dashboard so it sorts and filters with the engine every other
+  list uses.
+
+  Only msgids that already exist in every catalog are used here, and the page
+  carries its strings in a JSON block rather than an inline script (CSP).
+#}
+
+{% block title %}{{ _('Reports Dashboard') }}{% endblock %}
+
+{% block content %}
+<div class="page-container" id="reportsDashboardPage">
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                <i class="bi bi-speedometer2 me-2"></i>
+                {{ _('Reports Dashboard') }}
+            </h1>
+            <p class="text-muted mb-0">{{ _('Overview') }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-primary" href="/reports{{ query_suffix }}">
+                <i class="bi bi-file-earmark-bar-graph me-1"></i> {{ _('Reports') }}
+            </a>
+            <a class="btn btn-outline-secondary" href="/reports/entries/print{{ query_suffix }}"
+               target="_blank" rel="noopener">
+                <i class="bi bi-printer me-1"></i> {{ _('Print') }}
+            </a>
+            <button class="btn btn-outline-primary" type="button" data-on-click="refresh()">
+                <i class="bi bi-arrow-clockwise me-1"></i> {{ _('Refresh') }}
+            </button>
+        </div>
+    </div>
+
+    {% if page_data.error %}
+    <div class="alert alert-warning" role="alert">{{ page_data.error }}</div>
+    {% endif %}
+    <div class="alert alert-danger d-none" id="reportsDashboardError" role="alert"></div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-body">
+                <div class="text-muted small">{{ _('Total Files') }}</div>
+                <div class="fs-3 fw-semibold" id="rdTotal">{{ totals.total }}</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-body">
+                <div class="text-muted small">{{ _('Processed') }}</div>
+                <div class="fs-3 fw-semibold text-success" id="rdProcessed">{{ totals.success }}</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-body">
+                <div class="text-muted small">{{ _('Failed') }}</div>
+                <div class="fs-3 fw-semibold text-danger" id="rdFailed">{{ totals.failed }}</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card card-body">
+                <div class="text-muted small">{{ _('Success Rate') }}</div>
+                <div class="fs-3 fw-semibold" id="rdSuccessRate">{{ totals.success_pct }}%</div>
+            </div>
+        </div>
+    </div>
+
+    {% call record_table(
+            id='reportsByTypeTable',
+            columns=[
+                {'key': 'file_type', 'label': _('File type'), 'sortable': True, 'type': 'text'},
+                {'key': 'total', 'label': _('Total'), 'sortable': True, 'type': 'number', 'align': 'end'},
+                {'key': 'success', 'label': _('Processed'), 'sortable': True, 'type': 'number', 'align': 'end'},
+                {'key': 'failed', 'label': _('Failed'), 'sortable': True, 'type': 'number', 'align': 'end'},
+                {'key': 'success_pct', 'label': _('Success Rate'), 'sortable': True, 'type': 'number', 'align': 'end'}
+            ],
+            mode='client',
+            empty_message=_('No results found')) %}
+        <tbody id="reportsByTypeTableBody"></tbody>
+    {% endcall %}
+
+    <div class="row g-3 mt-1">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">{{ _('Categories') }}</h5></div>
+                <ul class="list-group list-group-flush" id="reportsDashboardCategories">
+                    {% for row in report.classifications[:15] %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>{{ row.category_term }}</span>
+                        <span class="badge text-bg-secondary">{{ row.paths }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">{{ _('No results found') }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header"><h5 class="mb-0">{{ _('Keywords') }}</h5></div>
+                <ul class="list-group list-group-flush" id="reportsDashboardKeywords">
+                    {% for row in report.keywords[:15] %}
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>{{ row.keyword }}</span>
+                        <span class="badge text-bg-secondary">{{ row.paths }}</span>
+                    </li>
+                    {% else %}
+                    <li class="list-group-item text-muted">{{ _('No results found') }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="application/json" id="reports-dashboard-labels">
+{{ {
+    'load_failed': _('Failed'),
+    'refresh_failed': _('The request failed'),
+    'no_results': _('No results found')
+} | tojson }}
+</script>
+<script type="application/json" id="reports-dashboard-filters">
+{{ page_data.filters | tojson }}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/modules/ui/unified-table.js') }}?v=20261014b" defer></script>
+<script type="module" src="{{ url_for('static', filename='js/pages/reports-dashboard-page.js') }}?v=20261023a"></script>
+{% endblock %}

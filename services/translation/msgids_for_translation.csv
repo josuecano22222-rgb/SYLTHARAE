@@ -1,0 +1,17 @@
+msgid,english,used_in,status
+"Translate selection","Translate selection","templates/Translation/_selection_panel.html; static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"Machine translation, not verified","Machine translation, not verified","templates/Translation/_selection_panel.html; static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"Original","Original","templates/Translation/_selection_panel.html",NEW-UNTRANSLATED
+"Translation","Translation","templates/Translation/_selection_panel.html",NEW-UNTRANSLATED
+"Accept translation","Accept translation","templates/Translation/_selection_panel.html; static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"Correct translation","Correct translation","static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"Translating…","Translating…","templates/Translation/_selection_panel.html; static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"Close","Close","templates/Translation/_selection_panel.html",EXISTING-MSGID
+"Detect language","Detect language","templates/Translation/_selection_panel.html",NEW-UNTRANSLATED
+"Note: the machine translation is not verified","Note: the machine translation is not verified","templates/Translation/_selection_panel.html",NEW-UNTRANSLATED
+"Translation engine is not installed","Translation engine is not installed","static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"Translation failed","Translation failed","static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"The source and target language are the same","The source and target language are the same","static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"Corrected translation saved","Corrected translation saved","static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"from translation memory (corrected)","from translation memory (corrected)","static/js/pages/translation-selection.js",NEW-UNTRANSLATED
+"from translation memory","from translation memory","static/js/pages/translation-selection.js",NEW-UNTRANSLATED

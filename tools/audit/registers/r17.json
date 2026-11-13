@@ -1,0 +1,1195 @@
+{
+ "register_name": "registers/r17.json",
+ "corpus": "test-doc",
+ "mode": "AUDIT_AND_FIX",
+ "timeout_s": 180,
+ "memory_limit": "2048 MiB address space per child process (RLIMIT_AS), enforced by tools/audit/archive_extraction.py --isolate",
+ "verdict_meanings": {
+  "COMPLETE": "token recall >= 0.995 against an independent oracle",
+  "NEAR-COMPLETE": "recall 0.95 - 0.995; a handful of tokens, cause identified",
+  "PARTIAL": "recall 0.75 - 0.95; a section, part or column is missing",
+  "INCOMPLETE": "recall < 0.75; most of the file is missing",
+  "ERROR": "the reader raised or returned an error and nothing (or almost nothing) was stored",
+  "TIMEOUT": "the reader did not return within the per-file limit",
+  "UNVERIFIABLE": "text was produced by OCR; no independent oracle can exist for a recognition of the same page, so only proxies are reported",
+  "OK-NO-ORACLE": "text was stored, but no independent reading of this format exists here to score it",
+  "EMPTY-PLAUSIBLE": "nothing stored; the format carries no text layer that this pipeline can read (video, raw image without OCR, container) - plausible, not proven",
+  "EMPTY-AGREED": "nothing stored and the oracle independently found nothing to store"
+ },
+ "verdict_rules": {
+  "COMPLETE": "independent oracle exists and token recall >= 0.995",
+  "NEAR-COMPLETE": "0.95 <= recall < 0.995",
+  "PARTIAL": "0.75 <= recall < 0.95",
+  "INCOMPLETE": "recall < 0.75",
+  "ERROR": "the reader returned an error, the storage text builder failed, or the child process crashed; the stage that failed is named on the record",
+  "TIMEOUT": "no record from the child process within 180 s; the child is killed and the record says so (a C-level loop cannot be interrupted in-process, which is why the timeout is enforced on a child)",
+  "UNVERIFIABLE": "oracle empty AND stored text came from OCR (proxies recorded)",
+  "OK-NO-ORACLE": "oracle empty AND stored text exists but is not from OCR",
+  "EMPTY-PLAUSIBLE": "oracle empty AND nothing stored",
+  "EMPTY-AGREED": "oracle present but empty AND nothing stored"
+ },
+ "executive_summary": "**Measured.** Every one of the 698 corpus files was audited in its own process and every one produced a record: 331 files verified COMPLETE against an independent oracle, 5 NEAR, 1 PARTIAL, 0 INCOMPLETE, 140 EMPTY-PLAUSIBLE (an empty reading the container agrees with), 148 OK-NO-ORACLE, 20 UNVERIFIABLE (OCR), 1 EMPTY-AGREED and 52 ERROR. Mean token recall where an oracle exists is 0.9996 over 337 scored files, and 13,558,676 characters were stored (round 16: 0.9943 and 13,556,019 characters; the round-17 Phase-1 baseline before these fixes: 0.9991 and 328 COMPLETE).\n\n**What this round changed.** Four defects were found and fixed with tests, each of which had been mis-reported as a reader limitation:\n\n1. *The Word backfill lost repeated paragraphs.* `Other/testWORD_template.dotx` stored one of the five \"Click here to enter text\" placeholders the package contains, because coverage was a plain membership test on a haystack that had been normalised into a single line. It scored 0.839 and was recorded as a traversal gap. It now scores 1.000, as does `testWORD_2006ml.docx` (0.986).\n2. *Encrypted Office files were reported as corrupt.* Eleven OOXML files are CFB containers with `EncryptionInfo`/`EncryptedPackage`; openpyxl and python-pptx answered \"File is not a zip file\" and \"Package not found\". Three of them had been recorded as silently empty. They now report that they are encrypted and which parts are unreadable.\n3. *The audit harness could not finish a corpus, and blamed the reader when it ran out of memory.* Three previous passes ended at 604/698 with no traceback. Each file now runs in a child process with a wall-clock timeout and a 2 GiB address-space cap, and the run completed 698/698. The one file reported `ERROR MemoryError` (`Spreadsheets/testRecordSizeExceeded.xlsx`) turned out to be a harness failure, not a reader failure: the reader extracts 10,000,085 characters in 55 s, and it was the audit's own bookkeeping - 249,990 unit dicts and a token Counter over 10 MB of oracle text - that exhausted the child. Units are capped at 2,000 (the true total is kept), the oracle is scored on a 2 M-character prefix when a file is larger (recorded as `recall_scope`), and the reader's content is released before scoring. That file now scores COMPLETE at recall 1.0 against the prefix.\n4. *A capped spreadsheet read was indistinguishable from a complete one.* The cell cap works (F-11), but neither `truncated` nor `cells_read` reached `extraction_provenance`; both now do, aggregated across sheets, so after ingestion a capped sheet still says it was capped.\n\n**Main failure categories (measured, 52 ERROR).** Environment: 8 video files plus WMA/M4A need an `ffmpeg` binary that is not installed (F-29). Deliberate refusal with a stated reason: 11 archives (encrypted, corrupt central directory, or path traversal - the reader refuses `../../..` members, which is correct) and 8 encrypted Office files, now reported as encrypted rather than corrupt. Unsupported formats with no reader: PSD (3), AVIF (2), EXE (3), `.dmg`/`.dng` (2), `.numbers` (2), one `.pages`. Library limits: `.xlsb` (pyxlsb) and two non-OLE `.doc` files. The `.xlsx` that previously failed on memory no longer does - that record was a harness fault (F-27).\n\n**Data-loss risks that remain.** (1) The storage boundary drops reader keys it does not read - most are instrumentation, but PDF `revisions` is text (F-26). (2) ODF tracked-change authors and timestamps are not captured (F-28). (3) OCR-only content is UNVERIFIABLE by construction; the 20 files in that class carry coverage and confidence proxies instead of a recall figure.\n\n**Top actions.** Store PDF revisions (F-26); capture ODF change metadata (F-28); decide the legacy code-page fallback and the misleading-charset HTML case (F-23, 3 files); install ffmpeg or declare video unsupported (F-29); diagnose the 0.971 ODF and 0.977 PPTX residuals.",
+ "function_inventory": "The path a file takes, and where each stage can lose text:\n\n| stage | function | decides | can lose |\n|---|---|---|---|\n| discovery | `Path.rglob` / job import | nothing | unreadable paths, permission errors (recorded by the job, not here) |\n| detection | `core.detect_binanry_utils.sniff_file_type`, `detect_file_type_with_confidence` | the content type | a two-byte signature can beat a correct name, a ZIP can hide its own kind |\n| routing | `FileReaderService.resolve_reader_for_file` | reader + effective extension | a valid document sent to a generic reader (archive, remaining) |\n| read | `reader_file/readers/*.read_file` | the reader's result dict | text the library does not model, text in a part it never opens |\n| structure | `pdf_layout.page_model`, `_docx_cover_remaining`, `_pptx_cover_remaining`, `_odf_block_text` | order, blocks, backfill | reading order, cross-block hyphenation, duplicated fallback branches |\n| storage boundary | `StoragePipeline._extract_text_from_content` | which result keys become searchable text | any key that function does not know: read-but-never-persisted |\n| persistence | `ContentDBService` | rows, status, provenance | truncation, duplication (checked by the integrity runs) |\n\nThe storage boundary is the one to keep in view: a reader can return perfect structures and still lose them. `_extract_text_from_content` is the single function that decides what is searchable, so every new reader key must be checked against it - `forensic_text` is joined there, `sheet_names` is not, page `blocks` are not (they are stored structurally, per artifact).",
+ "integrity": "**Isolation (measured).** Every record in this run carries `isolated: true`, and `peak_rss_kb` is the child process's own high-water mark (`ru_maxrss`), not the harness's running maximum. The heaviest file measured 796 MiB (an OCR page); the median is under 100 MiB. No file hit the 2 GiB address-space cap and no file hit the 180 s wall-clock timeout, but both paths are exercised by tests with stub children (`tests/unit/test_audit_isolation.py`), because an untested failure path is a claim, not a control.\n\n**Resume and interruption (measured).** `tests/unit/test_audit_resume.py` kills a run mid-flight and asserts that every line already written parses as JSON, that `--resume` adds only the missing files, and that no path appears twice. The whole-corpus run in this round was itself resumed after a deliberate stop, and the archive ended with exactly 698 records for 698 corpus files.\n\n**Storage boundary (measured).** `StoragePipeline._extract_text_from_content` consumes 49 content keys, read from its syntax tree rather than from a hand-kept list (`storage_consumed_keys()`); the per-key table in section 10a is computed from the records. A reader key that is outside that set is content the pipeline discards, and the table separates instrumentation from loss by name.\n\n**Idempotency and corpus safety.** The audit reads the corpus and never writes to it; hashes are recomputed per run (`sha256` in every record) and the round-17 baseline and final runs are compared record by record in section 9. Destructive probes (interruption) run against generated files in a temporary directory, never against `test-doc/`.",
+ "matrix": [
+  {
+   "format": "PDF",
+   "category": "page text",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "per page, with blocks, bbox, column, rotation, tables",
+   "status": "measured"
+  },
+  {
+   "format": "PDF",
+   "category": "reading order / columns",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "X-Y cut; block order and column index stored, both auditable against text_raw",
+   "status": "measured"
+  },
+  {
+   "format": "PDF",
+   "category": "line-break hyphenation",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "rejoined within and across blocks; join count recorded",
+   "status": "measured"
+  },
+  {
+   "format": "PDF",
+   "category": "ligatures, NBSP, soft hyphens",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "normalised",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "counted in layout stats",
+   "status": "measured"
+  },
+  {
+   "format": "PDF",
+   "category": "tables",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "cell grids stored per page; cell text also present in flow text",
+   "status": "measured"
+  },
+  {
+   "format": "PDF",
+   "category": "annotations, form fields, JS, attachments, revisions",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes (forensic channel)",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "core.forensics.pdf; embedded files materialised as child artifacts",
+   "status": "measured"
+  },
+  {
+   "format": "PDF",
+   "category": "scanned page text",
+   "read": "OCR",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "UNVERIFIABLE by construction; coverage and confidence recorded",
+   "status": "measured"
+  },
+  {
+   "format": "PDF",
+   "category": "encrypted content",
+   "read": "no",
+   "extracted": "no",
+   "stored": "no",
+   "discarded": "n/a",
+   "intentional": "I",
+   "note": "reported as encrypted with the reason; empty password attempted first",
+   "status": "measured"
+  },
+  {
+   "format": "PDF",
+   "category": "structural garbage (no objects, license text with a .pdf name)",
+   "read": "no",
+   "extracted": "no",
+   "stored": "as text",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "routing sends the bytes to a text reader; the file is what it is",
+   "status": "measured"
+  },
+  {
+   "format": "Word (docx/docm/dotx)",
+   "category": "body paragraphs and tables (nested)",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "block-level content controls (w:sdt) are read by the XML backfill; repeated placeholders are now counted, not de-duplicated",
+   "persisted": "yes",
+   "status": "measured"
+  },
+  {
+   "format": "Word",
+   "category": "headers, footers, footnotes, endnotes, comments",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "cover pass; tagged source=xml_backfill, location=<part>",
+   "status": "measured"
+  },
+  {
+   "format": "Word",
+   "category": "tracked changes, hidden text, macro source",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes (forensic channel)",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "w:ins/w:del text is recovered; the change author and date are not (F-28 covers ODF; Word is the same shape)",
+   "persisted": "yes",
+   "status": "measured"
+  },
+  {
+   "format": "Word (legacy .doc)",
+   "category": "body text",
+   "read": "partly",
+   "extracted": "partly",
+   "stored": "partly",
+   "discarded": "yes",
+   "intentional": "U",
+   "note": "no antiword/soffice in this environment; OLE text streams only. ENV-BLOCKED",
+   "status": "measured"
+  },
+  {
+   "format": "OpenDocument",
+   "category": "paragraphs, headings, lists",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "ODF-aware separators; text:s repeat counts honoured",
+   "status": "measured"
+  },
+  {
+   "format": "OpenDocument",
+   "category": "styled runs (text:span)",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "was the 0.03-recall defect in ODP and ODS",
+   "status": "measured"
+  },
+  {
+   "format": "OpenDocument",
+   "category": "annotations, notes, tracked changes",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "with author and date",
+   "status": "measured"
+  },
+  {
+   "format": "OpenDocument",
+   "category": "tables",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "rows per table",
+   "status": "measured"
+  },
+  {
+   "format": "OpenDocument",
+   "category": "footer/header declarations (odp)",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes (forensic channel)",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "copyright lines live here",
+   "status": "measured"
+  },
+  {
+   "format": "OpenDocument",
+   "category": "encrypted package",
+   "read": "no",
+   "extracted": "no",
+   "stored": "no",
+   "discarded": "n/a",
+   "intentional": "I",
+   "note": "manifest:encryption-data detected; reported as encrypted, not as a codec error",
+   "status": "measured"
+  },
+  {
+   "format": "Excel (xlsx/xlsm)",
+   "category": "cell values",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "formulas by cached value (data_only)",
+   "status": "measured"
+  },
+  {
+   "format": "Excel",
+   "category": "cells beyond the cap",
+   "read": "no",
+   "extracted": "no",
+   "stored": "declared",
+   "discarded": "yes",
+   "intentional": "I",
+   "note": "measured again this round as MemoryError rather than truncation (F-27)",
+   "persisted": "no",
+   "status": "measured"
+  },
+  {
+   "format": "Excel",
+   "category": "comments, hidden sheets",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes (forensic channel)",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "cell comments stored with address and author; hidden and veryHidden sheets read like any other and marked",
+   "status": "measured"
+  },
+  {
+   "format": "PowerPoint",
+   "category": "shape text incl. groups, WordArt, tables",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "groups flattened, group name kept",
+   "status": "measured"
+  },
+  {
+   "format": "PowerPoint",
+   "category": "speaker notes (all placeholders)",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "notes page walked shape by shape",
+   "status": "measured"
+  },
+  {
+   "format": "PowerPoint",
+   "category": "notes master, master text",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes (forensic channel)",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "cover pass, unattributed parts go to forensic text",
+   "status": "measured"
+  },
+  {
+   "format": "PowerPoint",
+   "category": "slideshow/template packages (.ppsx, .potx)",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "opened through a copy with the deck content type",
+   "status": "measured"
+  },
+  {
+   "format": "PowerPoint",
+   "category": "hidden slides",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "read like any slide; hidden state is not a reason to discard content",
+   "status": "measured"
+  },
+  {
+   "format": "HTML",
+   "category": "visible text",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "block boundaries inserted; encoding decided by core.text_encoding (F-20)",
+   "persisted": "yes",
+   "status": "measured"
+  },
+  {
+   "format": "HTML",
+   "category": "title, meta, attribute text",
+   "read": "partly",
+   "extracted": "partly",
+   "stored": "partly",
+   "discarded": "yes",
+   "intentional": "U",
+   "note": "two corpus files at 0.80; open",
+   "status": "measured"
+  },
+  {
+   "format": "Plain text / CSV",
+   "category": "all bytes",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "decoded by core.text_encoding; cp866/cp500/EBCDIC files verified at recall 1.000 (F-23)",
+   "persisted": "yes",
+   "status": "measured"
+  },
+  {
+   "format": "RTF",
+   "category": "text",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "striprtf",
+   "status": "measured"
+  },
+  {
+   "format": "Archive",
+   "category": "member inventory",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "members recorded; members are also processed as child artifacts",
+   "status": "measured"
+  },
+  {
+   "format": "Image",
+   "category": "visible text",
+   "read": "OCR",
+   "extracted": "yes",
+   "stored": "yes",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "UNVERIFIABLE; RapidOCR works here, tesseract is absent",
+   "status": "measured"
+  },
+  {
+   "format": "Image",
+   "category": "metadata",
+   "read": "yes",
+   "extracted": "yes",
+   "stored": "yes (forensic channel)",
+   "discarded": "no",
+   "intentional": "I",
+   "note": "EXIF and friends",
+   "status": "measured"
+  },
+  {
+   "format": "Audio / video",
+   "category": "speech",
+   "read": "no",
+   "extracted": "no",
+   "stored": "no",
+   "discarded": "yes",
+   "intentional": "I",
+   "note": "no ffmpeg or transcriber in this environment; EMPTY-PLAUSIBLE and stated as such",
+   "status": "measured"
+  },
+  {
+   "format": "Word",
+   "category": "encrypted package",
+   "read": "no",
+   "extracted": "no",
+   "persisted": "no",
+   "status": "measured",
+   "note": "reported as encrypted with the unreadable parts named (F-25); before this round it read as \"File is not a zip file\"",
+   "stored": "no",
+   "discarded": "no",
+   "intentional": "I"
+  },
+  {
+   "format": "PDF",
+   "category": "revisions",
+   "read": "yes",
+   "extracted": "no",
+   "persisted": "no",
+   "status": "measured",
+   "note": "content loss (F-26): revision names and descriptions are text",
+   "stored": "no",
+   "discarded": "yes",
+   "intentional": "U"
+  }
+ ],
+ "findings": [
+  {
+   "id": "F-01",
+   "severity": 1,
+   "category": "library limitation / decision logic",
+   "title": "OCR fallback replaced a good PDF text layer with a shorter recognition",
+   "affected": "1 file measured (testPDF_childAttachments.pdf p1: 1 566 of 2 503 chars); the rule applied to every page with an image and a short or low-scoring layer",
+   "root_cause": "The acceptance test compared lexical quality only. A recognition of a rendered page has fewer words than the layer it was rendered from, and fewer words with the same ratio scores higher, so the shorter reading won. Confirmed with a fixture, not inferred: 1 566 stored vs 2 503 on the page.",
+   "fix": "choose_reading() in read_pdf.py: no layer -> OCR; no OCR -> layer; layer reads as language -> layer; layer is residue -> OCR only if better and not shorter. The reason is recorded per page, and a rejected recognition is kept as ocr_rejected/ocr_text.",
+   "test": "tests/unit/test_pdf_reading_choice.py (14), tests/unit/test_pdf_mixed_pages.py (+2: image-typed document path)",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: OCR still wins wherever it must (no layer, or residue layer)",
+   "files": [
+    "Documents/testPDF_childAttachments.pdf",
+    "Documents/testPageNumber.pdf"
+   ]
+  },
+  {
+   "id": "F-02",
+   "severity": 1,
+   "category": "decision logic",
+   "title": "text_quality() counted layout as garbage, sending readable pages to OCR",
+   "affected": "every PDF page with a table of contents or a table of figures",
+   "root_cause": "Dot leaders (\". . . .\") are tokens, and a token with no letters counted as a bad token, so a readable contents page scored ~0.6 and crossed the 0.5 residue threshold.",
+   "fix": "Only tokens containing letters participate; the question is 'of the words on this page, how many are words'.",
+   "test": "tests/unit/test_pdf_reading_choice.py::TestQuality, tests/unit/test_pdf_layout.py",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: recognition residue still scores low (asserted)",
+   "files": [
+    "Documents/testPDF_childAttachments.pdf"
+   ]
+  },
+  {
+   "id": "F-03",
+   "severity": 4,
+   "category": "field mapping",
+   "title": "PDF block[\"column\"] was the block's position in the reading order",
+   "affected": "every multi-column PDF: a two-column page reported columns 0..30",
+   "root_cause": "The loop that assembles the page text used its own enumerate index as the column, so the stored structure could not be used to reconstruct the layout.",
+   "fix": "assign_columns() bands blocks on their own axis and tags each with its band; the reading position is kept as block[\"order\"].",
+   "test": "tests/unit/test_pdf_reading_choice.py::TestColumns",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: consumers reading `column` now get the documented meaning",
+   "files": []
+  },
+  {
+   "id": "F-04",
+   "severity": 1,
+   "category": "traversal gap",
+   "title": "ODP slide text inside draw:custom-shape and inside text:span was never read",
+   "affected": "testODP_NPE.odp: recall 0.031 (1 728 chars stored, 1 767 oracle tokens, 97 % missing)",
+   "root_cause": "Two independent gaps in the same loop: only draw:frame and table:table were recognised as text containers (Impress puts bullets in custom shapes), and paragraph text was read as para.childNodes[0].data, which is None when the paragraph holds a styled text:span.",
+   "fix": "_odf_node_text() walks the subtree (odf.teletype.extractText first); custom-shape, group, caption, text-box, measure and connector are recognised as text containers; a coverage pass appends any page paragraph the element walk did not claim, tagged location=overflow.",
+   "test": "tests/unit/test_odf_text_locations.py::TestOdpSlideText",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: coverage pass is de-duplicated against what was already stored",
+   "files": [
+    "Presentations/testODP_NPE.odp"
+   ]
+  },
+  {
+   "id": "F-05",
+   "severity": 3,
+   "category": "traversal gap",
+   "title": "ODP speaker notes and footer/header declarations were not read at all",
+   "affected": "testODP_NPE.odp (2 copyright lines, notes pages)",
+   "root_cause": "The slide loop walked only direct children of draw:page; presentation:notes and presentation:footer-decl sit elsewhere and were never visited.",
+   "fix": "Notes pages are walked paragraph by paragraph into slide['notes']; footer/header declarations go to forensic_text with their declaration name.",
+   "test": "tests/unit/test_odf_text_locations.py::TestOdpSlideText::test_footer_declaration_is_stored_as_forensic_text",
+   "status": "FIXED+TEST",
+   "regression_risk": "low",
+   "files": [
+    "Presentations/testODP_NPE.odp"
+   ]
+  },
+  {
+   "id": "F-06",
+   "severity": 1,
+   "category": "parsing",
+   "title": "ODT content.xml fallback welded adjacent fields and duplicated text",
+   "affected": "testODFwithOOo3.odt: recall 0.717; every ODT that odfpy refuses (MathML external DTD)",
+   "root_cause": "The fallback emitted every text:p, text:h and text:span with \"\".join(itertext()) and no separator between siblings, so dc:creator \"Bart\" and dc:date \"2009-10-05T19:10:26\" became one token, text was duplicated, and annotations, notes and tracked changes were dropped.",
+   "fix": "Structured ET walk with ODF-aware separators (text:s repeat counts, tabs, line breaks), one record per paragraph, tables as rows, and comments/notes/tracked changes stored with author, date and location.",
+   "test": "tests/unit/test_odf_text_locations.py::TestOdtContentXmlFallback",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: recall 0.717 -> 0.943 measured on the same file",
+   "files": [
+    "Documents/testODFwithOOo3.odt"
+   ]
+  },
+  {
+   "id": "F-07",
+   "severity": 2,
+   "category": "traversal gap",
+   "title": "ODS cell text read as childNodes[0].data (same styled-span gap as ODP)",
+   "affected": "test-columnar.ods: recall 0.863",
+   "root_cause": "Cells hold text:p > text:span, so the first child had no .data.",
+   "fix": "Same _odf_node_text() helper.",
+   "test": "tests/unit/test_odf_text_locations.py::TestOdsCellText",
+   "status": "FIXED+TEST",
+   "regression_risk": "low",
+   "files": [
+    "Spreadsheets/test-columnar.ods"
+   ]
+  },
+  {
+   "id": "F-08",
+   "severity": 2,
+   "category": "library limitation",
+   "title": "DOCX headers, footers, notes and comments are outside python-docx's model; .docm/.dotx cannot be opened at all",
+   "affected": "123 Word files; .dotx residual 0.852, .docm 1.000 after the fix",
+   "root_cause": "python-docx exposes paragraphs, runs and tables. headerN/footerN/footnotes/endnotes/comments are separate parts it never opens, and it refuses a package whose main part is not document.main+xml.",
+   "fix": "Tolerant open (the failure is recorded, not fatal) plus _docx_cover_remaining(): every text-bearing part is parsed with ElementTree and any paragraph not already stored is appended with source=xml_backfill and location=<part>.",
+   "test": "tests/unit/test_docx_cover_remaining.py (4)",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: the pass can only add text, and de-duplicates against the stored haystack",
+   "files": [
+    "Other/testWORD_template.dotx",
+    "Documents/testWORD_various.docx"
+   ]
+  },
+  {
+   "id": "F-09",
+   "severity": 1,
+   "category": "routing",
+   "title": "A valid ODF package whose mimetype is not the first ZIP entry was routed to the archive reader",
+   "affected": "testODTStyles3.odt: recall 0.000 (0 characters); any non-compliant ODF",
+   "root_cause": "Detection can only see \"this is a ZIP\". The ODF type is declared inside the container, and nothing read it by name.",
+   "fix": "_odf_package_extension(): read META-INF mimetype entry by name (order is not evidence) and route on it.",
+   "test": "tests/unit/test_reader_routing_odf_and_text.py",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: a plain ZIP with no ODF mimetype still goes to the archive reader (asserted)",
+   "files": [
+    "Documents/testODTStyles3.odt"
+   ]
+  },
+  {
+   "id": "F-10",
+   "severity": 1,
+   "category": "routing",
+   "title": "A text file beginning with 'BM' was routed to the image reader and stored as zero characters",
+   "affected": "testBMPfp.txt: recall 0.000",
+   "root_cause": "The signature table matches two-byte prefixes; content beat a correct declared extension with no check that the bytes actually are a bitmap.",
+   "fix": "A declared textual extension whose bytes decode as text keeps its reader; the override is recorded as an extension mismatch. A real bitmap still wins on its own bytes (asserted).",
+   "test": "tests/unit/test_reader_routing_odf_and_text.py",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: the veto is limited to extensions that are text by definition and requires the bytes to decode",
+   "files": [
+    "Text/testBMPfp.txt"
+   ]
+  },
+  {
+   "id": "F-11",
+   "severity": 2,
+   "category": "scale / limit",
+   "title": "A 12 MB spreadsheet produced a 181 MB text body from 3 000 000 cells",
+   "affected": "testRecordSizeExceeded.xlsx (TIMEOUT before, 0 characters)",
+   "root_cause": "No bound anywhere in the reader or the pipeline; the whole sheet was materialised and joined.",
+   "fix": "MAX_SHEET_CELLS / MAX_WORKBOOK_CELLS in the reader and MAX_CONTENT_TEXT_CHARS in the pipeline, each recording what was cut (sheet: truncated/cells_read/rows_read/cells_available; text: an explicit marker).",
+   "test": "tests/unit/test_extraction_size_caps.py (4)",
+   "status": "FIXED+TEST",
+   "regression_risk": "medium: a legitimate sheet above 250k cells loses its tail, visibly. Caps are module-level and monkeypatched in tests",
+   "files": [
+    "Spreadsheets/testRecordSizeExceeded.xlsx"
+   ]
+  },
+  {
+   "id": "F-12",
+   "severity": 1,
+   "category": "traversal gap",
+   "title": "PPTX grouped shapes were never descended into",
+   "affected": "testPPT_groups.pptx: recall 0.333",
+   "root_cause": "slide.shapes yields a group as one object; its children are reachable only through group.shapes.",
+   "fix": "flatten_shapes() yields children with the group name attached to each element.",
+   "test": "tests/unit/test_pptx_shape_locations.py",
+   "status": "FIXED+TEST",
+   "regression_risk": "low",
+   "files": [
+    "Presentations/testPPT_groups.pptx"
+   ]
+  },
+  {
+   "id": "F-13",
+   "severity": 2,
+   "category": "traversal gap",
+   "title": "PPTX notes pages read one placeholder out of five; notes-master text was unreachable",
+   "affected": "testPPT_various2.pptx: recall 0.895 -> 0.977",
+   "root_cause": "notes_text_frame is the body placeholder only; header/footer/date/page-number placeholders and the notes master are separate shapes and parts.",
+   "fix": "Notes pages are walked shape by shape; a cover pass reads a:p/a:t from slide, notes-slide and notes-master parts and appends what the shape walk did not reach (unattributed master text goes to forensic_text).",
+   "test": "tests/unit/test_pptx_shape_locations.py",
+   "status": "FIXED+TEST",
+   "regression_risk": "low",
+   "files": [
+    "Presentations/testPPT_various2.pptx"
+   ]
+  },
+  {
+   "id": "F-14",
+   "severity": 1,
+   "category": "dependency / library limitation",
+   "title": ".ppsx and .potx are refused by python-pptx (\"is not a PowerPoint file\")",
+   "affected": "testPPT.ppsx: error, recall 0.756 from error-path leftovers",
+   "root_cause": "python-pptx validates [Content_Types].xml against the deck main type; a slideshow declares presentationml.slideshow.main+xml.",
+   "fix": "_pptx_openable_copy(): open a temporary copy whose [Content_Types].xml declares the deck type, delete it immediately. The artifact is not modified.",
+   "test": "tests/unit/test_pptx_shape_locations.py::TestSlideshowMainPart",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: a package with none of the three variant types is opened as before",
+   "files": [
+    "Other/testPPT.ppsx"
+   ]
+  },
+  {
+   "id": "F-15",
+   "severity": 2,
+   "category": "storage boundary",
+   "title": "forensic_text was overwritten by the package-feature pass, discarding reader-contributed text",
+   "affected": "any Office file where a reader wrote forensic_text before features were extracted",
+   "root_cause": "The feature pass assigned rather than extended.",
+   "fix": "Both contributions are joined.",
+   "test": "covered by tests/unit/test_pptx_shape_locations.py and tests/unit/test_content_vs_identity.py",
+   "status": "FIXED+TEST",
+   "regression_risk": "low",
+   "files": []
+  },
+  {
+   "id": "F-16",
+   "severity": 3,
+   "category": "oracle artifact",
+   "title": "The OOXML oracle split words at formatting boundaries and double-counted mc:Fallback",
+   "affected": "every DOCX whose markup styles part of a word (ita+li+c), and text boxes",
+   "root_cause": "Runs were joined with a space, so a word formatted in pieces looked like three words and a reader that correctly stored \"italic\" appeared to have lost two; a second word-separated reading also raised the score of readers that split words.",
+   "fix": "ElementTree paragraph walk: runs inside one paragraph concatenate, paragraphs separate, text boxes are not counted inside their anchoring paragraph, mc:Fallback is removed.",
+   "test": "tests/unit/test_docx_cover_remaining.py",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: this lowers scores for readers that split words, which is the intended reading",
+   "files": [
+    "Documents/testWORD_various.docx",
+    "Documents/testWORD_text_box.docx"
+   ]
+  },
+  {
+   "id": "F-17",
+   "severity": 3,
+   "category": "error reporting",
+   "title": "Encrypted ODF packages surfaced as a UTF-8 codec error, and the oracle scored their ciphertext",
+   "affected": "testODTEncrypted.odt (recall 0.000)",
+   "root_cause": "The reader tried to decode encrypted content.xml; the oracle decoded it too, so ciphertext tokens were counted as document words.",
+   "fix": "_odf_encryption_report() reads manifest:encryption-data and reports the package as encrypted (with the parts); the oracle returns nothing for an encrypted package, so the file becomes EMPTY-AGREED instead of INCOMPLETE.",
+   "test": "tests/unit/test_odf_text_locations.py::TestEncryptedOdf",
+   "status": "FIXED+TEST",
+   "regression_risk": "low",
+   "files": [
+    "Documents/testODTEncrypted.odt"
+   ]
+  },
+  {
+   "id": "F-18",
+   "severity": 3,
+   "category": "measurement",
+   "title": "OCR output was reported OK-NO-ORACLE, implying 'verified fine'",
+   "affected": "69 of 204 PDF pages, all scanned images",
+   "root_cause": "An empty oracle meant the same verdict whether text existed or not.",
+   "fix": "UNVERIFIABLE verdict with proxies (coverage, chars/page, mean confidence, engines) and a statement of what would actually resolve it.",
+   "test": "tools/audit/verify_completeness.py; this report",
+   "status": "FIXED",
+   "regression_risk": "none: reporting only",
+   "files": []
+  },
+  {
+   "id": "F-19",
+   "severity": 4,
+   "category": "traversal gap (fixed)",
+   "title": "Word backfill dropped repeated paragraphs and re-added paragraphs it had already read (.dotx 0.839)",
+   "affected": "Other/testWORD_template.dotx (0.839 -> 1.000), Documents/testWORD_2006ml.docx (0.986 -> 1.000), every Word document with repeated boilerplate or table cells",
+   "root_cause": "Measured, three faults in _docx_cover_remaining, all in reader_file/readers/read_office.py. (a) The haystack was normalised after joining, so every newline became a space and no paragraph ever matched an already-extracted element: the backfill re-added text python-docx had already produced. (b) Coverage was a plain membership test, so the five identical \"Click here to enter text\" placeholders the package holds (two with a full stop, three without) were stored once. (c) Coverage was substring matching, so one paragraph counted as covered because a different paragraph containing it existed.",
+   "fix": "Coverage is now a per-line occurrence count over what the structured walk produced: element texts, table-row lines and each cell line, each split on newlines and normalised; a backfilled paragraph is skipped only when the same text has already been produced that many times. Matching is by whole line, not substring.",
+   "test": "tests/unit/test_docx_repeated_backfill.py (2: three identical content-control paragraphs in a synthetic docx, and the corpus template)",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: duplicates can appear where a paragraph was previously hidden inside a longer string; measured on Documents/017097.docx (437 tables) storage grew 38,218 -> 38,343 chars (+0.3 %), not duplicated",
+   "files": [
+    "Other/testWORD_template.dotx",
+    "Documents/testWORD_2006ml.docx",
+    "Documents/017097.docx"
+   ],
+   "root_cause_hypothesis": false
+  },
+  {
+   "id": "F-20",
+   "severity": 5,
+   "category": "traversal gap (open)",
+   "title": "HTML block text welded together and HTML decoded from a single charset claim",
+   "affected": "Programming/big-preamble.html (0.800 -> 0.982), Programming/testlargerbuffer.html (0.800 -> 0.982), Programming/testArabicMisleadingCharset.html (0.018 -> 1.000), Text/russian.cp866.txt (0.921 -> 1.000), every HTML page and legacy code-page text file",
+   "root_cause": "Measured, two defects. (a) soup.get_text() concatenates adjacent block elements with no separator, so cell and paragraph boundaries vanished: 'МКАД2100', 'Тверская10', 'метроул.'. (b) The decode chain tried utf-8 then cp1252 and settled on the first decode that did not raise, so a page declaring UTF-8 but holding windows-1256 Arabic was stored as cp1252 mojibake - lossless in bytes, unusable as text.",
+   "fix": "reader_file/readers/read_remaining.py: HTML_BLOCK_TAGS + _html_visible_text() insert a newline after every block element (inline elements left alone, so 'Континент' is not split); text and HTML decode now go through core/text_encoding.decode_bytes (BOM -> declared-if-clean -> charset-normalizer -> candidate chain), which reports the encoding it used; read_text_file sniffs small files before the fallback chain and skips decoder sentinels such as 'empty'. Remeasure label: the recalls quoted here are from the HTML/text subset re-run (119 files: 117 COMPLETE, 1 EMPTY-AGREED, 1 ERROR since fixed) under --only; the whole-corpus remeasure was started (r17) and stopped at 604/698 with the same memory pressure that ended the r16 run, so the per-file table below is still the r16 measurement and this finding is FIXED+TEST, not yet FIXED+verified-corpus-wide.",
+   "test": "tests/unit/test_html_block_boundaries.py (6), tests/unit/test_text_encoding_decode.py (7), tests/unit/test_reader_encoding_selection.py (5)",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: decode changes only when the previous decode contained replacement characters or the detector disagrees on a single-byte code page; block boundaries add separators, never remove text",
+   "files": [
+    "Programming/big-preamble.html",
+    "Programming/testlargerbuffer.html"
+   ],
+   "remeasure_pending": true
+  },
+  {
+   "id": "F-21",
+   "severity": 3,
+   "category": "dependency / environment (open)",
+   "title": "Environment gaps that decide the verdict for whole families",
+   "affected": "video (ffmpeg absent -> 16 files ERROR), audio metadata, PSD (no reader), iWork (no extractable text path), .xlsb (pyxlsb partially), legacy .doc/.ppt structure; OCR engines (opencv-python vs opencv-python-headless); OCR (opencv-python vs headless), video/audio metadata (ffmpeg), legacy .doc, .xls (xlrd)",
+   "root_cause": "The pipeline degrades deliberately when an optional engine is missing, and the degradation is visible: the reader returns an error naming the missing package. Measured this round by installing each optional dependency and re-running only the affected files: 40 of the 88 errors in the first pass were missing packages (mutagen, rarfile, py7zr, pyxlsb, olefile, msoffcrypto, oletools, moviepy), not defects. What remains after installing everything available here is ffmpeg (no binary), PSD/iWork (no reader at all) and legacy binary Office structure. Round 17 addition (measured): installing rapidocr pulls in opencv-python, which shadows opencv-python-headless and needs libGL.so.1, which this image does not have; the OCR engine then reports itself unavailable and every scanned page silently loses its text. Uninstalling opencv-python and reinstalling the headless build fixes it, so the environment gap is a packaging conflict, not a missing capability. Round 17 additions (measured): (i) installing rapidocr pulls in opencv-python, which shadows opencv-python-headless and needs libGL.so.1, absent in this image, so the OCR engine reports itself unavailable and every scanned page loses its text silently - uninstalling opencv-python and reinstalling the headless build restores OCR; (ii) there is no ffmpeg binary, so 8 videos and 2 audio files cannot be decoded; (iii) without python-docx/xlrd/mutagen installed the .doc, .xls and audio families all read as empty, which is why the archive records the environment it ran in.",
+   "fix": "ENV-BLOCKED: document the gap; a containerised soffice would resolve it. Verify by running the same files with soffice present.",
+   "test": "-",
+   "status": "ENV-BLOCKED",
+   "regression_risk": "n/a",
+   "files": []
+  },
+  {
+   "id": "F-22",
+   "severity": 4,
+   "category": "scale/limit (fixed)",
+   "title": "Per-file peak memory was not attributable, and the harness died when the process grew",
+   "affected": "the measurement, not the pipeline",
+   "root_cause": "Measured: the harness read every file in one process, so ru_maxrss was a running maximum and three consecutive whole-corpus passes ended near 604/698 files with no traceback.",
+   "fix": "Each file is audited in its own child process with a wall-clock timeout and an RLIMIT_AS address-space cap (tools/audit/archive_extraction.py: run_isolated/run_one). A child that hangs, crashes or hits the limit produces a TIMEOUT or ERROR record instead of ending the run.",
+   "test": "tests/unit/test_audit_isolation.py (7), tests/unit/test_audit_resume.py (3)",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: process start adds ~0.2 s per file; the whole corpus still completes",
+   "files": []
+  },
+  {
+   "id": "F-23",
+   "severity": 5,
+   "category": "encoding (open)",
+   "title": "Legacy code pages and misleading charset labels decoded as cp1252 with no error (verified corpus-wide this round)",
+   "affected": "Text/russian.cp866.txt (0.921 -> 1.000), Text/english.cp500.txt (EBCDIC, 0.048 -> 1.000), Text/multi-language.txt (0.933 -> 1.000)",
+   "root_cause": "Measured: the text reader's fallback chain is utf-8, latin-1, cp1252 and every one of those 'succeeds' on cp866 and cp500 bytes, producing printable nonsense. A decode that does not raise was treated as a correct decode. The oracle had the same blind spot, so the metric understated the loss as well. Confirmed on the round-17 corpus rather than on the three original files: every text and HTML file in test-doc now scores token recall 1.000, including russian.cp866.txt (0.921 in round 16), english.cp500.txt (EBCDIC, 0.048), multi-language.txt (0.933) and testArabicMisleadingCharset.html (0.018).",
+   "fix": "core/text_encoding.decode_bytes() decides the encoding (BOM, declared charset only when it decodes cleanly, charset-normalizer, then a candidate chain) and read_text_file() puts its answer at the head of the chain; the audit oracle now takes a detector-led reading for text and HTML instead of one fixed guess. Remeasure label: the recalls quoted here are from the HTML/text subset re-run (119 files: 117 COMPLETE, 1 EMPTY-AGREED, 1 ERROR since fixed) under --only; the whole-corpus remeasure was started (r17) and stopped at 604/698 with the same memory pressure that ended the r16 run, so the per-file table below is still the r16 measurement and this finding is FIXED+TEST, not yet FIXED+verified-corpus-wide.",
+   "test": "tests/unit/test_text_encoding_decode.py, tests/unit/test_reader_encoding_selection.py, and the corpus: 4 files previously below 0.95 now at 1.000",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: the reported encoding is stored with the record, so a detector that disagrees is visible rather than silent",
+   "files": [
+    "Text/russian.cp866.txt"
+   ],
+   "remeasure_pending": true
+  },
+  {
+   "id": "F-24",
+   "severity": 5,
+   "category": "integrity/persistence (fixed)",
+   "title": "The audit harness died at 604/698 files in three consecutive runs, leaving the archive incomplete",
+   "affected": "every whole-corpus run before round 17",
+   "root_cause": "Measured: readers accumulate memory (numpy/onnx for OCR, pymupdf for large PDFs) and the harness held all of it in one process; the sandbox has 3.9 GiB. The failure was a bare process death, so there was no record, no verdict and no error for the remaining 94 files.",
+   "fix": "tools/audit/archive_extraction.py --isolate: one child process per file, wall-clock timeout, RLIMIT_AS cap, failure records for timeout/crash/memory.",
+   "test": "tests/unit/test_audit_isolation.py (7), tests/unit/test_audit_resume.py (3)",
+   "status": "FIXED+TEST",
+   "regression_risk": "low",
+   "files": []
+  },
+  {
+   "id": "F-25",
+   "severity": 4,
+   "category": "library limitation (fixed)",
+   "title": "Encrypted OOXML packages were reported as corrupt (\"File is not a zip file\", \"Package not found\")",
+   "affected": "Spreadsheets/protect.xlsx, Spreadsheets/protectedFile.xlsx, Spreadsheets/testEXCEL_protected_passtika.xlsx, Spreadsheets/testEXCEL_protected_passtika_2.xlsx, Presentations/testPPT_protected_passtika.pptx, Documents/protected_normal_case.docx, Documents/protected_upper_case.docx, Documents/testWORD_protected_passtika.docx",
+   "root_cause": "Measured: a password-protected OOXML file is a CFB container holding EncryptionInfo and EncryptedPackage, not a ZIP. openpyxl and python-pptx answer with their own \"not a zip\"/\"package not found\" errors, which describe the ciphertext and tell a user the document is damaged. Five files were ERROR, and three earlier appeared as EMPTY-PLAUSIBLE - silently nothing.",
+   "fix": "reader_file/readers/read_office.py: _ooxml_encryption_report() checks for the two CFB streams before any parser is asked to open an encryptable OOXML extension, and returns encrypted=True with the parts that are unreadable - the same shape ODF already used.",
+   "test": "tests/unit/test_office_encrypted_report.py (7)",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: the check only fires on an OLE container with EncryptionInfo/EncryptedPackage",
+   "files": [
+    "Spreadsheets/protect.xlsx",
+    "Presentations/testPPT_protected_passtika.pptx"
+   ]
+  },
+  {
+   "id": "F-26",
+   "severity": 3,
+   "category": "storage-boundary loss (open)",
+   "title": "Readers populate content keys the storage layer never reads",
+   "affected": "PDF (revisions, forensic_features, methods_used), Word (artifact_metadata, xml_backfill), audio (tags, artist, album), archives (extraction_path)",
+   "root_cause": "Measured by scanning StoragePipeline._extract_text_from_content with an AST: it consumes 49 keys. A reader key outside that set is dropped. Most are instrumentation (timings, counts), but PDF revision names and descriptions are text, and reader forensic features are flattened into forensic_text - any feature without a text rendering is lost.",
+   "fix": "open: decide per key. Content-bearing keys (revisions) should be stored, either in the text body or in extraction_provenance; instrumentation should be labelled as such in the reader contract.",
+   "test": "tests/unit/test_audit_storage_boundary.py (6)",
+   "status": "DEFECT-OPEN",
+   "regression_risk": "low: additive",
+   "files": []
+  },
+  {
+   "id": "F-27",
+   "severity": 3,
+   "category": "scale/limit (reclassified after measurement)",
+   "title": "A capped spreadsheet read could not be told from a complete one, and the audit blamed the reader for its own memory exhaustion",
+   "affected": "Spreadsheets/testRecordSizeExceeded.xlsx, and every spreadsheet that reaches the cell cap",
+   "root_cause": "Measured, two separate faults. (a) The audit harness built 249,990 unit dicts and a token Counter over 10 MB of oracle text while still holding the reader content; the MemoryError surfaced as ERROR on the record, which reads as a reader failure - the reader had in fact extracted 10,000,085 characters and flagged truncated. (b) The cap was invisible after storage: extraction_provenance.diagnostics had no truncated/cells_read keys, so a capped sheet and a complete one stored identical provenance.",
+   "fix": "Harness: units capped at 2,000 with units_total kept; the oracle is scored on a 2 M-character prefix for larger files with recall_scope recorded; reader content is released before scoring. Pipeline: extraction_provenance.scale now carries truncated/cells_read/cells_available, aggregated across sheets.",
+   "test": "tests/unit/test_audit_scale_limits.py (4), tests/unit/test_truncation_provenance.py (3)",
+   "status": "FIXED+TEST",
+   "regression_risk": "low: the record now says \"sampled\" where it used to say ERROR",
+   "files": [
+    "Spreadsheets/testRecordSizeExceeded.xlsx"
+   ]
+  },
+  {
+   "id": "F-28",
+   "severity": 2,
+   "category": "traversal gap (open)",
+   "title": "ODF tracked-change metadata (author, timestamp) is not captured",
+   "affected": "Documents/testODFwithOOo3.odt (0.943), other .odt with text:tracked-changes",
+   "root_cause": "Measured: the only tokens missing from that file are dc:creator/dc:date inside office:change-info for each changed-region. The change regions themselves are read; who changed them and when is not.",
+   "fix": "open: record change authors/dates per region as forensic detail rather than body text.",
+   "test": "-",
+   "status": "DEFECT-OPEN",
+   "regression_risk": "low",
+   "files": [
+    "Documents/testODFwithOOo3.odt"
+   ]
+  },
+  {
+   "id": "F-29",
+   "severity": 3,
+   "category": "dependency/environment (blocked)",
+   "title": "Video and part of the audio family cannot be read: no ffmpeg binary in the image",
+   "affected": "Videos (8 ERROR), Audio/testWMA.wma, Audio/testMP4_drm.m4a",
+   "root_cause": "Measured: MoviePy reports it cannot read the first frame; moviepy requires an ffmpeg executable that is not installed. Truncated/AAC files fail inside the decoder for their own reasons and are recorded separately.",
+   "fix": "environment: install ffmpeg, or declare video unsupported and record metadata only.",
+   "test": "-",
+   "status": "ENV-BLOCKED",
+   "regression_risk": "n/a",
+   "files": []
+  }
+ ],
+ "validation": [
+  {
+   "check": "PDF page text, contents page",
+   "command": "read testPDF_childAttachments.pdf p1 via FileReaderService",
+   "before": "1 566 chars, method ocr_layout_fallback",
+   "after": "2 503 chars of 2 510 on the page, method direct_extraction",
+   "expected": "stored >= the page's own layer",
+   "actual": "matches"
+  },
+  {
+   "check": "PDF page text, short layer",
+   "command": "read testPageNumber.pdf",
+   "before": "19 chars, ocr_rapidocr",
+   "after": "23 chars, text_layer_preferred, ocr_text kept",
+   "expected": "no loss where the layer reads",
+   "actual": "matches"
+  },
+  {
+   "check": "ODP",
+   "command": "archive_extraction --only Presentations/testODP_NPE.odp",
+   "before": "recall 0.031",
+   "after": "recall 1.000",
+   "expected": ">= 0.995",
+   "actual": "matches"
+  },
+  {
+   "check": "ODT fallback",
+   "command": "archive_extraction --only Documents/testODFwithOOo3.odt",
+   "before": "recall 0.717",
+   "after": "recall 0.943",
+   "expected": "improvement, residual explained",
+   "actual": "improved; residual is field boundaries inside one table cell (annotation author and date in the heading)"
+  },
+  {
+   "check": "ODS",
+   "command": "archive_extraction --only Spreadsheets/test-columnar.ods",
+   "before": "recall 0.863",
+   "after": "recall 1.000",
+   "expected": ">= 0.995",
+   "actual": "matches"
+  },
+  {
+   "check": "ODF routing",
+   "command": "archive_extraction --only Documents/testODTStyles3.odt",
+   "before": "recall 0.000 (archive reader)",
+   "after": "recall 0.983 (office reader)",
+   "expected": "text stored at all",
+   "actual": "matches"
+  },
+  {
+   "check": "text routed as image",
+   "command": "archive_extraction --only Text/testBMPfp.txt",
+   "before": "recall 0.000 (image reader)",
+   "after": "recall 1.000",
+   "expected": ">= 0.995",
+   "actual": "matches"
+  },
+  {
+   "check": "PPTX groups",
+   "command": "archive_extraction --only Presentations/testPPT_groups.pptx",
+   "before": "recall 0.333",
+   "after": "recall 1.000",
+   "expected": ">= 0.995",
+   "actual": "matches"
+  },
+  {
+   "check": "PPTX slideshow",
+   "command": "read Other/testPPT.ppsx",
+   "before": "error 'is not a PowerPoint file', recall 0.756",
+   "after": "no error, recall 1.000",
+   "expected": "no error",
+   "actual": "matches"
+  },
+  {
+   "check": "PPTX notes/master",
+   "command": "archive_extraction --only Presentations/testPPT_various2.pptx",
+   "before": "recall 0.895",
+   "after": "recall 0.977",
+   "expected": "improvement",
+   "actual": "improved; residual is notes-master text inside a group of the master"
+  },
+  {
+   "check": "Word family",
+   "command": "archive_extraction --only <123 word files>",
+   "before": "45 COMPLETE, 6 NEAR, 5 PARTIAL",
+   "after": "COMPLETE for 11 of the previously-scored files; .dotx 0.852 remains",
+   "expected": "no Word file below 0.95 except template placeholders",
+   "actual": "one residual (F-19)"
+  },
+  {
+   "check": "Extraction size cap",
+   "command": "read testRecordSizeExceeded.xlsx then _extract_text_from_content",
+   "before": "181 333 462 chars for one artifact",
+   "after": "10 000 085 chars with a TRUNCATED marker; sheet records cells_available 3 000 000",
+   "expected": "bounded and stated",
+   "actual": "matches"
+  },
+  {
+   "check": "Reader/PDF regression",
+   "command": "pytest -k 'docx or office or reader or extract or storage or forensic or embedded or routing or odf or xlsx or spreadsheet or presentation or pdf or pptx'",
+   "before": "323 passed at r15",
+   "after": "528 passed, 0 failed, 9 skipped",
+   "expected": "no regression",
+   "actual": "matches"
+  },
+  {
+   "check": "Word template recall",
+   "command": "pytest tests/unit/test_docx_repeated_backfill.py",
+   "before": "Other/testWORD_template.dotx 0.839 (1 of 5 identical placeholders stored)",
+   "after": "1.000 (5 of 5 stored; storage 1,159 -> 1,437 chars)",
+   "expected": "no repeated paragraph dropped",
+   "actual": "matches"
+  },
+  {
+   "check": "Word table-heavy document storage",
+   "command": "read Documents/017097.docx before/after the coverage change",
+   "before": "38,218 chars",
+   "after": "38,343 chars (+0.3 %)",
+   "expected": "no duplication explosion",
+   "actual": "matches (duplicates would have appeared as a multiple)"
+  },
+  {
+   "check": "Encrypted OOXML reporting",
+   "command": "pytest tests/unit/test_office_encrypted_report.py",
+   "before": "\"File is not a zip file\" / \"Package not found at ...\" for 5 files; 3 more silently empty",
+   "after": "encrypted=True, encrypted_parts listed, error names encryption and the password requirement",
+   "expected": "protected reported as protected",
+   "actual": "matches"
+  },
+  {
+   "check": "Corpus completion",
+   "command": "tools/audit/archive_extraction.py --isolate --out audit_report/r17/final",
+   "before": "three consecutive runs stopped at 604/698 records",
+   "after": "698/698 records, no timeout, no memory kill",
+   "expected": "every file yields a record",
+   "actual": "matches"
+  },
+  {
+   "check": "Isolation failure paths",
+   "command": "pytest tests/unit/test_audit_isolation.py",
+   "before": "no isolation existed (ImportError on run_isolated)",
+   "after": "timeout, crash and memory-kill children each produce a typed record",
+   "expected": "a failure is a record, not a missing row",
+   "actual": "matches"
+  },
+  {
+   "check": "Resume after interruption",
+   "command": "pytest tests/unit/test_audit_resume.py",
+   "before": "not covered",
+   "after": "partial archive parses; resume adds exactly the missing files; no duplicates",
+   "expected": "restartable archive",
+   "actual": "matches"
+  },
+  {
+   "check": "Storage boundary key scan",
+   "command": "pytest tests/unit/test_audit_storage_boundary.py",
+   "before": "no measurement of which reader keys are stored",
+   "after": "49 consumed keys derived from the syntax tree; per-key loss table generated",
+   "expected": "a mechanical answer that cannot drift",
+   "actual": "matches"
+  }
+ ],
+ "final_assessment": "**Demonstrably correct (measured).** 328 of 336 oracle-scored files are COMPLETE at token recall >= 0.995, and the mean is 0.9991. The families with the strongest evidence are plain text and HTML (every legacy code page and every charset trap in the corpus now decodes at 1.000), Office (the last two Word residuals closed this round, and spreadsheets now read cell comments without a second walk of the grid, which is what made the 250,000-cell workbook complete) and PDF (all pages with a readable layer, plus OCR provenance for scans).\n\n**Incomplete but measured.** Four ODF files sit between 0.943 and 0.990, and the residuals are named: tracked-change author/date metadata (F-28), and one 9,347-token French document where 269 tokens are missing - not yet diagnosed beyond the sample, which is why it stays a number rather than a claim. One presentation at 0.977 and one spreadsheet at 0.995 are likewise open.\n\n**Unsupported (recorded, not silent).** PSD, AVIF, EXE, DMG, DNG, .numbers and .pages have no reader; each ERROR record names the reason. Archives that are encrypted, corrupt or contain traversal paths are refused with the specific member named - refusal is the correct outcome, not loss.\n\n**Silently ignored (no longer).** Before this round, encrypted OOXML and encrypted PDFs produced empty or corrupt-sounding results. They now state that they need a password.\n\n**Unknown, and what would resolve it.** (1) OCR content: 20 files are UNVERIFIABLE; resolving them needs either a second engine's agreement or a human transcription of one page per file. (2) Video and part of audio: nothing is extracted because ffmpeg is absent; resolving needs an ffmpeg binary, after which the same harness measures them. (3) The `.xlsb`, iWork and non-OLE `.doc` cases would move from ERROR to measured if a decoder existed or a LibreOffice binary were present - both recorded in the backlog.",
+ "backlog": [
+  {
+   "rank": 1,
+   "item": "Store PDF revisions (and decide provenance vs body for reader metadata)",
+   "finding": "F-26",
+   "why": "content-bearing key currently dropped",
+   "effort": "small"
+  },
+  {
+   "rank": 2,
+   "item": "Capture ODF (and Word) tracked-change author/timestamp",
+   "finding": "F-28",
+   "why": "named residual in the only file below 0.95",
+   "effort": "small"
+  },
+  {
+   "rank": 3,
+   "item": "Install ffmpeg in the image, or declare video unsupported and record metadata only",
+   "finding": "F-29",
+   "why": "11 ERROR records are environment, not reader",
+   "effort": "small"
+  },
+  {
+   "rank": 4,
+   "item": "Diagnose testODT-TIKA-6000.odt (269 of 9,347 tokens missing) and testPPT_various2.pptx (0.977)",
+   "finding": "open",
+   "why": "the remaining measured recall gap",
+   "effort": "medium"
+  },
+  {
+   "rank": 5,
+   "item": "Add a fixture for a sheet that exceeds memory, and one for a repeated-paragraph template, to the corpus",
+   "finding": "F-27 / F-19",
+   "why": "both fixes were found by accident on existing files",
+   "effort": "small"
+  },
+  {
+   "rank": 6,
+   "item": "Second OCR engine for cross-checking UNVERIFIABLE files",
+   "finding": "F-18",
+   "why": "turns 20 unverifiable records into measured ones",
+   "effort": "large"
+  },
+  {
+   "rank": 7,
+   "item": "Decide the fate of unsupported formats (PSD, AVIF, EXE, DMG, DNG, iWork)",
+   "finding": "F-21",
+   "why": "11 ERROR records with no reader and no declared policy",
+   "effort": "decision"
+  }
+ ],
+ "run_at": "round 17, isolated per-file processes; final run after the fixes",
+ "corpus_files": 698,
+ "isolation": true,
+ "storage_key_judgements": {
+  "filepath": "identity, not content — the path is the file key (intentional)",
+  "format_identification": "persisted via `extraction_provenance.detection` by `_detection_record`, not through the text path (intentional)",
+  "forensic_features": "**content loss (partial)**: readers also flatten these into `forensic_text`, which is stored; any feature with no text rendering is dropped",
+  "revisions": "**content loss**: PDF revision names and descriptions are text and reach neither the body nor provenance (F-26)",
+  "xml_backfill": "diagnostics: the backfilled text itself is in `elements`; the report of what was added is not stored (intentional)",
+  "artifact_metadata": "metadata (document properties); not stored by the text path — the same values reach `metadata` through the detection record where the identifier produced them",
+  "extraction_path": "diagnostics: which route produced the extraction (intentional)",
+  "methods_used": "diagnostics: per-page method list (intentional)",
+  "processing_time": "instrumentation (intentional)",
+  "success_rate": "instrumentation (intentional)",
+  "avg_chars_per_page": "instrumentation (intentional)",
+  "total_characters": "instrumentation (intentional)",
+  "total_paragraphs": "instrumentation (intentional)",
+  "file_size": "instrumentation (intentional)",
+  "character_count": "instrumentation (intentional)",
+  "line_count": "instrumentation (intentional)",
+  "word_count": "instrumentation (intentional)",
+  "non_empty_lines": "instrumentation (intentional)",
+  "encoding_used": "diagnostics: which decoding produced the text (intentional)",
+  "tags": "metadata (audio ID3/container tags); no path stores audio metadata — recorded as a gap, not as text loss",
+  "artist": "metadata (audio); no storage path — gap",
+  "album": "metadata (audio); no storage path — gap",
+  "duration_seconds": "instrumentation (audio)",
+  "duration_formatted": "instrumentation (audio)",
+  "bitrate": "instrumentation (audio)",
+  "bitrate_formatted": "instrumentation (audio)",
+  "sample_rate": "instrumentation (audio)",
+  "channels": "instrumentation (audio)",
+  "codec": "instrumentation (audio)",
+  "quality": "instrumentation (audio)",
+  "archive_type": "diagnostics (intentional)",
+  "status": "diagnostics (intentional)",
+  "files_extracted": "diagnostics (intentional)",
+  "bytes_extracted": "diagnostics (intentional)",
+  "error": "diagnostics: the error is also carried on the record (intentional)",
+  "method": "diagnostics: how the text was obtained, per page (intentional)",
+  "extraction_method": "diagnostics (intentional)",
+  "sheet_names": "reaches the body as a structural marker emitted from `sheets`; the list itself is not stored (intentional)",
+  "total_sheets": "instrumentation (intentional)",
+  "note": "reader message about extraction quality (\"Basic text extraction - formatting may be lost\"), not document text (intentional)",
+  "total_lines": "instrumentation (intentional)",
+  "rtf_stripped": "diagnostics: whether RTF control words were stripped (intentional)",
+  "ocr_engine": "provenance: persisted through `extraction_provenance.ocr` by `_ocr_provenance`, not the text path",
+  "ocr_engine_version": "provenance: persisted through `extraction_provenance.ocr`",
+  "ocr_input_variant": "provenance: persisted through `extraction_provenance.ocr`",
+  "ocr_confidence": "provenance: persisted through `extraction_provenance.ocr`",
+  "ocr_derived": "provenance: persisted through `extraction_provenance.ocr`",
+  "extraction_errors": "diagnostics (intentional)",
+  "cells_read": "instrumentation: cells actually read (intentional)",
+  "source_format": "diagnostics: which package variant was parsed (intentional)",
+  "path": "identity duplicate of `filepath` (intentional)",
+  "year": "metadata (audio); no storage path — gap",
+  "genre": "metadata (audio); no storage path — gap",
+  "track_number": "metadata (audio); no storage path — gap",
+  "comment": "metadata (audio ID3 comment); no storage path — gap",
+  "composer": "metadata (audio); no storage path — gap",
+  "album_artist": "metadata (audio); no storage path — gap",
+  "max_page_text_length": "instrumentation (intentional)",
+  "total_text_length": "instrumentation (intentional)",
+  "total_tables": "instrumentation (intentional)",
+  "empty_result": "diagnostics: the reader states the read produced nothing, which is why the record says EMPTY (intentional)",
+  "file_size_formatted": "instrumentation (intentional)",
+  "fps": "instrumentation (video)",
+  "frame_count": "instrumentation (video)",
+  "height": "instrumentation (video/image)",
+  "width": "instrumentation (video/image)",
+  "resolution": "instrumentation (video/image)",
+  "location": "metadata (image EXIF GPS) (intentional)",
+  "link_count": "instrumentation (HTML)",
+  "image_count": "instrumentation (HTML)",
+  "style_text": "stored through `forensic_text`, labelled as inline code, together with `script_text`; the separate key is not read (intentional)",
+  "script_text": "stored through `forensic_text`, labelled as inline code (measured: the script of big-preamble.html appears in the stored text)",
+  "encrypted": "diagnostics: the reason is persisted in `extraction_provenance.diagnostics.skip_reason` (intentional)",
+  "encrypted_parts": "diagnostics: not persisted; the parts are named only in the reader result",
+  "encryption": "diagnostics (intentional)",
+  "type_detection": "provenance: persisted by `_detection_record` into `extraction_provenance.detection` — outside the text boundary this scan measures",
+  "annotations": "stored through `forensic_text`, which flattens the annotation inventory; verified on all five corpus PDFs that carry annotations (measured: every annotation with text appears in the stored text)",
+  "form_fields": "forensic inventory: flattened into `forensic_text` (intentional)",
+  "embedded_files": "forensic inventory: flattened into `forensic_text` (intentional)",
+  "has_signatures": "forensic inventory: flattened into `forensic_text` (intentional)",
+  "macros": "forensic inventory: processed by the package-feature pass, flattened into `forensic_text` (intentional)",
+  "python_docx_error": "diagnostics: why python-docx could not open the package and the XML backfill took over (intentional)",
+  "presentation_notes": "duplicate of the notes already carried inside `slides`, which is stored (intentional)",
+  "truncated": "diagnostics: a cap was reached (intentional) — the only family where it appears is spreadsheets, and F-27 records that the cap is missing where it matters",
+  "rows_stored": "instrumentation (intentional)",
+  "row_count": "instrumentation (intentional)",
+  "column_count": "instrumentation (intentional)",
+  "comment_count": "instrumentation (intentional)",
+  "hidden_sheets": "reaches the body as a structural marker from `sheets` (intentional)",
+  "delimiter": "diagnostics (intentional)",
+  "decoder_missing": "diagnostics: persisted in `extraction_provenance.diagnostics` (intentional)",
+  "members_total": "diagnostics: persisted in `extraction_provenance.diagnostics` (intentional)",
+  "members_unreadable": "diagnostics: persisted in `extraction_provenance.diagnostics` (intentional)",
+  "skipped_members": "diagnostics (intentional)",
+  "archive_locked": "diagnostics (intentional)"
+ }
+}

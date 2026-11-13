@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% from 'components/status_badge.html' import status_badge %}
+
+{% block title %}{{ _('Word Details') }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{{ url_for('index') }}">
+        <i class="bi bi-house-door me-1"></i>{{ _('Home') }}
+    </a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{{ url_for('words_list') }}">
+        <i class="bi bi-book me-1"></i>{{ _('Words') }}
+    </a>
+</li>
+<li class="breadcrumb-item active" aria-current="page">
+    {{ word.word if word else _('Word Details') }}
+</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-book me-2"></i>
+            {{ _('Word Details') }}
+        </h1>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('words_list') }}" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left me-2"></i>
+            {{ _('Back to Words') }}
+        </a>
+    </div>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-book"></i>
+        {{ _('Word Details Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('View comprehensive information about this word including usage statistics') }}</li>
+        <li>{{ _('See which files contain this word and how frequently it appears') }}</li>
+        <li>{{ _('View categories and keywords associated with this word') }}</li>
+        <li>{{ _('Edit word information or manage associations from this page') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-file-text"></i>
+        {{ _('Word Usage') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('See usage count showing how many files contain this word') }}</li>
+        <li>{{ _('View file types where this word appears most frequently') }}</li>
+        <li>{{ _('Review categories that commonly contain this word') }}</li>
+        <li>{{ _('Use this information to understand word distribution across your files') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<div class="row g-4">
+    <div class="col-md-8">
+        <div class="stat-card">
+            <h5 class="mb-3"><i class="bi bi-info-circle me-2"></i>{{ _('Word Information') }}</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">{{ _('Word ID') }}</label>
+                        <p class="form-control-plaintext"><strong>{{ word.id }}</strong></p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">{{ _('Usage Count') }}</label>
+                        <p class="form-control-plaintext">
+                            <span class="badge bg-info fs-6">{{ word.usage_count|default(0) }}</span>
+                            <span class="text-muted ms-2">{{ _('files') }}</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label text-muted">{{ _('Status') }}</label>
+                        <p class="form-control-plaintext">
+                            {% if word.usage_count and word.usage_count > 0 %}
+                                {{ status_badge(status='active', icon='bi-check-circle') }}
+                            {% else %}
+                                {{ status_badge(status='unused', icon='bi-dash-circle') }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted">{{ _('Word Text') }}</label>
+                <p class="form-control-plaintext">
+                    <strong class="fs-5">{{ word.word }}</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h5 class="mb-3"><i class="bi bi-gear me-2"></i>{{ _('Actions') }}</h5>
+            <div class="d-grid gap-2">
+                <button class="btn btn-success" data-on-click="editWord({{ word.id }})">
+                    <i class="bi bi-pencil me-2"></i> {{ _('Edit Word') }}
+                </button>
+                <button class="btn btn-outline-danger" data-on-click="deleteWord({{ word.id }})">
+                    <i class="bi bi-trash me-2"></i> {{ _('Delete Word') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="word-detail-page-data">{{ {
+    "translations": {
+        "deleteConfirm": _('Are you sure you want to delete this word?'),
+        "wordDeletedSuccessfully": _('Word deleted successfully!'),
+        "error": _('Error'),
+        "editWord": _('Edit Word'),
+        "errorLoadingWord": _('Error loading word')
+    },
+    "words_list_url": url_for('words_list', _external=False)
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/word-detail-page.js') }}"></script>
+{% endblock %}
+

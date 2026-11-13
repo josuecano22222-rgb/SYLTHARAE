@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Concurrency Monitoring Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h1 class="mb-4">Concurrency Monitoring Dashboard</h1>
+    <p class="text-muted">Real-time monitoring of four concurrency managers: ThreadManager, ProcessManager, AsyncManager, and MultiprocessingManager</p>
+    
+    <!-- Page Tips -->
+    {% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-speedometer2"></i>
+            {{ _('Concurrency Monitoring Overview') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('This dashboard monitors the performance of four different concurrency managers') }}</li>
+            <li>{{ _('Track active tasks, completed tasks, and system resource usage in real-time') }}</li>
+            <li>{{ _('Monitor thread, process, async, and multiprocessing managers simultaneously') }}</li>
+            <li>{{ _('Use metrics to optimize system performance and identify bottlenecks') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-graph-up"></i>
+            {{ _('Understanding Metrics') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Active Tasks: Currently running tasks in each manager') }}</li>
+            <li>{{ _('Completed Tasks: Total tasks finished by each manager') }}</li>
+            <li>{{ _('Queue Size: Number of tasks waiting to be processed') }}</li>
+            <li>{{ _('Performance: Processing speed and efficiency metrics') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-arrow-repeat"></i>
+            {{ _('Real-Time Updates') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Metrics update automatically to show current system status') }}</li>
+            <li>{{ _('Refresh the page or use the refresh button to get the latest data') }}</li>
+            <li>{{ _('Monitor trends over time to understand system behavior patterns') }}</li>
+            <li>{{ _('Use this information to tune concurrency settings for optimal performance') }}</li>
+        </ul>
+    </div>
+{% endcall %}
+    
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Thread Manager</h5>
+                    <div id="thread-metrics">
+                        <p class="text-muted">{{ _('Loading...') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Process Manager</h5>
+                    <div id="process-metrics">
+                        <p class="text-muted">{{ _('Loading...') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Async Manager</h5>
+                    <div id="async-metrics">
+                        <p class="text-muted">{{ _('Loading...') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Pool Manager</h5>
+                    <div id="pool-metrics">
+                        <p class="text-muted">{{ _('Loading...') }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Detailed Information</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="detailTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="threads-tab" data-toggle="tab" href="#threads" role="tab">Threads</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="processes-tab" data-toggle="tab" href="#processes" role="tab">Processes</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="async-tasks-tab" data-toggle="tab" href="#async-tasks" role="tab">Async Tasks</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" id="pools-tab" data-toggle="tab" href="#pools" role="tab">Pools</a>
+                        </li>
+                    </ul>
+                    <div class="tab-content mt-3" id="detailTabsContent">
+                        <div class="tab-pane fade show active" id="threads" role="tabpanel">
+                            <div id="threads-list">{{ _('Loading...') }}</div>
+                        </div>
+                        <div class="tab-pane fade" id="processes" role="tabpanel">
+                            <div id="processes-list">{{ _('Loading...') }}</div>
+                        </div>
+                        <div class="tab-pane fade" id="async-tasks" role="tabpanel">
+                            <div id="async-tasks-list">{{ _('Loading...') }}</div>
+                        </div>
+                        <div class="tab-pane fade" id="pools" role="tabpanel">
+                            <div id="pools-list">{{ _('Loading...') }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="module" src="{{ url_for('static', filename='js/pages/concurrency-dashboard-page.js') }}"></script>
+{% endblock %}
+

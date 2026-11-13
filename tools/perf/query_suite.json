@@ -1,0 +1,106 @@
+{
+  "version": 1,
+  "description": "Standard search benchmark query corpus (Q01–Q15). Tune Q01/Q03 to match live vocabulary.",
+  "queries": [
+    {
+      "id": "Q01",
+      "label": "very_common_term",
+      "query": "the",
+      "options": {},
+      "notes": "Replace with corpus-specific high-frequency token if 'the' is sparse."
+    },
+    {
+      "id": "Q02",
+      "label": "common_business_term",
+      "query": "report",
+      "options": {}
+    },
+    {
+      "id": "Q03",
+      "label": "rare_term",
+      "query": "xylophonezzzz",
+      "options": {},
+      "notes": "Expect zero or near-zero hits; validates fast empty path."
+    },
+    {
+      "id": "Q04",
+      "label": "zero_result",
+      "query": "zzzznoindexterm99999",
+      "options": {}
+    },
+    {
+      "id": "Q05",
+      "label": "two_term_and",
+      "query": "report AND finance",
+      "options": {"has_boolean_ops": true}
+    },
+    {
+      "id": "Q06",
+      "label": "multi_term_and",
+      "query": "annual report financial summary audit compliance risk control",
+      "options": {}
+    },
+    {
+      "id": "Q07",
+      "label": "or_union",
+      "query": "report OR invoice OR contract OR memo",
+      "options": {"has_boolean_ops": true}
+    },
+    {
+      "id": "Q08",
+      "label": "phrase",
+      "query": "\"annual financial report\"",
+      "options": {"has_quotes": true}
+    },
+    {
+      "id": "Q09",
+      "label": "case_sensitive",
+      "query": "Report",
+      "options": {"case_sensitive": true}
+    },
+    {
+      "id": "Q10",
+      "label": "regex",
+      "query": "rep[a-z]{2,4}",
+      "options": {"regex_requested": true}
+    },
+    {
+      "id": "Q11",
+      "label": "pcre2",
+      "query": "(?i)report\\b",
+      "options": {"regex_requested": true}
+    },
+    {
+      "id": "Q12",
+      "label": "filename_metadata",
+      "query": "invoice",
+      "filters": {"file_type": ["pdf"]},
+      "options": {}
+    },
+    {
+      "id": "Q13",
+      "label": "metadata_plus_content",
+      "query": "invoice",
+      "filters": {"file_type": ["pdf"], "date_from": "2000-01-01"},
+      "options": {}
+    },
+    {
+      "id": "Q14",
+      "label": "huge_result_set",
+      "query": "a",
+      "options": {},
+      "per_page": 50,
+      "notes": "May be expensive; harness caps iterations."
+    },
+    {
+      "id": "Q15",
+      "label": "deep_pagination",
+      "query": "report",
+      "pagination": {
+        "pages": [1, 10, 100, 1000],
+        "per_page": 50,
+        "compare_keyset": true
+      }
+    }
+  ]
+}

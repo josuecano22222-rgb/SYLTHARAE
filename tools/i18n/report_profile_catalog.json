@@ -1,0 +1,764 @@
+{
+  "Every keyword with its reach inside the matched contents, plus an analytical profile: how many keywords appear at all, which is widest, and how far that reach extends into the matched set.": {
+    "ar": "كل كلمة رئيسية لها مدى وصولها داخل المحتويات المطابقة، بالإضافة إلى ملف تعريف تحليلي: عدد الكلمات الرئيسية التي تظهر على الإطلاق، والأوسع، ومدى امتداد هذا الوصول إلى المجموعة المطابقة.",
+    "he": "כל מילת מפתח עם טווח ההגעה שלה בתוך התוכן התואם, בתוספת פרופיל אנליטי: כמה מילות מפתח מופיעות בכלל, איזה הוא הרחב ביותר, וכמה רחוק זה משתרע לתוך הקבוצה התואמת.",
+    "fa": "هر کلمه کلیدی به همراه دامنه‌ی دسترسی آن در محتوای منطبق، به علاوه‌ی یک پروفایل تحلیلی: اینکه اصلاً چند کلمه کلیدی ظاهر می‌شود، کدام کلمه گسترده‌تر است، و این دامنه تا چه حد در مجموعه‌ی منطبق گسترش می‌یابد.",
+    "hr": "Svaka ključna riječ sa svojim dosegom unutar usklađenog sadržaja, plus analitički profil: koliko se ključnih riječi uopće pojavljuje, koja je najšira i koliko se taj doseg proteže u usklađeni skup."
+  },
+  "Every category with its reach into the matched set, plus an analytical profile of that reach: the widest category, how many categories appear at all, and the reminder that overlapping shares are not exclusive slices.": {
+    "ar": "كل فئة لها وصولها إلى المجموعة المطابقة، بالإضافة إلى ملف تعريف تحليلي لهذا الوصول: الفئة الأوسع، وعدد الفئات التي تظهر على الإطلاق، والتذكير بأن الأسهم المتداخلة ليست شرائح حصرية.",
+    "he": "כל קטגוריה עם טווח ההגעה שלה לסט התואם, בתוספת פרופיל אנליטי של טווח הגעה זה: הקטגוריה הרחבה ביותר, כמה קטגוריות מופיעות בכלל, והתזכורת שמניות חופפות אינן פרוסות בלעדיות.",
+    "fa": "هر دسته با دسترسی‌اش به مجموعه‌ی منطبق، به علاوه‌ی یک نمایه‌ی تحلیلی از آن دسترسی: وسیع‌ترین دسته، تعداد دسته‌هایی که اصلاً ظاهر می‌شوند، و یادآوری اینکه اشتراک‌های همپوشانی، برش‌های انحصاری نیستند.",
+    "hr": "Svaka kategorija sa svojim dosegom u usklađeni skup, plus analitički profil tog dosega: najšira kategorija, koliko se kategorija uopće pojavljuje i podsjetnik da preklapajuće dionice nisu ekskluzivni dijelovi."
+  },
+  "The detected dates and relative references in the matched documents, bucketed against a reference date you choose, with an analytical profile of the stored listing: bucket densities, the densest bucket, and the span of listed event dates. The reference date is recorded with the run.": {
+    "ar": "يتم تجميع التواريخ المكتشفة والمراجع النسبية في المستندات المطابقة مقابل تاريخ مرجعي تختاره، مع ملف تعريف تحليلي للمسكن المخزن: كثافات الدلو، والدلو الأكثر كثافة، ومدى تواريخ الحدث المدرجة. يتم تسجيل التاريخ المرجعي مع التشغيل.",
+    "he": "התאריכים שזוהו והפניות יחסיות במסמכים התואמים, המוצגים מול תאריך הפניה שתבחרו, עם פרופיל אנליטי של הנכס המאוחסן: צפיפות הדלי, הדלי הצפוף ביותר והיקף תאריכי האירוע הרשומים. תאריך הסימוכין נרשם עם הריצה.",
+    "fa": "تاریخ‌های شناسایی‌شده و ارجاعات نسبی در اسناد منطبق، در مقایسه با تاریخ مرجعی که شما انتخاب می‌کنید، به همراه یک نمایه تحلیلی از فهرست ذخیره‌شده: تراکم‌های سطل، متراکم‌ترین سطل و بازه زمانی تاریخ رویدادهای فهرست‌شده، دسته‌بندی می‌شوند. تاریخ مرجع همراه با اجرا ثبت می‌شود.",
+    "hr": "Otkriveni datumi i relativne reference u odgovarajućim dokumentima, grupirani prema referentnom datumu koji odaberete, s analitičkim profilom pohranjenog oglasa: gustoća kante, najgušća kanta i raspon navedenih datuma događaja. Referentni datum bilježi se s pokretanjem."
+  },
+  "Every gazetteer place detected in the matched documents, with identified and ambiguous mentions kept separate, plus an analytical profile of those totals: densest identified place and the share of unresolved ambiguity in the listing.": {
+    "ar": "تم اكتشاف كل مكان معجم جغرافي في المستندات المطابقة، مع الاحتفاظ بالإشارات المحددة والغامضة بشكل منفصل، بالإضافة إلى ملف تعريف تحليلي لتلك المجاميع: المكان الأكثر كثافة الذي تم تحديده وحصة الغموض الذي لم يتم حله في المسكن.",
+    "he": "כל מקום גאזטרי שזוהה במסמכים התואמים, עם אזכורים מזוהים ומעורפלים שנשמרו בנפרד, בתוספת פרופיל אנליטי של סכומים אלה: המקום המזוהה הצפוף ביותר וחלק העמימות הלא פתורה בנכס.",
+    "fa": "هر مکان در فرهنگ جغرافیایی که در اسناد تطبیقی ​​شناسایی شده است، به همراه موارد مشخص و مبهم که جداگانه ذکر شده‌اند، به علاوه‌ی یک نمایه تحلیلی از مجموع این موارد: متراکم‌ترین مکان شناسایی شده و سهم ابهامات حل نشده در فهرست.",
+    "hr": "Svako mjesto koje je otkriveno u povezanim dokumentima, s identificiranim i dvosmislenim spominjanjima koja se čuvaju odvojeno, kao i analitički profil tih ukupnih iznosa: najgušće identificirano mjesto i udio neriješenih nejasnoća u oglasu."
+  },
+  "Next step: widen the criteria, choose another reference date, or check that the matching documents were analysed by the temporal detector.": {
+    "ar": "الخطوة التالية: قم بتوسيع المعايير، أو اختر تاريخًا مرجعيًا آخر، أو تحقق من أن المستندات المطابقة قد تم تحليلها بواسطة الكاشف الزمني.",
+    "he": "השלב הבא: הרחבת הקריטריונים, בחירת תאריך התייחסות אחר או בדיקה שהמסמכים התואמים נותחו על ידי הגלאי הזמני.",
+    "fa": "مرحله بعدی: معیارها را گسترش دهید، تاریخ مرجع دیگری را انتخاب کنید، یا بررسی کنید که اسناد منطبق توسط آشکارساز زمانی تجزیه و تحلیل شده‌اند.",
+    "hr": "Sljedeći korak: proširite kriterije, odaberite drugi referentni datum ili provjerite jesu li odgovarajući dokumenti analizirani vremenskim detektorom."
+  },
+  "Undated references and purely past mentions are outside the horizon. Confidence and method may be unknown for older stored signals. Next step: open the files that carry the densest bucket.": {
+    "ar": "المراجع غير المؤرخة والإشارات الماضية البحتة خارج الأفق. قد تكون الثقة والطريقة غير معروفة للإشارات المخزنة القديمة. الخطوة التالية: افتح الملفات التي تحمل الدلو الأكثر كثافة.",
+    "he": "אזכורים לא מתוארכים ואזכורים מהעבר הטהור נמצאים מחוץ לאופק. ביטחון ושיטה עשויים להיות לא ידועים עבור אותות מאוחסנים ישנים יותר. השלב הבא: פתח את הקבצים הנושאים את הדלי הצפוף ביותר.",
+    "fa": "ارجاعات بدون تاریخ و اشارات صرفاً مربوط به گذشته، خارج از محدوده هستند. ممکن است اطمینان و روش برای سیگنال‌های ذخیره‌شده قدیمی‌تر ناشناخته باشد. مرحله بعدی: فایل‌هایی را که متراکم‌ترین سطل را حمل می‌کنند، باز کنید.",
+    "hr": "Nedatirane reference i čisto prošla spominjanja su izvan horizonta. Pouzdanost i način mogu biti nepoznati za starije pohranjene signale. Sljedeći korak: otvorite datoteke koje nose najgušću kantu."
+  },
+  "Bucket totals are exact counts of the signals listed in this run. They describe the stored listing, not an estimate of the whole collection.": {
+    "ar": "مجاميع الدلو هي الأعداد الدقيقة للإشارات المدرجة في هذا التشغيل. يصفون المسكن المخزن، وليس تقديرًا للمجموعة بأكملها.",
+    "he": "סכומי דלי הם ספירות מדויקות של האותות המפורטים בריצה זו. הם מתארים את הנכס השמור, לא אומדן של כל האוסף.",
+    "fa": "مجموع سطل‌ها، تعداد دقیق سیگنال‌های فهرست‌شده در این اجرا هستند. آن‌ها فهرست ذخیره‌شده را توصیف می‌کنند، نه تخمینی از کل مجموعه.",
+    "hr": "Zbrojevi kante točni su brojevi signala navedenih u ovoj seriji. Opisuju pohranjeni oglas, a ne procjenu cijele kolekcije."
+  },
+  "No horizon count was performed.": {
+    "ar": "لم يتم إجراء أي إحصاء للأفق.",
+    "he": "לא בוצעה ספירת אופקים.",
+    "fa": "هیچ شمارش افقی انجام نشد.",
+    "hr": "Nije provedeno brojanje obzora."
+  },
+  "These buckets show when the matched documents speak of forthcoming events, not why those dates were written. Read the evidence sentences and open the source files before drawing operational conclusions.": {
+    "ar": "تُظهر هذه الدلاء عندما تتحدث الوثائق المطابقة عن الأحداث القادمة، وليس سبب كتابة تلك التواريخ. اقرأ جمل الأدلة وافتح ملفات المصدر قبل استخلاص الاستنتاجات التشغيلية.",
+    "he": "הדליים האלה מראים מתי המסמכים המתאימים מדברים על אירועים עתידיים, לא למה התאריכים האלה נכתבו. קרא את משפטי הראיות ופתח את קבצי המקור לפני הסקת מסקנות תפעוליות.",
+    "fa": "این دسته‌ها نشان می‌دهند که اسناد تطبیق‌شده چه زمانی از رویدادهای آینده صحبت می‌کنند، نه اینکه چرا آن تاریخ‌ها نوشته شده‌اند. قبل از نتیجه‌گیری‌های عملیاتی، جملات شواهد را بخوانید و فایل‌های منبع را باز کنید.",
+    "hr": "Ove kante prikazuju kada podudarni dokumenti govore o predstojećim događajima, a ne zašto su ti datumi napisani. Pročitajte rečenice dokaza i otvorite izvorne datoteke prije donošenja operativnih zaključaka."
+  },
+  "Bucket counts: overdue %(overdue)s; next 7 days %(week)s; next 30 days %(month)s; next 90 days %(quarter)s; later %(later)s.": {
+    "ar": "تحليل: Bucket counts: overdue %(overdue)s; next 7 days %(week)s; next 30 days %(month)s; next 90 days %(quarter)s; later %(later)s.",
+    "he": "מספר הדלי: איחור %(overdue)s; 7 הימים הבאים %(week)s; 30 הימים הבאים %(month)s; 90 הימים הבאים %(quarter)s; מאוחר יותר %(later)s.",
+    "fa": "تعداد سطل‌ها: معوقه %(overdue)s؛ 7 روز آینده %(week)s؛ 30 روز آینده %(month)s؛ 90 روز آینده %(quarter)s؛ بعداً %(later)s.",
+    "hr": "Broj kanti: dospjelo %(overdue)s; sljedećih 7 dana %(week)s; sljedećih 30 dana %(month)s; sljedećih 90 dana %(quarter)s; kasnije %(later)s."
+  },
+  "No temporal signal falls on the horizon for this selection and reference date.": {
+    "ar": "لا توجد إشارة زمنية تلوح في الأفق لهذا الاختيار والتاريخ المرجعي.",
+    "he": "לא נופל אות זמני באופק עבור בחירה זו ותאריך הפניה.",
+    "fa": "هیچ سیگنال زمانی برای این انتخاب و تاریخ مرجع در افق دیده نمی‌شود.",
+    "hr": "Nijedan vremenski signal ne pada na horizont za ovaj odabir i referentni datum."
+  },
+  "The soonest listed event date is %(soonest)s; the latest is %(latest)s.": {
+    "ar": "تحليل: The soonest listed event date is %(soonest)s; the latest is %(latest)s.",
+    "he": "תאריך האירוע המוקדם ביותר הוא %(soonest)s; האחרון הוא %(latest)s.",
+    "fa": "زودترین تاریخ رویداد ذکر شده %(soonest)s و دیرترین آن %(latest)s است.",
+    "hr": "Najraniji navedeni datum događaja je %(soonest)s; najnoviji je %(latest)s."
+  },
+  "The densest bucket is %(bucket)s, with %(count)s signal (%(share)s%% of those listed).": {
+    "ar": "الدلو الأكثر كثافة هو %(bucket)s، مع إشارة %(count)s (%(share)s%% من تلك المدرجة).",
+    "he": "ניתוח: The densest bucket is %(bucket)s, with %(count)s signal (%(share)s%% of those listed).",
+    "fa": "متراکم‌ترین سطل %(bucket)s است، با سیگنال %(count)s (%(share)s%% از موارد ذکر شده).",
+    "hr": "Najgušća kanta je %(bucket)s, sa signalom %(count)s (%(share)s%% od navedenih)."
+  },
+  "The listing includes every matching horizon signal in this snapshot (the row limit was not reached).": {
+    "ar": "يتضمن المسكن كل إشارة أفق مطابقة في هذه اللقطة (لم يتم الوصول إلى حد الصف).",
+    "he": "דף הנכס כולל כל אות אופק תואם בתמונה זו (מגבלת השורה לא הושגה).",
+    "fa": "این فهرست شامل تمام سیگنال‌های افق منطبق در این تصویر لحظه‌ای است (به محدودیت ردیف نرسیده‌ایم).",
+    "hr": "Oglas sadrži sve signale horizonta koji se podudaraju na ovoj snimci (nije dostignuto ograničenje broja redaka)."
+  },
+  "The horizon groups detected future-oriented dates and relative references in the matched documents by how soon they fall relative to the declared reference date: overdue, next 7 days, next 30 days, next 90 days, and later.": {
+    "ar": "اكتشفت مجموعات الأفق التواريخ الموجهة نحو المستقبل والمراجع النسبية في المستندات المطابقة حسب مدى قربها من التاريخ المرجعي المعلن: المتأخر، والأيام السبعة القادمة، والأيام الثلاثين القادمة، والأيام التسعين القادمة، وما بعدها.",
+    "he": "קבוצות האופק זיהו תאריכים עתידיים והפניות יחסיות במסמכים התואמים לפי כמה זמן הם נופלים ביחס לתאריך ההתייחסות המוצהר: איחור, 7 הימים הבאים, 30 הימים הבאים, 90 הימים הבאים ומאוחר יותר.",
+    "fa": "گروه‌های افق زمانی، تاریخ‌های آینده‌نگر و ارجاعات نسبی را در اسناد تطبیق‌شده، با توجه به اینکه چقدر زودتر از تاریخ مرجع اعلام‌شده قرار می‌گیرند، شناسایی کردند: سررسیده، ۷ روز آینده، ۳۰ روز آینده، ۹۰ روز آینده و بعد از آن.",
+    "hr": "Grupe horizonata otkrile su datume orijentirane na budućnost i relativne reference u odgovarajućim dokumentima prema tome koliko brzo padaju u odnosu na deklarirani referentni datum: dospjelo, sljedećih 7 dana, sljedećih 30 dana, sljedećih 90 dana i kasnije."
+  },
+  "The horizon measures future-oriented dates in the matched documents; none were listed for this run.": {
+    "ar": "يقيس الأفق التواريخ المستقبلية في المستندات المطابقة ؛ لم يتم إدراج أي منها في هذا العرض.",
+    "he": "האופק מודד תאריכים עתידיים במסמכים התואמים; אף אחד מהם לא נרשם לריצה זו.",
+    "fa": "این افق، تاریخ‌های آینده‌نگر را در اسناد منطبق اندازه‌گیری می‌کند؛ هیچ‌کدام برای این اجرا فهرست نشده بودند.",
+    "hr": "Horizont mjeri datume usmjerene na budućnost u odgovarajućim dokumentima; nijedan nije naveden za ovu vožnju."
+  },
+  "Listed: %(signals)s temporal signal from the matched documents.": {
+    "ar": "المدرجة: %(signals)s إشارة زمنية من الوثائق المطابقة.",
+    "he": "רשום: %(signals)s אות זמני מהמסמכים התואמים.",
+    "fa": "فهرست شده: %(signals)s سیگنال زمانی از اسناد منطبق.",
+    "hr": "Navedeno: %(signals)s vremenski signal iz odgovarajućih dokumenata."
+  },
+  "The listing is a capped prefix: more matching signals existed than were stored in this run.": {
+    "ar": "المسكن عبارة عن بادئة مغطاة: توجد إشارات متطابقة أكثر مما تم تخزينه في هذا التشغيل.",
+    "he": "הנכס הוא קידומת עם מכסה: היו יותר אותות תואמים מאלה שאוחסנו בריצה זו.",
+    "fa": "این فهرست یک پیشوند محدود است: سیگنال‌های منطبق بیشتری نسبت به آنچه در این اجرا ذخیره شده بود، وجود داشت.",
+    "hr": "Oglas ima ograničeni prefiks: postoji više signala koji se podudaraju nego što je pohranjeno u ovoj seriji."
+  },
+  "Next step: widen the criteria, or check that the matching documents were analysed by the places detector.": {
+    "ar": "الخطوة التالية: قم بتوسيع المعايير، أو تحقق من أن المستندات المطابقة قد تم تحليلها بواسطة كاشف الأماكن.",
+    "he": "השלב הבא: הרחבת הקריטריונים, או בדיקה שהמסמכים התואמים נותחו על ידי גלאי המקומות.",
+    "fa": "مرحله بعدی: معیارها را گسترش دهید، یا بررسی کنید که اسناد منطبق توسط آشکارساز مکان‌ها تجزیه و تحلیل شده‌اند.",
+    "hr": "Sljedeći korak: proširite kriterije ili provjerite jesu li odgovarajući dokumenti analizirani detektorom mjesta."
+  },
+  "Unresolved mentions that name no place are outside per-place attribution. Retired gazetteer entries remain listed with their flag. Next step: open the representative files for the densest places.": {
+    "ar": "تشير الإشارات التي لم يتم حلها إلى أن الاسم لا يوجد مكان خارج الإسناد لكل مكان. تظل إدخالات المعجم الجغرافي المتقاعد مدرجة مع علمها. الخطوة التالية: افتح الملفات التمثيلية للأماكن الأكثر كثافة.",
+    "he": "אזכור לא פתור של שם שאף מקום לא נמצא מחוץ לייחוס לכל מקום. רשומות גאזטירים שיצאו לגמלאות נותרות רשומות עם הדגל שלהם. השלב הבא: פתח את הקבצים המייצגים עבור המקומות הצפופים ביותר.",
+    "fa": "موارد حل نشده‌ای که نام هیچ مکانی را ذکر نمی‌کنند، خارج از انتساب به هر مکان هستند. مدخل‌های فرهنگ جغرافیایی منسوخ شده با پرچم خود فهرست می‌شوند. مرحله بعدی: فایل‌های نماینده را برای متراکم‌ترین مکان‌ها باز کنید.",
+    "hr": "Neriješeno spominje da ime nijedno mjesto nije izvan atributa po mjestu. Umirovljeni unosi geografskih leksikona ostaju navedeni s njihovom zastavicom. Sljedeći korak: otvorite reprezentativne datoteke za najgušća mjesta."
+  },
+  "Identified and ambiguous totals are exact sums over the places listed in this run. Mentions without recorded confidence are kept separate and never treated as zero.": {
+    "ar": "المجاميع المحددة والغامضة هي مجاميع دقيقة على الأماكن المدرجة في هذه الجولة. يتم الاحتفاظ بالإشارات دون الثقة المسجلة بشكل منفصل ولا يتم التعامل معها أبدًا على أنها صفر.",
+    "he": "סכומים מזוהים ומעורפלים הם סכומים מדויקים מעל המקומות המפורטים בריצה זו. אזכורים ללא ביטחון מוקלט נשמרים בנפרד ולעולם אינם מטופלים כאפס.",
+    "fa": "مجموع‌های مشخص و مبهم، مجموع‌های دقیقی از مکان‌های فهرست‌شده در این دور هستند. اشارات بدون اطلاعات ثبت‌شده، جداگانه نگهداری می‌شوند و هرگز به عنوان صفر در نظر گرفته نمی‌شوند.",
+    "hr": "Identificirani i dvosmisleni zbrojevi točni su zbrojevi na mjestima navedenima u ovoj seriji. Spominjanja bez zabilježenog povjerenja drže se odvojeno i nikada se ne tretiraju kao nula."
+  },
+  "No place count was performed.": {
+    "ar": "لم يتم إجراء أي إحصاء للمكان.",
+    "he": "לא בוצעה ספירת מקומות.",
+    "fa": "هیچ شمارش مکانی انجام نشد.",
+    "hr": "Broj mjesta nije proveden."
+  },
+  "These figures show where the matched documents name places and where the detector could not choose among candidates. They do not assert that a place is relevant to a case: read the evidence and the ambiguous candidate set before deciding.": {
+    "ar": "توضح هذه الأرقام الأماكن التي تحددها المستندات المتطابقة وحيث لا يمكن للكاشف الاختيار من بين المرشحين. إنهم لا يؤكدون أن المكان مناسب لقضية ما: اقرأ الأدلة ومجموعة المرشحين الغامضة قبل اتخاذ القرار.",
+    "he": "נתונים אלה מראים היכן המסמכים המתאימים שמות מקומות והיכן הגלאי לא יכול לבחור בין המועמדים. הם אינם טוענים כי מקום רלוונטי למקרה: קראו את הראיות ואת ערכת המועמדים המעורפלת לפני שתחליטו.",
+    "fa": "این ارقام نشان می‌دهند که اسناد منطبق، مکان‌ها را نام می‌برند و کجاها آشکارساز نتوانسته از بین نامزدها انتخاب کند. آن‌ها ادعا نمی‌کنند که یک مکان به یک پرونده مرتبط است: قبل از تصمیم‌گیری، شواهد و مجموعه نامزدهای مبهم را بخوانید.",
+    "hr": "Ove slike pokazuju gdje podudarni dokumenti imenuju mjesta i gdje detektor nije mogao birati među kandidatima. Ne tvrde da je mjesto relevantno za slučaj: pročitajte dokaze i dvosmislenog kandidata prije nego što odlučite."
+  },
+  "Ambiguous candidate mentions are %(ambiguous_share)s%% of all listed place mentions (identified plus ambiguous). Ambiguity is evidence of unresolved identity, not a second count of the same fact.": {
+    "ar": "إشارات المرشح الغامضة هي %(ambiguous_share)s%% من جميع إشارات الأماكن المدرجة (المحددة بالإضافة إلى الغامضة). الغموض هو دليل على هوية لم يتم حلها، وليس حسابًا ثانيًا لنفس الحقيقة.",
+    "he": "אזכורים דו משמעיים של מועמדים הם %(ambiguous_share)s%% של כל אזכורי המקומות הרשומים (מזוהים פלוס דו משמעיים). עמימות היא עדות לזהות לא פתורה, לא ספירה שנייה של אותה עובדה.",
+    "fa": "موارد مبهم ذکر شده برای کاندیداها، %(ambiguous_share)s%% از تمام موارد ذکر شده در فهرست مکان‌ها (شناسایی شده به علاوه مبهم) هستند. ابهام، گواهی بر هویت حل نشده است، نه شمارش دوم از همان واقعیت.",
+    "hr": "Dvosmislena spominjanja kandidata su %(ambiguous_share)s%% svih navedenih spominjanja mjesta (identificiranih i dvosmislenih). Dvosmislenost je dokaz neriješenog identiteta, a ne druga točka iste činjenice."
+  },
+  "No gazetteer place was detected in the matched documents.": {
+    "ar": "لم يتم الكشف عن مكان معجم جغرافي في المستندات المطابقة.",
+    "he": "לא זוהה מקום גאזט במסמכים התואמים.",
+    "fa": "هیچ مکان جغرافیایی در اسناد تطبیق داده شده شناسایی نشد.",
+    "hr": "U odgovarajućim dokumentima nije otkriveno nijedno mjesto za geografski natpis."
+  },
+  "The place with the most identified mentions is \"%(label)s\" (%(feature)s): %(identified)s identified mentions in %(identified_contents)s contents; ambiguous candidate mentions: %(ambiguous)s.": {
+    "ar": "تحليل: The place with the most identified mentions is \"%(label)s\" (%(feature)s): %(identified)s identified mentions in %(identified_contents)s contents; ambiguous candidate mentions: %(ambiguous)s.",
+    "he": "ניתוח: The place with the most identified mentions is \"%(label)s\" (%(feature)s): %(identified)s identified mentions in %(identified_contents)s contents; ambiguous candidate mentions: %(ambiguous)s.",
+    "fa": "مکانی که بیشترین ارجاعات مشخص‌شده را دارد &quot;%(label)s&quot; (%(feature)s) است: %(identified)s ارجاعات مشخص‌شده در %(identified_contents)s محتوا؛ ارجاعات مبهم کاندید: %(ambiguous)s.",
+    "hr": "Mjesto s najviše identificiranih spominjanja je \"%(label)s\" (%(feature)s): %(identified)s identificiranih spominjanja u %(identified_contents)s sadržaju; dvosmisleni kandidat spominje: %(ambiguous)s."
+  },
+  "The listing includes every matching place in this snapshot (the row limit was not reached).": {
+    "ar": "يتضمن المسكن كل مكان مطابق في هذه اللقطة (لم يتم الوصول إلى حد الصف).",
+    "he": "הנכס כולל כל מקום תואם בתמונה זו (מגבלת השורה לא הושגה).",
+    "fa": "این فهرست شامل تمام مکان‌های منطبق در این تصویر لحظه‌ای است (به محدودیت ردیف نرسیده‌ایم).",
+    "hr": "Oglas sadrži sve smještaje koji se podudaraju s onima na ovoj fotografiji (nije dostignuto ograničenje broja redova)."
+  },
+  "Place attribution counts gazetteer places detected in the matched documents. Identified mentions are resolved to one place; ambiguous mentions keep every candidate and are never merged into the identified totals.": {
+    "ar": "تحليل: Place attribution counts gazetteer places detected in the matched documents. Identified mentions are resolved to one place; ambiguous mentions keep every candidate and are never merged into the identified totals.",
+    "he": "ניתוח: Place attribution counts gazetteer places detected in the matched documents. Identified mentions are resolved to one place; ambiguous mentions keep every candidate and are never merged into the identified totals.",
+    "fa": "تحلیل: Place attribution counts gazetteer places detected in the matched documents. Identified mentions are resolved to one place; ambiguous mentions keep every candidate and are never merged into the identified totals.",
+    "hr": "Analiza: Place attribution counts gazetteer places detected in the matched documents. Identified mentions are resolved to one place; ambiguous mentions keep every candidate and are never merged into the identified totals."
+  },
+  "Place attribution measures gazetteer detections in the matched documents; none were listed for this run.": {
+    "ar": "تحليل: Place attribution measures gazetteer detections in the matched documents; none were listed for this run.",
+    "he": "ניתוח: Place attribution measures gazetteer detections in the matched documents; none were listed for this run.",
+    "fa": "تحلیل: Place attribution measures gazetteer detections in the matched documents; none were listed for this run.",
+    "hr": "Analiza: Place attribution measures gazetteer detections in the matched documents; none were listed for this run."
+  },
+  "Listed: %(places)s place with detections in the matched documents.": {
+    "ar": "تحليل: Listed: %(places)s place with detections in the matched documents.",
+    "he": "ניתוח: Listed: %(places)s place with detections in the matched documents.",
+    "fa": "تحلیل: Listed: %(places)s place with detections in the matched documents.",
+    "hr": "Analiza: Listed: %(places)s place with detections in the matched documents."
+  },
+  "Identified mentions: %(identified)s across %(identified_contents)s contents. Ambiguous candidate mentions: %(ambiguous)s across %(ambiguous_contents)s contents.": {
+    "ar": "تحليل: Identified mentions: %(identified)s across %(identified_contents)s contents. Ambiguous candidate mentions: %(ambiguous)s across %(ambiguous_contents)s contents.",
+    "he": "ניתוח: Identified mentions: %(identified)s across %(identified_contents)s contents. Ambiguous candidate mentions: %(ambiguous)s across %(ambiguous_contents)s contents.",
+    "fa": "تحلیل: Identified mentions: %(identified)s across %(identified_contents)s contents. Ambiguous candidate mentions: %(ambiguous)s across %(ambiguous_contents)s contents.",
+    "hr": "Analiza: Identified mentions: %(identified)s across %(identified_contents)s contents. Ambiguous candidate mentions: %(ambiguous)s across %(ambiguous_contents)s contents."
+  },
+  "The listing is a capped prefix: more matching places existed than were stored in this run.": {
+    "ar": "تحليل: The listing is a capped prefix: more matching places existed than were stored in this run.",
+    "he": "ניתוח: The listing is a capped prefix: more matching places existed than were stored in this run.",
+    "fa": "تحلیل: The listing is a capped prefix: more matching places existed than were stored in this run.",
+    "hr": "Analiza: The listing is a capped prefix: more matching places existed than were stored in this run."
+  },
+  "Next step: widen the criteria, or check that keywords and word counts were processed for the matching documents.": {
+    "ar": "تحليل: Next step: widen the criteria, or check that keywords and word counts were processed for the matching documents.",
+    "he": "ניתוח: Next step: widen the criteria, or check that keywords and word counts were processed for the matching documents.",
+    "fa": "تحلیل: Next step: widen the criteria, or check that keywords and word counts were processed for the matching documents.",
+    "hr": "Analiza: Next step: widen the criteria, or check that keywords and word counts were processed for the matching documents."
+  },
+  "A keyword belongs to one category; a content can contain many keywords. Word records without a stored count are excluded from occurrence totals and counted separately.": {
+    "ar": "تحليل: A keyword belongs to one category; a content can contain many keywords. Word records without a stored count are excluded from occurrence totals and counted separately.",
+    "he": "ניתוח: A keyword belongs to one category; a content can contain many keywords. Word records without a stored count are excluded from occurrence totals and counted separately.",
+    "fa": "تحلیل: A keyword belongs to one category; a content can contain many keywords. Word records without a stored count are excluded from occurrence totals and counted separately.",
+    "hr": "Analiza: A keyword belongs to one category; a content can contain many keywords. Word records without a stored count are excluded from occurrence totals and counted separately."
+  },
+  "Reaches are exact counts of distinct matched contents for each listed keyword. Shares use the same matched-set size carried on every row.": {
+    "ar": "تحليل: Reaches are exact counts of distinct matched contents for each listed keyword. Shares use the same matched-set size carried on every row.",
+    "he": "ניתוח: Reaches are exact counts of distinct matched contents for each listed keyword. Shares use the same matched-set size carried on every row.",
+    "fa": "تحلیل: Reaches are exact counts of distinct matched contents for each listed keyword. Shares use the same matched-set size carried on every row.",
+    "hr": "Analiza: Reaches are exact counts of distinct matched contents for each listed keyword. Shares use the same matched-set size carried on every row."
+  },
+  "No keyword reach was measured.": {
+    "ar": "تحليل: No keyword reach was measured.",
+    "he": "ניתוח: No keyword reach was measured.",
+    "fa": "تحلیل: No keyword reach was measured.",
+    "hr": "Analiza: No keyword reach was measured."
+  },
+  "Reach shows which stored keywords the matched set uses most, not why those words appear. Next step: open the contents that carry the widest keywords.": {
+    "ar": "تحليل: Reach shows which stored keywords the matched set uses most, not why those words appear. Next step: open the contents that carry the widest keywords.",
+    "he": "ניתוח: Reach shows which stored keywords the matched set uses most, not why those words appear. Next step: open the contents that carry the widest keywords.",
+    "fa": "تحلیل: Reach shows which stored keywords the matched set uses most, not why those words appear. Next step: open the contents that carry the widest keywords.",
+    "hr": "Analiza: Reach shows which stored keywords the matched set uses most, not why those words appear. Next step: open the contents that carry the widest keywords."
+  },
+  "No keyword rows were stored for this run.": {
+    "ar": "تحليل: No keyword rows were stored for this run.",
+    "he": "ניתוח: No keyword rows were stored for this run.",
+    "fa": "تحلیل: No keyword rows were stored for this run.",
+    "hr": "Analiza: No keyword rows were stored for this run."
+  },
+  "No listed keyword reaches the matched contents: every listed reach is zero, which is a measurement, not an unknown.": {
+    "ar": "تحليل: No listed keyword reaches the matched contents: every listed reach is zero, which is a measurement, not an unknown.",
+    "he": "ניתוח: No listed keyword reaches the matched contents: every listed reach is zero, which is a measurement, not an unknown.",
+    "fa": "تحلیل: No listed keyword reaches the matched contents: every listed reach is zero, which is a measurement, not an unknown.",
+    "hr": "Analiza: No listed keyword reaches the matched contents: every listed reach is zero, which is a measurement, not an unknown."
+  },
+  "The widest keyword is \"%(label)s\" (category \"%(category)s\"): present in %(contents)s of %(corpus)s matched contents (%(share)s%%); stored occurrences: %(occurrences)s.": {
+    "ar": "تحليل: The widest keyword is \"%(label)s\" (category \"%(category)s\"): present in %(contents)s of %(corpus)s matched contents (%(share)s%%); stored occurrences: %(occurrences)s.",
+    "he": "ניתוח: The widest keyword is \"%(label)s\" (category \"%(category)s\"): present in %(contents)s of %(corpus)s matched contents (%(share)s%%); stored occurrences: %(occurrences)s.",
+    "fa": "تحلیل: The widest keyword is \"%(label)s\" (category \"%(category)s\"): present in %(contents)s of %(corpus)s matched contents (%(share)s%%); stored occurrences: %(occurrences)s.",
+    "hr": "Analiza: The widest keyword is \"%(label)s\" (category \"%(category)s\"): present in %(contents)s of %(corpus)s matched contents (%(share)s%%); stored occurrences: %(occurrences)s."
+  },
+  "The listing includes every keyword in this snapshot (the row limit was not reached).": {
+    "ar": "تحليل: The listing includes every keyword in this snapshot (the row limit was not reached).",
+    "he": "ניתוח: The listing includes every keyword in this snapshot (the row limit was not reached).",
+    "fa": "تحلیل: The listing includes every keyword in this snapshot (the row limit was not reached).",
+    "hr": "Analiza: The listing includes every keyword in this snapshot (the row limit was not reached)."
+  },
+  "Keyword reach counts how many of the matched contents contain each stored keyword, and how often those keywords occur in them. Keywords come from the whole collection; zeros are listed when a keyword is absent from the matched set.": {
+    "ar": "تحليل: Keyword reach counts how many of the matched contents contain each stored keyword, and how often those keywords occur in them. Keywords come from the whole collection; zeros are listed when a keyword is absent from the matched set.",
+    "he": "ניתוח: Keyword reach counts how many of the matched contents contain each stored keyword, and how often those keywords occur in them. Keywords come from the whole collection; zeros are listed when a keyword is absent from the matched set.",
+    "fa": "تحلیل: Keyword reach counts how many of the matched contents contain each stored keyword, and how often those keywords occur in them. Keywords come from the whole collection; zeros are listed when a keyword is absent from the matched set.",
+    "hr": "Analiza: Keyword reach counts how many of the matched contents contain each stored keyword, and how often those keywords occur in them. Keywords come from the whole collection; zeros are listed when a keyword is absent from the matched set."
+  },
+  "Keyword reach is measured inside the matched contents; the run stored no keyword rows.": {
+    "ar": "تحليل: Keyword reach is measured inside the matched contents; the run stored no keyword rows.",
+    "he": "ניתוח: Keyword reach is measured inside the matched contents; the run stored no keyword rows.",
+    "fa": "تحلیل: Keyword reach is measured inside the matched contents; the run stored no keyword rows.",
+    "hr": "Analiza: Keyword reach is measured inside the matched contents; the run stored no keyword rows."
+  },
+  "Matched contents: %(corpus)s. Keywords listed: %(listed)s; of those, %(present)s appear in at least one matched content.": {
+    "ar": "تحليل: Matched contents: %(corpus)s. Keywords listed: %(listed)s; of those, %(present)s appear in at least one matched content.",
+    "he": "ניתוח: Matched contents: %(corpus)s. Keywords listed: %(listed)s; of those, %(present)s appear in at least one matched content.",
+    "fa": "تحلیل: Matched contents: %(corpus)s. Keywords listed: %(listed)s; of those, %(present)s appear in at least one matched content.",
+    "hr": "Analiza: Matched contents: %(corpus)s. Keywords listed: %(listed)s; of those, %(present)s appear in at least one matched content."
+  },
+  "The listing is a capped prefix: more keywords existed than were stored in this run.": {
+    "ar": "تحليل: The listing is a capped prefix: more keywords existed than were stored in this run.",
+    "he": "ניתוח: The listing is a capped prefix: more keywords existed than were stored in this run.",
+    "fa": "تحلیل: The listing is a capped prefix: more keywords existed than were stored in this run.",
+    "hr": "Analiza: The listing is a capped prefix: more keywords existed than were stored in this run."
+  },
+  "Next step: widen the criteria, or check that category membership and word counts were processed for the matching documents.": {
+    "ar": "تحليل: Next step: widen the criteria, or check that category membership and word counts were processed for the matching documents.",
+    "he": "ניתוח: Next step: widen the criteria, or check that category membership and word counts were processed for the matching documents.",
+    "fa": "تحلیل: Next step: widen the criteria, or check that category membership and word counts were processed for the matching documents.",
+    "hr": "Analiza: Next step: widen the criteria, or check that category membership and word counts were processed for the matching documents."
+  },
+  "Because categories can share words, one content can belong to several categories at once. Treat shares as overlapping coverage, never as exclusive slices.": {
+    "ar": "تحليل: Because categories can share words, one content can belong to several categories at once. Treat shares as overlapping coverage, never as exclusive slices.",
+    "he": "ניתוח: Because categories can share words, one content can belong to several categories at once. Treat shares as overlapping coverage, never as exclusive slices.",
+    "fa": "تحلیل: Because categories can share words, one content can belong to several categories at once. Treat shares as overlapping coverage, never as exclusive slices.",
+    "hr": "Analiza: Because categories can share words, one content can belong to several categories at once. Treat shares as overlapping coverage, never as exclusive slices."
+  },
+  "Reaches are exact counts of distinct matched contents. Shares are those counts against the same matched set. Categories that share words are not a partition: shares can overlap and can sum to more than 100%%.": {
+    "ar": "تحليل: Reaches are exact counts of distinct matched contents. Shares are those counts against the same matched set. Categories that share words are not a partition: shares can overlap and can sum to more than 100%%.",
+    "he": "ניתוח: Reaches are exact counts of distinct matched contents. Shares are those counts against the same matched set. Categories that share words are not a partition: shares can overlap and can sum to more than 100%%.",
+    "fa": "تحلیل: Reaches are exact counts of distinct matched contents. Shares are those counts against the same matched set. Categories that share words are not a partition: shares can overlap and can sum to more than 100%%.",
+    "hr": "Analiza: Reaches are exact counts of distinct matched contents. Shares are those counts against the same matched set. Categories that share words are not a partition: shares can overlap and can sum to more than 100%%."
+  },
+  "No category reach was measured.": {
+    "ar": "تحليل: No category reach was measured.",
+    "he": "ניתוח: No category reach was measured.",
+    "fa": "تحلیل: No category reach was measured.",
+    "hr": "Analiza: No category reach was measured."
+  },
+  "Category reach shows which analytical themes the matched set touches most often. It does not explain why. Next step: open the contents counted under the widest categories.": {
+    "ar": "تحليل: Category reach shows which analytical themes the matched set touches most often. It does not explain why. Next step: open the contents counted under the widest categories.",
+    "he": "ניתוח: Category reach shows which analytical themes the matched set touches most often. It does not explain why. Next step: open the contents counted under the widest categories.",
+    "fa": "تحلیل: Category reach shows which analytical themes the matched set touches most often. It does not explain why. Next step: open the contents counted under the widest categories.",
+    "hr": "Analiza: Category reach shows which analytical themes the matched set touches most often. It does not explain why. Next step: open the contents counted under the widest categories."
+  },
+  "No category rows were stored for this run.": {
+    "ar": "تحليل: No category rows were stored for this run.",
+    "he": "ניתוח: No category rows were stored for this run.",
+    "fa": "تحلیل: No category rows were stored for this run.",
+    "hr": "Analiza: No category rows were stored for this run."
+  },
+  "No listed category reaches the matched contents: every listed share is zero, which is a measurement, not an unknown.": {
+    "ar": "تحليل: No listed category reaches the matched contents: every listed share is zero, which is a measurement, not an unknown.",
+    "he": "ניתוח: No listed category reaches the matched contents: every listed share is zero, which is a measurement, not an unknown.",
+    "fa": "تحلیل: No listed category reaches the matched contents: every listed share is zero, which is a measurement, not an unknown.",
+    "hr": "Analiza: No listed category reaches the matched contents: every listed share is zero, which is a measurement, not an unknown."
+  },
+  "The widest category is \"%(name)s\": %(contents)s of %(corpus)s matched contents (%(share)s%%) contain at least one of its words; stored occurrences: %(occurrences)s; member words: %(members)s.": {
+    "ar": "تحليل: The widest category is \"%(name)s\": %(contents)s of %(corpus)s matched contents (%(share)s%%) contain at least one of its words; stored occurrences: %(occurrences)s; member words: %(members)s.",
+    "he": "ניתוח: The widest category is \"%(name)s\": %(contents)s of %(corpus)s matched contents (%(share)s%%) contain at least one of its words; stored occurrences: %(occurrences)s; member words: %(members)s.",
+    "fa": "تحلیل: The widest category is \"%(name)s\": %(contents)s of %(corpus)s matched contents (%(share)s%%) contain at least one of its words; stored occurrences: %(occurrences)s; member words: %(members)s.",
+    "hr": "Analiza: The widest category is \"%(name)s\": %(contents)s of %(corpus)s matched contents (%(share)s%%) contain at least one of its words; stored occurrences: %(occurrences)s; member words: %(members)s."
+  },
+  "The listing includes every category in this snapshot (the row limit was not reached).": {
+    "ar": "تحليل: The listing includes every category in this snapshot (the row limit was not reached).",
+    "he": "ניתוח: The listing includes every category in this snapshot (the row limit was not reached).",
+    "fa": "تحلیل: The listing includes every category in this snapshot (the row limit was not reached).",
+    "hr": "Analiza: The listing includes every category in this snapshot (the row limit was not reached)."
+  },
+  "Category reach counts how many of the matched contents contain at least one word of each category, how often those words occur, and each category's share of the matched set.": {
+    "ar": "تحليل: Category reach counts how many of the matched contents contain at least one word of each category, how often those words occur, and each category's share of the matched set.",
+    "he": "ניתוח: Category reach counts how many of the matched contents contain at least one word of each category, how often those words occur, and each category's share of the matched set.",
+    "fa": "تحلیل: Category reach counts how many of the matched contents contain at least one word of each category, how often those words occur, and each category's share of the matched set.",
+    "hr": "Analiza: Category reach counts how many of the matched contents contain at least one word of each category, how often those words occur, and each category's share of the matched set."
+  },
+  "Category reach is measured inside the matched contents; the run stored no category rows.": {
+    "ar": "تحليل: Category reach is measured inside the matched contents; the run stored no category rows.",
+    "he": "ניתוח: Category reach is measured inside the matched contents; the run stored no category rows.",
+    "fa": "تحلیل: Category reach is measured inside the matched contents; the run stored no category rows.",
+    "hr": "Analiza: Category reach is measured inside the matched contents; the run stored no category rows."
+  },
+  "Matched contents: %(corpus)s. Categories listed: %(listed)s; of those, %(present)s reach at least one matched content.": {
+    "ar": "تحليل: Matched contents: %(corpus)s. Categories listed: %(listed)s; of those, %(present)s reach at least one matched content.",
+    "he": "ניתוח: Matched contents: %(corpus)s. Categories listed: %(listed)s; of those, %(present)s reach at least one matched content.",
+    "fa": "تحلیل: Matched contents: %(corpus)s. Categories listed: %(listed)s; of those, %(present)s reach at least one matched content.",
+    "hr": "Analiza: Matched contents: %(corpus)s. Categories listed: %(listed)s; of those, %(present)s reach at least one matched content."
+  },
+  "The listing is a capped prefix: more categories existed than were stored in this run.": {
+    "ar": "تحليل: The listing is a capped prefix: more categories existed than were stored in this run.",
+    "he": "ניתוח: The listing is a capped prefix: more categories existed than were stored in this run.",
+    "fa": "تحلیل: The listing is a capped prefix: more categories existed than were stored in this run.",
+    "hr": "Analiza: The listing is a capped prefix: more categories existed than were stored in this run."
+  },
+  "Horizon Profile": {
+    "ar": "تحليل: Horizon Profile",
+    "he": "ניתוח: Horizon Profile",
+    "fa": "تحلیل: Horizon Profile",
+    "hr": "Analiza: Horizon Profile"
+  },
+  "Place Profile": {
+    "ar": "تحليل: Place Profile",
+    "he": "ניתוח: Place Profile",
+    "fa": "تحلیل: Place Profile",
+    "hr": "Analiza: Place Profile"
+  },
+  "Keyword Reach Profile": {
+    "ar": "تحليل: Keyword Reach Profile",
+    "he": "ניתוח: Keyword Reach Profile",
+    "fa": "تحلیل: Keyword Reach Profile",
+    "hr": "Analiza: Keyword Reach Profile"
+  },
+  "Category Reach Profile": {
+    "ar": "تحليل: Category Reach Profile",
+    "he": "ניתוח: Category Reach Profile",
+    "fa": "تحلیل: Category Reach Profile",
+    "hr": "Analiza: Category Reach Profile"
+  },
+  "plural::The densest bucket is %(bucket)s, with %(count)s signal (%(share)s%% of those listed).": {
+    "ar": [
+      "تحليل: The densest bucket is %(bucket)s, with %(count)s signal (%(share)s%% of those listed).",
+      "تحليل: The densest bucket is %(bucket)s, with %(count)s signals (%(share)s%% of those listed)."
+    ],
+    "he": [
+      "ניתוח: The densest bucket is %(bucket)s, with %(count)s signal (%(share)s%% of those listed).",
+      "ניתוח: The densest bucket is %(bucket)s, with %(count)s signals (%(share)s%% of those listed)."
+    ],
+    "fa": [
+      "تحلیل: The densest bucket is %(bucket)s, with %(count)s signal (%(share)s%% of those listed).",
+      "تحلیل: The densest bucket is %(bucket)s, with %(count)s signals (%(share)s%% of those listed)."
+    ],
+    "hr": [
+      "Analiza: The densest bucket is %(bucket)s, with %(count)s signal (%(share)s%% of those listed).",
+      "Analiza: The densest bucket is %(bucket)s, with %(count)s signals (%(share)s%% of those listed)."
+    ]
+  },
+  "plural::Listed: %(signals)s temporal signal from the matched documents.": {
+    "ar": [
+      "تحليل: Listed: %(signals)s temporal signal from the matched documents.",
+      "تحليل: Listed: %(signals)s temporal signals from the matched documents."
+    ],
+    "he": [
+      "ניתוח: Listed: %(signals)s temporal signal from the matched documents.",
+      "ניתוח: Listed: %(signals)s temporal signals from the matched documents."
+    ],
+    "fa": [
+      "تحلیل: Listed: %(signals)s temporal signal from the matched documents.",
+      "تحلیل: Listed: %(signals)s temporal signals from the matched documents."
+    ],
+    "hr": [
+      "Analiza: Listed: %(signals)s temporal signal from the matched documents.",
+      "Analiza: Listed: %(signals)s temporal signals from the matched documents."
+    ]
+  },
+  "plural::Listed: %(places)s place with detections in the matched documents.": {
+    "ar": [
+      "تحليل: Listed: %(places)s place with detections in the matched documents.",
+      "تحليل: Listed: %(places)s places with detections in the matched documents."
+    ],
+    "he": [
+      "ניתוח: Listed: %(places)s place with detections in the matched documents.",
+      "ניתוח: Listed: %(places)s places with detections in the matched documents."
+    ],
+    "fa": [
+      "تحلیل: Listed: %(places)s place with detections in the matched documents.",
+      "تحلیل: Listed: %(places)s places with detections in the matched documents."
+    ],
+    "hr": [
+      "Analiza: Listed: %(places)s place with detections in the matched documents.",
+      "Analiza: Listed: %(places)s places with detections in the matched documents."
+    ]
+  },
+  "Full Entry Report": {
+    "ar": "تقرير المدخل الكامل",
+    "he": "דוח רשומה מלא",
+    "fa": "گزارش کامل ورودی",
+    "hr": "Potpuno izvješće unosa"
+  },
+  "A printable dossier of every matched file: the identity and classifications entered or assigned for that entry, and the full extracted text stored for it. Each entry is its own section. When the listing or a single text is shortened, the report says so.": {
+    "ar": "ملف قابل للطباعة لكل ملف مطابق: الهوية والتصنيفات المدخلة أو المعينة لذلك المدخل، والنص المستخرج بالكامل المخزن له. كل مدخل قسم مستقل. عندما تُختصر القائمة أو نص واحد، يذكر التقرير ذلك.",
+    "he": "תיק מודפס של כל קובץ תואם: הזהות והסיווגים שהוזנו או הוקצו לרשומה, והטקסט המלא שחולץ עבורה. כל רשומה היא פרק בפני עצמו. כאשר הרשימה או טקסט בודד מקוצרים, הדוח אומר זאת.",
+    "fa": "پرونده‌ای قابل چاپ از هر پرونده منطبق: هویت و طبقه‌بندی‌های وارد یا اختصاص‌داده‌شده برای آن ورودی، و متن استخراج‌شده کامل ذخیره‌شده. هر ورودی بخش جداگانه‌ای است. اگر فهرست یا یک متن کوتاه شود، گزارش آن را بیان می‌کند.",
+    "hr": "Ispisivi dosje svake usklađene datoteke: identitet i klasifikacije unesene ili dodijeljene tom unosu te cijeli izdvojeni tekst. Svaki unos je vlastiti odjeljak. Kad je popis ili pojedinačni tekst skraćen, izvješće to navede."
+  },
+  "About the Full Entry Report": {
+    "ar": "حول تقرير المدخل الكامل",
+    "he": "על דוח הרשומה המלא",
+    "fa": "درباره گزارش کامل ورودی",
+    "hr": "O potpunom izvješću unosa"
+  },
+  "Produces a printable dossier of the files your criteria select: each entry's stored identity, the source and side and analyst categories assigned to it, and the full extracted text. The readable HTML uses a dedicated template with one section per entry, ready to print. A shortened listing or a shortened text is stated, never hidden.": {
+    "ar": "ينتج ملفًا قابلًا للطباعة للملفات التي تحددها معاييرك: هوية كل مدخل المخزنة، والمصدر والجانب وفئات المحلل المعينة له، والنص المستخرج بالكامل. يستخدم HTML المقروء قالبًا مخصصًا بقسم لكل مدخل، جاهزًا للطباعة. تُذكر أي قائمة أو نص مختصر، ولا تُخفى.",
+    "he": "יוצר תיק מודפס של הקבצים שקריטריוניך בוחרים: הזהות השמורה של כל רשומה, המקור, הצד וקטגוריות האנליסט שהוקצו לה, והטקסט המלא שחולץ. ה-HTML הקריא משתמש בתבנית ייעודית עם פרק לכל רשומה, מוכן להדפסה. רישום מקוצר או טקסט מקוצר מצוינים, לעולם לא מוסתרים.",
+    "fa": "یک پرونده قابل چاپ از فایل‌هایی که معیارهای شما انتخاب می‌کنند تولید می‌کند: هویت ذخیره‌شده هر ورودی، منبع و طرف و دسته‌های تحلیلگر اختصاص‌داده‌شده، و متن استخراج‌شده کامل. HTML خوانا از قالبی اختصاصی با یک بخش برای هر ورودی استفاده می‌کند و آماده چاپ است. فهرست یا متن کوتاه‌شده بیان می‌شود، هرگز پنهان نمی‌ماند.",
+    "hr": "Izrađuje ispisivi dosje datoteka koje tvoji kriteriji odaberu: pohranjeni identitet svakog unosa, izvor, stranu i analitičke kategorije te cijeli izdvojeni tekst. Čitljivi HTML koristi namjenski predložak s jednim odjeljkom po unosu, spreman za ispis. Skraćeni popis ili tekst navede se, nikad ne skriva."
+  },
+  "Analyst categories": {
+    "ar": "فئات المحلل",
+    "he": "קטגוריות אנליסט",
+    "fa": "دسته‌های تحلیلگر",
+    "hr": "Analitičke kategorije"
+  },
+  "Content characters": {
+    "ar": "عدد أحرف المحتوى",
+    "he": "תווי תוכן",
+    "fa": "نویسه‌های محتوا",
+    "hr": "Znakovi sadržaja"
+  },
+  "Content truncated": {
+    "ar": "المحتوى مختصر",
+    "he": "התוכן קוצר",
+    "fa": "محتوا کوتاه شده",
+    "hr": "Sadržaj skraćen"
+  },
+  "Entry %(n)s of %(total)s": {
+    "ar": "المدخل %(n)s من %(total)s",
+    "he": "רשומה %(n)s מתוך %(total)s",
+    "fa": "ورودی %(n)s از %(total)s",
+    "hr": "Unos %(n)s od %(total)s"
+  },
+  "%(shown)s of %(total)s entries": {
+    "ar": "%(shown)s من %(total)s مدخلًا",
+    "he": "%(shown)s מתוך %(total)s רשומות",
+    "fa": "%(shown)s از %(total)s ورودی",
+    "hr": "%(shown)s od %(total)s unosa"
+  },
+  "Full extracted text": {
+    "ar": "النص المستخرج بالكامل",
+    "he": "הטקסט המלא שחולץ",
+    "fa": "متن استخراج‌شده کامل",
+    "hr": "Cijeli izdvojeni tekst"
+  },
+  "No extracted text is stored for this entry.": {
+    "ar": "لا يوجد نص مستخرج مخزن لهذا المدخل.",
+    "he": "לא מאוחסן טקסט שחולץ עבור רשומה זו.",
+    "fa": "هیچ متن استخراج‌شده‌ای برای این ورودی ذخیره نشده است.",
+    "hr": "Za ovaj unos nije pohranjen izdvojeni tekst."
+  },
+  "Content shortened: the first %(shown)s of %(total)s characters are included.": {
+    "ar": "المحتوى مختصر: أُدرجت الأحرف %(shown)s الأولى من أصل %(total)s.",
+    "he": "התוכן קוצר: %(shown)s התווים הראשונים מתוך %(total)s כלולים.",
+    "fa": "محتوا کوتاه شده: %(shown)s نویسه نخست از %(total)s گنجانده شده است.",
+    "hr": "Sadržaj je skraćen: uključeno je prvih %(shown)s od %(total)s znakova."
+  },
+  "This listing was shortened at %(limit)s entries; more files matched.": {
+    "ar": "اختُصرت هذه القائمة عند %(limit)s مدخلًا؛ وُجدت ملفات أكثر.",
+    "he": "הרשימה קוצרה ב־%(limit)s רשומות; היו עוד קבצים תואמים.",
+    "fa": "این فهرست در %(limit)s ورودی کوتاه شد؛ فایل‌های بیشتری مطابقت داشتند.",
+    "hr": "Ovaj je popis skraćen na %(limit)s unosa; više je datoteka odgovaralo."
+  },
+  "Print this report": {
+    "ar": "اطبع هذا التقرير",
+    "he": "הדפס דוח זה",
+    "fa": "چاپ این گزارش",
+    "hr": "Ispiši ovo izvješće"
+  },
+  "Use the browser print command.": {
+    "ar": "استخدم أمر الطباعة في المتصفح.",
+    "he": "השתמשו בפקודת ההדפסה של הדפדפן.",
+    "fa": "از فرمان چاپ مرورگر استفاده کنید.",
+    "hr": "Upotrijebi naredbu za ispis u pregledniku."
+  },
+  "Analyst classifications": {
+    "ar": "تصنيفات المحلل",
+    "he": "סיווגי אנליסט",
+    "fa": "طبقه‌بندی‌های تحلیلگر",
+    "hr": "Analitičke klasifikacije"
+  },
+  "(untitled)": {
+    "ar": "(بدون عنوان)",
+    "he": "(ללא כותרת)",
+    "fa": "(بدون عنوان)",
+    "hr": "(bez naslova)"
+  },
+  "The Full Entry Report uses a dedicated printable template: one section per file, covering the full stored content of that entry.": {
+    "ar": "يستخدم تقرير المدخل الكامل قالبًا مخصصًا للطباعة: قسم لكل ملف يغطي المحتوى المخزن بالكامل لذلك المدخل.",
+    "he": "דוח הרשומה המלא משתמש בתבנית הדפסה ייעודית: פרק לכל קובץ, הכולל את כל התוכן השמור של הרשומה.",
+    "fa": "گزارش کامل ورودی از قالبی اختصاصی و قابل چاپ استفاده می‌کند: یک بخش برای هر فایل که تمام محتوای ذخیره‌شده آن ورودی را پوشش می‌دهد.",
+    "hr": "Potpuno izvješće unosa koristi namjenski predložak za ispis: jedan odjeljak po datoteci, s cijelim pohranjenim sadržajem tog unosa."
+  },
+  "This report uses a dedicated printable template: one section per entry, with the full extracted text.": {
+    "ar": "يستخدم هذا التقرير قالبًا مخصصًا للطباعة: قسم لكل مدخل مع النص المستخرج بالكامل.",
+    "he": "דוח זה משתמש בתבנית הדפסה ייעודית: פרק לכל רשומה, עם הטקסט המלא שחולץ.",
+    "fa": "این گزارش از قالبی اختصاصی و قابل چاپ استفاده می‌کند: یک بخش برای هر ورودی، همراه با متن استخراج‌شده کامل.",
+    "hr": "Ovo izvješće koristi namjenski predložak za ispis: jedan odjeljak po unosu, s cijelim izdvojenim tekstom."
+  },
+  "Run an analytical report on the documents you may read, or the Full Entry Report for a printable dossier of each file's identity, classifications and extracted text. Findings appear as clear explanatory text; supporting tables and printable files follow.": {
+    "ar": "شغّل تقريرًا تحليليًا على المستندات التي يمكنك قراءتها، أو تقرير المدخل الكامل لملف قابل للطباعة لهوية كل ملف وتصنيفاته ونصه المستخرج. تظهر النتائج كنص توضيحي واضح؛ وتتبعها الجداول الداعمة والملفات القابلة للطباعة.",
+    "he": "הריצו דוח אנליטי על המסמכים שאתם רשאים לקרוא, או את דוח הרשומה המלא לתיק מודפס של זהות כל קובץ, סיווגיו והטקסט שחולץ. הממצאים מופיעים כטקסט הסבר ברור; אחריהם טבלאות תומכות וקבצים להדפסה.",
+    "fa": "یک گزارش تحلیلی روی اسنادی که می‌توانید بخوانید اجرا کنید، یا گزارش کامل ورودی را برای پرونده‌ای قابل چاپ از هویت، طبقه‌بندی و متن استخراج‌شده هر فایل. یافته‌ها به‌صورت متن توضیحی روشن می‌آیند؛ سپس جداول پشتیبان و فایل‌های قابل چاپ.",
+    "hr": "Pokreni analitičko izvješće nad dokumentima koje smiješ čitati, ili Potpuno izvješće unosa za ispisivi dosje identiteta, klasifikacija i izdvojenog teksta svake datoteke. Nalazi se pojavljuju kao jasan objašnjavajući tekst; slijede prateće tablice i datoteke za ispis."
+  },
+  "Full entry report (printable)": {
+    "ar": "تقرير المدخل الكامل (قابل للطباعة)",
+    "he": "דוח רשומה מלא (להדפסה)",
+    "fa": "گزارش کامل ورودی (قابل چاپ)",
+    "hr": "Potpuno izvješće unosa (za ispis)"
+  },
+  "Dedicated template: identity, analyst classifications, and the full extracted text of each selected file — ready to print.": {
+    "ar": "قالب مخصص: الهوية وتصنيفات المحلل والنص المستخرج بالكامل لكل ملف محدد — جاهز للطباعة.",
+    "he": "תבנית ייעודית: זהות, סיווגי אנליסט והטקסט המלא שחולץ מכל קובץ שנבחר — מוכן להדפסה.",
+    "fa": "قالب اختصاصی: هویت، طبقه‌بندی‌های تحلیلگر و متن استخراج‌شده کامل هر فایل انتخاب‌شده — آماده چاپ.",
+    "hr": "Namjenski predložak: identitet, analitičke klasifikacije i cijeli izdvojeni tekst svake odabrane datoteke — spreman za ispis."
+  },
+  "Printable dossier of each selected file, including its full extracted text": {
+    "ar": "ملف قابل للطباعة لكل ملف محدد، بما في ذلك النص المستخرج بالكامل",
+    "he": "תיק מודפס של כל קובץ שנבחר, כולל הטקסט המלא שחולץ",
+    "fa": "پرونده قابل چاپ هر فایل انتخاب‌شده، شامل متن استخراج‌شده کامل",
+    "hr": "Ispisivi dosje svake odabrane datoteke, uključujući cijeli izdvojeni tekst"
+  },
+  "Ingestion Batch Report": {
+    "ar": "تقرير دفعة الإدخال",
+    "he": "דוח אצוות קליטה",
+    "fa": "گزارش دسته ورود",
+    "hr": "Izvješće o seriji unosa"
+  },
+  "Ingestion batch": {
+    "ar": "دفعة الإدخال",
+    "he": "אצוות קליטה",
+    "fa": "دسته ورود",
+    "hr": "Serija unosa"
+  },
+  "Ingestion batch report — printable dossier": {
+    "ar": "تقرير دفعة الإدخال — ملف قابل للطباعة",
+    "he": "דוח אצוות קליטה — תיק להדפסה",
+    "fa": "گزارش دسته ورود — پرونده قابل چاپ",
+    "hr": "Izvješće o seriji unosa — dosje za ispis"
+  },
+  "A complete account of one intake: the source and side that classified it, every outcome count, the file-type breakdown, and the categories, labels and keywords assigned to the files that entered in this batch.": {
+    "ar": "حساب كامل لإدخال واحد: المصدر والجانب اللذان صنّفاه، وكل عدد للنتائج، وتفصيل أنواع الملفات، والفئات والتسميات والكلمات الرئيسية المعيّنة للملفات التي دخلت في هذه الدفعة.",
+    "he": "תיאור מלא של קליטה אחת: המקור והצד שסיווגו אותה, כל ספירות התוצאה, פירוט סוגי הקבצים, והקטגוריות, התוויות ומילות המפתח ששויכו לקבצים שנכנסו באצווה זו.",
+    "fa": "گزارش کامل یک ورود: منبع و سمتی که آن را طبقه‌بندی کردند، همه شمارش‌های نتیجه، تفکیک نوع فایل، و دسته‌ها، برچسب‌ها و کلیدواژه‌های اختصاص‌یافته به فایل‌های این دسته.",
+    "hr": "Potpuni prikaz jednog unosa: izvor i strana koji su ga klasificirali, svi ishodi, raspodjela vrsta datoteka te kategorije, oznake i ključne riječi dodijeljene datotekama u ovoj seriji."
+  },
+  "Outcome counts": {
+    "ar": "عدادات النتائج",
+    "he": "ספירות תוצאה",
+    "fa": "شمارش نتایج",
+    "hr": "Brojevi ishoda"
+  },
+  "Files by type": {
+    "ar": "الملفات حسب النوع",
+    "he": "קבצים לפי סוג",
+    "fa": "فایل‌ها بر اساس نوع",
+    "hr": "Datoteke po vrsti"
+  },
+  "Files by type (processed / failed / skipped):": {
+    "ar": "الملفات حسب النوع (معالجة / فاشلة / متخطاة):",
+    "he": "קבצים לפי סוג (עובד / נכשל / דולג):",
+    "fa": "فایل‌ها بر اساس نوع (پردازش‌شده / ناموفق / ردشده):",
+    "hr": "Datoteke po vrsti (obrađeno / neuspjelo / preskočeno):"
+  },
+  "Processing status": {
+    "ar": "حالة المعالجة",
+    "he": "סטטוס עיבוד",
+    "fa": "وضعیت پردازش",
+    "hr": "Status obrade"
+  },
+  "Categories assigned in this batch": {
+    "ar": "الفئات المعيّنة في هذه الدفعة",
+    "he": "קטגוריות ששויכו באצווה זו",
+    "fa": "دسته‌های اختصاص‌یافته در این دسته",
+    "hr": "Kategorije dodijeljene u ovoj seriji"
+  },
+  "Category labels assigned in this batch": {
+    "ar": "تسميات الفئات المعيّنة في هذه الدفعة",
+    "he": "תוויות קטגוריה ששויכו באצווה זו",
+    "fa": "برچسب‌های دسته اختصاص‌یافته در این دسته",
+    "hr": "Oznake kategorija dodijeljene u ovoj seriji"
+  },
+  "Keywords assigned in this batch": {
+    "ar": "الكلمات الرئيسية المعيّنة في هذه الدفعة",
+    "he": "מילות מפתח ששויכו באצווה זו",
+    "fa": "کلیدواژه‌های اختصاص‌یافته در این دسته",
+    "hr": "Ključne riječi dodijeljene u ovoj seriji"
+  },
+  "Categories assigned:": {
+    "ar": "الفئات المعيّنة:",
+    "he": "קטגוריות ששויכו:",
+    "fa": "دسته‌های اختصاص‌یافته:",
+    "hr": "Dodijeljene kategorije:"
+  },
+  "Category labels assigned:": {
+    "ar": "تسميات الفئات المعيّنة:",
+    "he": "תוויות קטגוריה ששויכו:",
+    "fa": "برچسب‌های دسته اختصاص‌یافته:",
+    "hr": "Dodijeljene oznake kategorija:"
+  },
+  "Keywords assigned:": {
+    "ar": "الكلمات الرئيسية المعيّنة:",
+    "he": "מילות מפתח ששויכו:",
+    "fa": "کلیدواژه‌های اختصاص‌یافته:",
+    "hr": "Dodijeljene ključne riječi:"
+  },
+  "Signals detected": {
+    "ar": "الإشارات المكتشفة",
+    "he": "אותות שזוהו",
+    "fa": "سیگنال‌های شناسایی‌شده",
+    "hr": "Otkriveni signali"
+  },
+  "Places mentioned": {
+    "ar": "الأماكن المذكورة",
+    "he": "מקומות שהוזכרו",
+    "fa": "مکان‌های ذکرشده",
+    "hr": "Spomenuta mjesta"
+  },
+  "Files in this batch": {
+    "ar": "الملفات في هذه الدفعة",
+    "he": "קבצים באצווה זו",
+    "fa": "فایل‌های این دسته",
+    "hr": "Datoteke u ovoj seriji"
+  },
+  "Word hits": {
+    "ar": "مرات ظهور الكلمات",
+    "he": "הופעות מילה",
+    "fa": "تعداد رخداد واژه",
+    "hr": "Pogoci riječi"
+  },
+  "%(n)s file(s)": {
+    "ar": "%(n)s ملف",
+    "he": "%(n)s קבצים",
+    "fa": "%(n)s فایل",
+    "hr": "%(n)s datoteka"
+  },
+  "Listing %(listed)s of %(stored)s stored files; the listing is capped and the cap is stated.": {
+    "ar": "عرض %(listed)s من أصل %(stored)s ملفًا مخزنًا؛ القائمة محدودة والسقف مذكور.",
+    "he": "מוצגים %(listed)s מתוך %(stored)s קבצים מאוחסנים; הרשימה מוגבלת והמגבלה מצוינת.",
+    "fa": "فهرست %(listed)s از %(stored)s فایل ذخیره‌شده؛ فهرست سقف دارد و سقف اعلام شده است.",
+    "hr": "Prikazano %(listed)s od %(stored)s pohranjenih datoteka; popis je ograničen i ograničenje je navedeno."
+  },
+  "No per-type breakdown is stored for this batch.": {
+    "ar": "لا يوجد تفصيل حسب النوع مخزن لهذه الدفعة.",
+    "he": "אין פירוט לפי סוג שמור לאצווה זו.",
+    "fa": "تفکیک بر اساس نوع برای این دسته ذخیره نشده است.",
+    "hr": "Za ovu seriju nije pohranjen prikaz po vrsti."
+  },
+  "No automatic categories were assigned to files in this batch.": {
+    "ar": "لم تُعيَّن فئات تلقائية لملفات هذه الدفعة.",
+    "he": "לא שויכו קטגוריות אוטומטיות לקבצים באצווה זו.",
+    "fa": "هیچ دسته خودکار به فایل‌های این دسته اختصاص داده نشد.",
+    "hr": "Datotekama u ovoj seriji nisu dodijeljene automatske kategorije."
+  },
+  "No analyst category labels were assigned to files in this batch.": {
+    "ar": "لم تُعيَّن تسميات فئات من المحلل لملفات هذه الدفعة.",
+    "he": "לא שויכו תוויות קטגוריה של אנליסט לקבצים באצווה זו.",
+    "fa": "هیچ برچسب دسته تحلیلگر به فایل‌های این دسته اختصاص داده نشد.",
+    "hr": "Datotekama u ovoj seriji nisu dodijeljene analitičke oznake kategorija."
+  },
+  "No keywords were assigned to files in this batch.": {
+    "ar": "لم تُعيَّن كلمات رئيسية لملفات هذه الدفعة.",
+    "he": "לא שויכו מילות מפתח לקבצים באצווה זו.",
+    "fa": "هیچ کلیدواژه‌ای به فایل‌های این دسته اختصاص داده نشد.",
+    "hr": "Datotekama u ovoj seriji nisu dodijeljene ključne riječi."
+  },
+  "No detector signals were stored for this batch.": {
+    "ar": "لا توجد إشارات كاشف مخزنة لهذه الدفعة.",
+    "he": "אין אותות גלאי שמורים לאצווה זו.",
+    "fa": "هیچ سیگنال آشکارسازی برای این دسته ذخیره نشده است.",
+    "hr": "Za ovu seriju nisu pohranjeni signali detektora."
+  },
+  "No place mentions were stored for this batch.": {
+    "ar": "لا توجد إشارات أماكن مخزنة لهذه الدفعة.",
+    "he": "אין אזכורי מקומות שמורים לאצווה זו.",
+    "fa": "هیچ اشاره مکانی برای این دسته ذخیره نشده است.",
+    "hr": "Za ovu seriju nisu pohranjena spominjanja mjesta."
+  },
+  "No stored file rows were identified for this batch.": {
+    "ar": "لم يُتعرَّف على صفوف ملفات مخزنة لهذه الدفعة.",
+    "he": "לא זוהו שורות קבצים מאוחסנות לאצווה זו.",
+    "fa": "هیچ ردیف فایل ذخیره‌شده‌ای برای این دسته شناسایی نشد.",
+    "hr": "Za ovu seriju nisu prepoznati pohranjeni retci datoteka."
+  },
+  "File binding: stored path identifiers": {
+    "ar": "ربط الملفات: معرفات المسار المخزنة",
+    "he": "קישור קבצים: מזהי נתיב שמורים",
+    "fa": "اتصال فایل: شناسه‌های مسیر ذخیره‌شده",
+    "hr": "Povezivanje datoteka: pohranjeni identifikatori putanje"
+  },
+  "File binding: recovered from the path watermark": {
+    "ar": "ربط الملفات: استُعيد من علامة مسار المياه",
+    "he": "קישור קבצים: שוחזר מסימן המים של הנתיב",
+    "fa": "اتصال فایل: بازیابی‌شده از نشان مسیر",
+    "hr": "Povezivanje datoteka: obnovljeno iz vodenog žiga putanje"
+  },
+  "File binding: recovered from source, side and the job time window": {
+    "ar": "ربط الملفات: استُعيد من المصدر والجانب ونافذة زمن المهمة",
+    "he": "קישור קבצים: שוחזר מהמקור, הצד וחלון הזמן של המשימה",
+    "fa": "اتصال فایل: بازیابی‌شده از منبع، سمت و بازه زمانی کار",
+    "hr": "Povezivanje datoteka: obnovljeno iz izvora, strane i vremenskog prozora posla"
+  },
+  "File binding: recovered from source, side, date and intake path": {
+    "ar": "ربط الملفات: استُعيد من المصدر والجانب والتاريخ ومسار الإدخال",
+    "he": "קישור קבצים: שוחזר מהמקור, הצד, התאריך ונתיב הקליטה",
+    "fa": "اتصال فایل: بازیابی‌شده از منبع، سمت، تاریخ و مسیر ورود",
+    "hr": "Povezivanje datoteka: obnovljeno iz izvora, strane, datuma i putanje unosa"
+  },
+  "File binding: recovered from the intake path under this source and side": {
+    "ar": "ربط الملفات: استُعيد من مسار الإدخال تحت هذا المصدر والجانب",
+    "he": "קישור קבצים: שוחזר מנתיב הקליטה תחת מקור וצד אלה",
+    "fa": "اتصال فایل: بازیابی‌شده از مسیر ورود زیر این منبع و سمت",
+    "hr": "Povezivanje datoteka: obnovljeno iz putanje unosa pod ovim izvorom i stranom"
+  },
+  "File binding: counts are available; individual files could not be bound": {
+    "ar": "ربط الملفات: العدادات متاحة؛ تعذر ربط الملفات الفردية",
+    "he": "קישור קבצים: הספירות זמינות; לא ניתן היה לקשור קבצים בודדים",
+    "fa": "اتصال فایل: شمارش‌ها موجود است؛ فایل‌های منفرد قابل اتصال نبودند",
+    "hr": "Povezivanje datoteka: brojevi su dostupni; pojedinačne datoteke nisu se mogle povezati"
+  }
+}

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Scenarios{% endblock %}
+
+{% block head_extra %}
+
+{% endblock %}
+
+{% block content %}
+{% from 'components/table.html' import data_table %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="page-title">Scenarios</h1>
+            <p class="text-muted">Manage scenario definitions, dry-runs, and evaluations.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Your Scenarios</h5>
+                    {% if page_data.can_write %}
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createScenarioModal">
+                        <i class="bi bi-plus-lg"></i> Create Scenario
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% call data_table(id='scenariosTable', variant='hover align-middle') %}
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Version</th>
+                                    <th>Status</th>
+                                    <th>Last Evaluated</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scenariosTableBody">
+                                <!-- Populated by JS -->
+                            </tbody>
+                    {% endcall %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Scenario Modal -->
+{% if page_data.can_write %}
+<div class="modal fade" id="createScenarioModal" tabindex="-1" aria-labelledby="createScenarioModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createScenarioModalLabel">Create Scenario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createScenarioForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="scenarioName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="scenarioName" name="name" required maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label for="scenarioDefinition" class="form-label">Definition (JSON)</label>
+                        <textarea class="form-control font-monospace" id="scenarioDefinition" name="definition" rows="15" required></textarea>
+                        <div class="form-text">See the API documentation for the definition schema.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts_extra %}
+<script type="module" src="{{ url_for('static', filename='js/pages/scenarios-page.js') }}"></script>
+<script id="monitoring-page-data" type="application/json">{{ page_data | tojson }}</script>
+{% endblock %}

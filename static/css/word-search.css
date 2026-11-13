@@ -1,0 +1,59 @@
+/*
+ * The add-word dropdown: the search suggestions under the "add word to a
+ * category / keyword" inputs. The multi-format views the rest of
+ * category-words.css used to style were removed with the unified table.
+ */
+
+.word-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 10005;
+    margin-top: 0.25rem;
+}
+
+.word-result-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-light, #f1f5f9);
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.word-result-item:last-child {
+    border-bottom: none;
+}
+
+.word-result-item:hover, .word-result-item.active {
+    background-color: var(--bg-section, #f8f9fa);
+}
+
+.word-result-item.word-result-create:hover, .word-result-item.word-result-create.active {
+    background-color: #dcfce7;
+}
+
+.word-result-item .word-text {
+    font-weight: 500;
+    color: var(--text-primary, #1f2937);
+}
+
+.word-result-item .text-muted {
+    color: var(--text-muted, #6b7280);
+    font-size: 0.875rem;
+}
+
+.word-result-item i {
+    font-size: 1.1rem;
+}
+
+.modal-body .position-relative {
+    position: relative;
+}

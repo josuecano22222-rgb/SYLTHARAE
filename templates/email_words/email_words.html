@@ -1,0 +1,505 @@
+<!-- templates/email_words.html -->
+{% extends "base.html" %}
+{% from 'components/action_toolbar.html' import action_toolbar, action_group, action_button, bulk_action_button, selection_summary, select_toggle_button %}
+{% from 'components/status_badge.html' import status_badge %}
+
+{% block title %}{{ _('Email-like Words') }}{% endblock %}
+
+{% block page_type %}email-words{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/email-words.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-container email-words-page">
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-envelope-at me-2"></i>
+            {{ _('Email Addresses') }}
+        </h1>
+        <div class="text-muted small">
+            {{ _('Total matches') }}: <strong>{{ total_words|number_format }}</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+{% from 'components/filter_bar.html' import search_group %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-envelope-at"></i>
+        {{ _('Email Addresses Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('This page displays all email addresses found in your files during analysis') }}</li>
+        <li>{{ _('Email addresses are automatically extracted from file content and metadata') }}</li>
+        <li>{{ _('View email addresses with their associated files and usage statistics') }}</li>
+        <li>{{ _('Use email addresses to identify contacts, senders, and recipients in your documents') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-search"></i>
+        {{ _('Searching Email Addresses') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Use the search box to find specific email addresses quickly') }}</li>
+        <li>{{ _('Search is case-insensitive and matches partial email addresses') }}</li>
+        <li>{{ _('Filter email addresses by domain, file association, or usage frequency') }}</li>
+        <li>{{ _('Sort email addresses alphabetically or by usage count') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-file-text"></i>
+        {{ _('Email Address Details') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('Click on any email address to view details and associated files') }}</li>
+        <li>{{ _('See which files contain each email address') }}</li>
+        <li>{{ _('View usage statistics showing how often each email appears') }}</li>
+        <li>{{ _('Export email addresses for use in other applications or reports') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<!-- Filters Section - Using unified file-filters-section -->
+<div class="file-filters-section">
+    <form id="emailFiltersForm" method="get" action="{{ url_for('email_words') }}">
+        <input type="hidden" name="page" value="1">
+        
+        <div class="filter-controls-grid">
+            {{ search_group('searchInput', _('Search'), _('Search email-like words...'),
+                            value=search_term|default(''), name='q',
+                            onclear='clearSearch()', clear_label=_('Clear'),
+                            hint=_('Server-side filter (affects pagination/export/copy).')) }}
+
+            <div class="filter-group">
+                <label for="domainInput" class="filter-label">
+                    <i class="bi bi-globe2"></i>
+                    {{ _('Domain') }}
+                </label>
+                <input type="text" 
+                       id="domainInput" 
+                       name="domain" 
+                       class="form-control"
+                       value="{{ domain|default('') }}"
+                       placeholder="{{ _('e.g. gmail.com') }}">
+            </div>
+
+            <div class="filter-group">
+                <label for="domainMode" class="filter-label">
+                    <i class="bi bi-sliders"></i>
+                    {{ _('Domain Mode') }}
+                </label>
+                <select class="form-select" id="domainMode" name="domain_mode">
+                    <option value="exact" {% if domain_mode == 'exact' %}selected{% endif %}>{{ _('Exact') }}</option>
+                    <option value="contains" {% if domain_mode == 'contains' %}selected{% endif %}>{{ _('Contains') }}</option>
+                    <option value="endswith" {% if domain_mode == 'endswith' %}selected{% endif %}>{{ _('Ends with') }}</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="emailSourceFilter" class="filter-label">
+                    <i class="bi bi-building"></i>
+                    {{ _('Source') }}
+                </label>
+                <select class="form-select" id="emailSourceFilter" name="source_id"
+                        aria-label="{{ _('Filter by source') }}">
+                    <option value="">{{ _('All sources') }}</option>
+                    {% for sid, sname in (sources or {}).items() %}
+                    <option value="{{ sid }}" {% if source_id == sid %}selected{% endif %}>{{ sname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="emailSideFilter" class="filter-label">
+                    <i class="bi bi-diagram-3"></i>
+                    {{ _('Side') }}
+                </label>
+                <select class="form-select" id="emailSideFilter" name="side_id"
+                        aria-label="{{ _('Filter by side') }}">
+                    <option value="">{{ _('All sides') }}</option>
+                    {% for sid, sname in (sides or {}).items() %}
+                    <option value="{{ sid }}" {% if side_id == sid %}selected{% endif %}>{{ sname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="domainSelect" class="filter-label">
+                    <i class="bi bi-list-ul"></i>
+                    {{ _('Select Domain') }}
+                </label>
+                <select class="form-select" id="domainSelect" aria-label="{{ _('Select a domain') }}">
+                    <option value="">{{ _('Select a domain from results...') }}</option>
+                    {% for d, c in domains or [] %}
+                        <option value="{{ d }}">{{ d }} ({{ c }})</option>
+                    {% endfor %}
+                </select>
+                <small class="text-muted">{{ _('This list is based on the current search, not limited by the selected domain.') }}</small>
+            </div>
+        </div>
+
+        <!-- Action Bar -->
+        {% call action_toolbar(id='emailWordsActionBar', label=_('Actions'), interface_id=inspector_interface) %}
+            {% call action_group(_('Selection:')) %}
+                {{ select_toggle_button(onclick='toggleAllSelection()', id='emailWordsSelectToggleBtn',
+                     interface_id=inspector_interface, action_id='email_words.select_all') }}
+            {% endcall %}
+            {% call action_group(_('Bulk Actions:')) %}
+                {{ selection_summary(total_words|default(0), _('emails'), _('email')) }}
+                {{ bulk_action_button(_('Export Selected'), icon='bi-download',
+                     onclick='exportSelectedEmails()', tone='outline-primary', id='bulkExportEmailBtn',
+                     interface_id=inspector_interface, action_id='email_words.export_selected',
+                     noun=_('emails')) }}
+                {{ bulk_action_button(_('Copy Selected'), icon='bi-clipboard',
+                     onclick='copySelectedEmails()', tone='outline-secondary', id='bulkCopyEmailBtn',
+                     interface_id=inspector_interface, action_id='email_words.copy_selected',
+                     noun=_('emails')) }}
+            {% endcall %}
+            {% call action_group(_('Actions') ~ ':') %}
+                {{ action_button(_('Apply Filters'), icon='bi-funnel', submit=True, tone='primary') }}
+                {{ action_button(_('Reset'), icon='bi-arrow-counterclockwise',
+                     href=url_for('email_words'), tone='outline-secondary') }}
+            {% endcall %}
+            {% call action_group(_('Export/Copy') ~ ':') %}
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle"
+                            id="exportEmailWordsButton"
+                            data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                            aria-expanded="false" aria-label="{{ _('Export') }}">
+                        <i class="bi bi-download me-1" aria-hidden="true"></i>{{ _('Export') }}
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end ut-export-menu" id="emailWordsExportMenu">
+                        <div class="ut-export-columns" role="group" aria-label="{{ _('Columns to export') }}">
+                            <span class="dropdown-header ut-export-heading">{{ _('Columns') }}</span>
+                            <div class="ut-export-column-actions px-3 pb-1">
+                                <button type="button" class="btn btn-link btn-sm p-0 me-2" data-email-export-columns="all">{{ _('Select all') }}</button>
+                                <button type="button" class="btn btn-link btn-sm p-0" data-email-export-columns="none">{{ _('Select none') }}</button>
+                            </div>
+                            <label class="dropdown-item-text ut-export-column">
+                                <input type="checkbox" class="form-check-input ut-export-column-check"
+                                       data-export-column="email" checked>
+                                {{ _('Email Address') }}
+                            </label>
+                            <label class="dropdown-item-text ut-export-column">
+                                <input type="checkbox" class="form-check-input ut-export-column-check"
+                                       data-export-column="usage_count" checked>
+                                {{ _('Usage Count') }}
+                            </label>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <div class="ut-export-scope" role="radiogroup" aria-label="{{ _('Export scope') }}">
+                            <span class="dropdown-header ut-export-heading">{{ _('Scope') }}</span>
+                            <label class="dropdown-item-text ut-export-scope-option">
+                                <input type="radio" class="form-check-input ut-export-scope-check"
+                                       name="emailWordsExportScope" value="filtered" checked>
+                                {{ _('Filtered data (current filters)') }}
+                            </label>
+                            <label class="dropdown-item-text ut-export-scope-option">
+                                <input type="radio" class="form-check-input ut-export-scope-check"
+                                       name="emailWordsExportScope" value="all">
+                                {{ _('All data (entire database)') }}
+                            </label>
+                        </div>
+                        <div class="dropdown-divider"></div>
+                        <button type="button" class="dropdown-item" data-email-export-format="csv">
+                            <i class="bi bi-file-earmark-spreadsheet me-2" aria-hidden="true"></i>{{ _('Export as CSV') }}
+                        </button>
+                    </div>
+                </div>
+                {{ action_button(_('Copy'), icon='bi-clipboard', id='copyEmailWordsButton',
+                     tone='outline-secondary') }}
+            {% endcall %}
+        {% endcall %}
+    </form>
+</div>
+<div class="row g-4">
+    <!-- Statistics Card -->
+    <div class="col-lg-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-card-icon stat-card-icon-primary me-3">
+                    <i class="bi bi-envelope-at"></i>
+                </div>
+                <div>
+                    <div class="stat-card-title">{{ _('Unique Email-like Words') }}</div>
+                    <h3 class="stat-card-value mb-0">{{ total_words|number_format }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Page Card -->
+    <div class="col-lg-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-card-icon stat-card-icon-success me-3">
+                    <i class="bi bi-list-ol"></i>
+                </div>
+                <div>
+                    <div class="stat-card-title">{{ _('Words on This Page') }}</div>
+                    <h3 class="stat-card-value mb-0">{{ email_words|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Page Info Card -->
+    <div class="col-lg-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-card-icon stat-card-icon-warning me-3">
+                    <i class="bi bi-file-text"></i>
+                </div>
+                <div>
+                    <div class="stat-card-title">{{ _('Current Page') }}</div>
+                    <h3 class="stat-card-value mb-0">{{ page }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Total Pages Card -->
+    <div class="col-lg-3">
+        <div class="stat-card">
+            <div class="d-flex align-items-center">
+                <div class="stat-card-icon stat-card-icon-secondary me-3">
+                    <i class="bi bi-collection"></i>
+                </div>
+                <div>
+                    <div class="stat-card-title">{{ _('Total Pages') }}</div>
+                    <h3 class="stat-card-value mb-0">{{ total_pages }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Words Table -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">{{ _('Email-like Words Found') }}</h5>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="perPageSelect" class="small text-muted mb-0">{{ _('Per Page') }}:</label>
+                        <select id="perPageSelect" class="form-select form-select-sm" style="width: auto;">
+                            <option value="25" {% if per_page == 25 %}selected{% endif %}>25</option>
+                            <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+                            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+                            <option value="200" {% if per_page == 200 %}selected{% endif %}>200</option>
+                        </select>
+                    </div>
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle me-1"></i>
+                        <span id="showingCount">{{ email_words|length }}</span> {{ _('of') }} <span id="totalCount">{{ total_words|number_format }}</span>
+                    </small>
+                </div>
+            </div>
+            
+            {% if email_words %}
+            <div class="table-wrapper" style="max-height: 75vh; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.375rem;">
+                <table id="emailWordsTable" class="table table-hover table-striped mb-0">
+                    <thead class="table-light sticky-top" style="z-index: 10; box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);">
+                        <tr>
+                            <th scope="col" style="width: 3%;">
+                                <input type="checkbox" class="form-check-input" id="emailSelectAllCheckbox"
+                                       data-on-change="emailSelectAll(this)"
+                                       aria-label="{{ _('Select all emails on this page') }}">
+                            </th>
+                            <th scope="col" style="width: 5%;">#</th>
+                            <th scope="col" style="width: 32%;" aria-sort="none">
+                                <button type="button" class="btn btn-link p-0 text-decoration-none text-body sortable"
+                                        data-sort="word" title="{{ _('Click to sort') }}">
+                                    {{ _('Email Address') }}
+                                    <i class="bi bi-arrow-down-up ms-1 sort-icon" aria-hidden="true"></i>
+                                </button>
+                            </th>
+                            <th scope="col" style="width: 10%;" aria-sort="none">
+                                <button type="button" class="btn btn-link p-0 text-decoration-none text-body sortable"
+                                        data-sort="usage_count" title="{{ _('Click to sort') }}">
+                                    {{ _('Usage Count') }}
+                                    <i class="bi bi-arrow-down-up ms-1 sort-icon" aria-hidden="true"></i>
+                                </button>
+                            </th>
+                            <th scope="col" style="width: 15%;">{{ _('Validation') }}</th>
+                            <th scope="col" style="width: 15%;">{{ _('Domain') }}</th>
+                            <th scope="col" style="width: 20%;">{{ _('Actions') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody id="emailTableBody">
+                        {% for word_row in email_words %}
+                        {% set word = word_row['word'] %}
+                        {% set usage_count = word_row['usage_count']|default(0) %}
+                        {% set number = ((page - 1) * per_page) + loop.index %}
+                        <tr class="email-row" data-word="{{ word }}" data-usage-count="{{ usage_count }}">
+                            <td>
+                                <input type="checkbox" class="form-check-input email-checkbox"
+                                       value="{{ word }}"
+                                       data-on-change="updateBulkButtons()"
+                                       aria-label="{{ _('Select email') }}: {{ word }}">
+                            </td>
+                            <td><span class="badge bg-secondary">{{ number }}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-envelope-at me-2 text-primary"></i>
+                                    <button type="button" class="email-address btn btn-link fw-medium p-0"
+                                            style="cursor: pointer; color: var(--primary-color); text-decoration: underline; border: 0; background: transparent;"
+                                            data-email-action="show-files" data-email="{{ word }}"
+                                            aria-label="{{ _('Click to view files containing this email') }}: {{ word }}"
+                                            title="{{ _('Click to view files containing this email') }}">
+                                        {{ word }}
+                                    </button>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge {% if usage_count > 10 %}bg-success{% elif usage_count > 0 %}bg-info{% else %}bg-secondary{% endif %}">
+                                    {{ usage_count }} {{ _('files') }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ status_badge(status='valid', icon='bi-check-circle') }}
+                            </td>
+                            <td>
+                                {% set d = word.split('@')[1] if '@' in word else '' %}
+                                {% if d %}
+                                    <button type="button"
+                                            class="badge bg-info border-0 domain-pill"
+                                            style="cursor: pointer;"
+                                            data-domain="{{ d }}"
+                                            title="{{ _('Filter by this domain') }}">
+                                        {{ d }}
+                                    </button>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ _('N/A') }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-primary" data-email-action="copy" data-email="{{ word }}"
+                                            title="{{ _('Copy') }}" aria-label="{{ _('Copy') }}: {{ word }}">
+                                        <i class="bi bi-clipboard" aria-hidden="true"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" data-email-action="search" data-email="{{ word }}"
+                                            title="{{ _('Search in Files') }}" aria-label="{{ _('Search in Files') }}: {{ word }}">
+                                        <i class="bi bi-search" aria-hidden="true"></i>
+                                    </button>
+
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-3">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
+                    {{ _('Showing') }} {{ email_words|length }} {{ _('of') }} {{ total_words|number_format }} {{ _('email-like words') }} ({{ _('Page') }} {{ page }} {{ _('of') }} {{ total_pages }})
+                </small>
+            </div>
+            
+            <!-- Pagination -->
+            {% if total_pages > 1 %}
+                {% from "components/unified_pagination.html" import unified_pagination %}
+                {{ unified_pagination(page, total_pages, url_for, 'email_words', {'q': search_term, 'domain': domain, 'domain_mode': domain_mode, 'source_id': source_id or '', 'side_id': side_id or '', 'per_page': per_page, 'sort_by': sort_by, 'sort_order': sort_order}, table_id='emailWordsTable', total_count=total_words|default(0), rows_shown=email_words|length) }}
+            {% endif %}
+
+
+            {% else %}
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox display-4 d-block mb-3"></i>
+                <h5>{{ _('No Email-like Words Found') }}</h5>
+                <p class="mb-3">{{ _('No words matching the email pattern (@ and .) were found in the database.') }}</p>
+                <div class="btn-group">
+                    <a class="btn btn-outline-secondary" href="{{ url_for('index') }}">
+                        <i class="bi bi-house me-1" aria-hidden="true"></i> {{ _('Go to Dashboard') }}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- Email Files Modal -->
+<div class="modal fade" id="emailFilesModal" tabindex="-1" aria-labelledby="emailFilesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="emailFilesModalLabel">
+                    <i class="bi bi-envelope-at me-2"></i>
+                    <span id="modalEmailAddress"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body" id="emailFilesModalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">{{ _('Loading...') }}</span>
+                    </div>
+                    <p class="mt-2">{{ _('Loading files...') }}</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto">
+                    <small class="text-muted">
+                        <span id="modalFileCount">0</span> {{ _('files found') }}
+                    </small>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Close') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="emailWordsFiltersData">{{ {
+    "filters": {
+        "q": (search_term|default('')),
+        "domain": (domain|default('')),
+        "domain_mode": (domain_mode|default('exact')),
+        "source_id": (source_id if source_id else ''),
+        "side_id": (side_id if side_id else '')
+    },
+    "translations": {
+        "copied": _('Content copied to clipboard!'),
+        "copyFailed": _('Failed to copy content to clipboard'),
+        "exportDone": _('Export completed successfully'),
+        "exportFailed": _('Error exporting data'),
+        "selectColumns": _('Please select at least one column to export.'),
+        "selectEmailsFirst": _('Please select emails first'),
+        "emailAddress": _('Email Address'),
+        "loading": _('Loading...'),
+        "loadingFiles": _('Loading files...'),
+        "noFilesFound": _('No Files Found'),
+        "loadingError": _('Error loading files'),
+        "unknownError": _('Unknown error'),
+        "read": _('Read'),
+        "unread": _('Unread'),
+        "filesFound": _('files found'),
+        "unknown": _('Unknown'),
+        "notAvailable": _('N/A'),
+        "sourcePrefix": _('Source:'),
+        "sidePrefix": _('Side:'),
+        "sourceLabel": _('Source'),
+        "sideLabel": _('Side'),
+        "usageCount": _('Usage Count'),
+        "close": _('Close')
+    }
+}|tojson }}</script>
+<!-- email-words-page.js is loaded by universal-initializer.js -->
+{% endblock %}

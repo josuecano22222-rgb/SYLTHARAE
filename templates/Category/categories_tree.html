@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Category Hierarchy') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/category-tree.css') }}" rel="stylesheet" />
+{% endblock %}
+
+{% from 'components/breadcrumbs.html' import breadcrumbs %}
+{% block breadcrumb %}{{ breadcrumbs() }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            <i class="bi bi-diagram-3 me-2"></i>
+            {{ _('Category Hierarchy') }}
+            <span class="badge bg-secondary align-middle ms-2" id="treeNodeCount">0</span>
+        </h1>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('categories_list') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-list-ul me-1"></i> {{ _('List View') }}
+        </a>
+        <button type="button" class="btn btn-primary" data-on-click="openTreeCategoryModal()">
+            <i class="bi bi-plus-circle me-2"></i> {{ _('Add Category') }}
+        </button>
+    </div>
+</div>
+
+<div class="tree-toolbar">
+    <div class="tree-view-switch" role="group" aria-label="{{ _('View') }}">
+        <button type="button" class="btn btn-outline-primary active" id="viewListBtn"
+                data-on-click="setTreeView('list')" aria-pressed="true">
+            <i class="bi bi-list-nested me-1"></i> {{ _('Indented List') }}
+        </button>
+        <button type="button" class="btn btn-outline-primary" id="viewMapBtn"
+                data-on-click="setTreeView('map')" aria-pressed="false">
+            <i class="bi bi-grid-3x3-gap me-1"></i> {{ _('Hierarchy Map') }}
+        </button>
+    </div>
+
+    <div class="tree-search">
+        <label class="visually-hidden" for="treeSearch">{{ _('Search Categories') }}</label>
+        <input type="search" class="form-control" id="treeSearch"
+               placeholder="{{ _('Search categories...') }}"
+               autocomplete="off">
+        <button type="button" class="btn btn-outline-secondary" data-on-click="clearTreeSearch()"
+                title="{{ _('Clear') }}">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    <div class="tree-depth-controls">
+        <label for="treeDepthSelect" class="form-label mb-0">{{ _('Expand to depth') }}</label>
+        <select class="form-select" id="treeDepthSelect" data-on-change="expandToDepth(this.value)">
+            <option value="0">{{ _('All collapsed') }}</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="99">{{ _('Expand all') }}</option>
+        </select>
+    </div>
+
+    <div class="tree-actions">
+        <button type="button" class="btn btn-outline-success" data-on-click="exportTreeCsv()">
+            <i class="bi bi-filetype-csv me-1"></i> {{ _('Export CSV') }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary" data-on-click="reloadTree()">
+            <i class="bi bi-arrow-clockwise me-1"></i> {{ _('Refresh') }}
+        </button>
+    </div>
+</div>
+
+<div class="tree-breadcrumb" id="treeBreadcrumb" aria-live="polite">
+    <span class="text-muted">{{ _('Select a category to see its path') }}</span>
+</div>
+
+<div class="tree-status" id="treeStatus" role="status"></div>
+
+{#- Not ``.alert``: alert-replacement.js rewrites an .alert node into a toast and
+    removes the original, so an error box that must stay in the flow uses its own
+    class. -#}
+<div id="treeError" class="tree-error" style="display:none;" role="alert"></div>
+
+<!-- Indented list view -->
+<div class="tree-view" id="treeViewList" role="tree" aria-label="{{ _('Category Hierarchy') }}">
+    <div class="tree-row tree-header-row" aria-hidden="true">
+        <span class="tree-col-name">{{ _('Category Name') }}</span>
+        <span class="tree-col-count">{{ _('Children') }}</span>
+        <span class="tree-col-count">{{ _('Words') }}</span>
+        <span class="tree-col-count">{{ _('Total Words') }}</span>
+        <span class="tree-col-actions">{{ _('Actions') }}</span>
+    </div>
+    <div id="treeRows"></div>
+    <div class="tree-empty text-muted" id="treeEmpty" style="display:none;">
+        {{ _('No categories found') }}
+    </div>
+</div>
+
+<!-- Hierarchy map view -->
+<div class="tree-view" id="treeViewMap" style="display:none;" aria-label="{{ _('Hierarchy Map') }}">
+    <div class="tree-map" id="treeMap"></div>
+</div>
+
+<!-- Create / edit modal -->
+<div class="modal fade" id="treeCategoryModal" tabindex="-1" aria-labelledby="treeCategoryModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="treeCategoryModalLabel">{{ _('Add Category') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="treeCategoryForm">
+                    <div class="mb-3">
+                        <label class="form-label d-block">{{ _('Placement') }}</label>
+                        <div class="tree-mode-switch" role="radiogroup" aria-label="{{ _('Placement') }}">
+                            <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="treeMode"
+                                       id="treeModeRoot" value="root" checked>
+                                <span class="form-check-label">{{ _('Top level') }}</span>
+                            </label>
+                            <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="treeMode"
+                                       id="treeModeChild" value="child">
+                                <span class="form-check-label">{{ _('Inside another category') }}</span>
+                            </label>
+                            <label class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="treeMode"
+                                       id="treeModeAbove" value="parent-above">
+                                <span class="form-check-label">{{ _('As a new parent above existing categories') }}</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="treeCategoryName" class="form-label">{{ _('Category Name') }}</label>
+                        <input type="text" class="form-control" id="treeCategoryName"
+                               name="category_name" required maxlength="255">
+                    </div>
+
+                    <div class="mb-3" id="treeParentGroup" style="display:none;">
+                        <label for="treeParentSelect" class="form-label">{{ _('Parent Category') }}</label>
+                        <select class="form-select" id="treeParentSelect"></select>
+                        <div class="form-text">{{ _('Type to search the tree; the indent shows the level.') }}</div>
+                    </div>
+
+                    <div class="mb-3" id="treeChildrenGroup">
+                        <label for="treeChildren" class="form-label">
+                            {{ _('Child categories (one per line)') }}
+                        </label>
+                        <textarea class="form-control" id="treeChildren" rows="3"
+                                  placeholder="{{ _('Sub-category one') }}
+{{ _('Sub-category two') }}"></textarea>
+                    </div>
+
+                    <div class="mb-3" id="treeAdoptGroup" style="display:none;">
+                        <label for="treeAdoptSelect" class="form-label">
+                            {{ _('Categories to move under the new parent') }}
+                        </label>
+                        <select class="form-select" id="treeAdoptSelect" multiple size="8"></select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('Cancel') }}</button>
+                <button type="button" class="btn btn-primary" data-on-click="saveTreeCategory()">
+                    {{ _('Save') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="category-tree-page-data">{{ {
+    "translations": {
+        "addCategory": _('Add Category'),
+        "categoryAdded": _('Category added successfully'),
+        "categoryMoved": _('Category moved'),
+        "categoryDeleted": _('Category deleted'),
+        "error": _('Error'),
+        "nameRequired": _('Category name is required'),
+        "parentRequired": _('Choose a parent category'),
+        "adoptRequired": _('Choose at least one category to move'),
+        "confirmDelete": _('Are you sure you want to delete this category?'),
+        "hasChildren": _('This category has children. Move them first or choose "reparent".'),
+        "delete": _('Delete'),
+        "deleteReparent": _('Delete and move children up'),
+        "children": _('Children'),
+        "words": _('Words'),
+        "totalWords": _('Total Words'),
+        "actions": _('Actions'),
+        "expand": _('Expand'),
+        "collapse": _('Collapse'),
+        "rename": _('Rename'),
+        "loading": _('Loading...'),
+        "noCategoriesFound": _('No categories found'),
+        "searching": _('Searching...'),
+        "exporting": _('Preparing CSV...'),
+        "exported": _('CSV downloaded'),
+        "path": _('Path'),
+        "name": _('Category Name'),
+        "depth": _('Level'),
+        "id": _('Id'),
+        "clear": _('Clear'),
+        "selectToSeePath": _('Select a category to see its path'),
+        "moveFailed": _('Could not move the category'),
+        "dropHere": _('Drop to make this the parent'),
+        "none": _('None')
+    }
+}|tojson }}</script>
+<script src="{{ url_for('static', filename='js/pages/categories-tree-page.js') }}?v=20261024a"></script>
+{% endblock %}

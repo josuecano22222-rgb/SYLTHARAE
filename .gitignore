@@ -1,0 +1,120 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# --- Virtual environments ---
+.venv/
+.venv-*/
+venv/
+ENV/
+env/
+
+# --- Secrets (SEC-07: never commit credentials) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.flask_secret_key
+.db_config.json
+data/.db_config.json
+
+# User-specific config (may contain DB_PASSWORD, admin credentials)
+config.json
+!.gitignore
+
+# --- Runtime state (Phase 19: APP_DATA_DIR) ---
+logs/
+checkpoints/
+extracted/
+uploads/
+cache/
+runtime/
+*.log
+file_processor.log
+
+# --- Testing / coverage ---
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Databases ---
+*.sqlite3
+*.dump
+*.backup
+
+# --- Node (legacy tooling) ---
+node_modules/
+
+# Runtime settings store (created on first boot; may hold deployment config)
+data/
+# ...except the committed gazetteer seed and its inputs (data/gazetteer/), which
+# migration m0019 loads. Git cannot re-include a file under an ignored directory,
+# so re-include the top-level data/ dir, ignore its contents, then except gazetteer/.
+# tests/unit/test_gazetteer_packaging.py guards this.
+!/data/
+/data/*
+!/data/gazetteer/
+# ...but the apps.importing.data PACKAGE (source code, not datasets) lives in
+# a directory with the same name and must be tracked. Re-include the directory,
+# then keep datasets inside it ignored.
+!apps/importing/data/
+apps/importing/data/*.xlsx
+apps/importing/data/*.csv
+apps/importing/data/*.json
+
+# Vendored static assets (Select2 etc.) must ship with the app despite dist/
+!static/dist/
+
+# --- Runtime artifacts (audit session) ---
+.pgdata/
+.system_initialized
+core/.app_instance.lock
+sample_data/
+
+# --- Scratch space for manual verification probes (not shipped) ---
+.probe/
+.test_runtime/
+.docs-appdata/
+
+# written by install.py
+.install_state.json
+
+# Browser automation scratch (Chromium/Playwright create this in the CWD)
+.cache/
+
+# Audit archives are delivered compressed; the uncompressed JSONL is a
+# working file (13.5 M characters of stored text per run) and is rebuilt by
+# tools/audit/run_audit.sh.
+audit_report/*/archive/records.jsonl
+audit_report/*/final/records.jsonl
+audit_report/*/archive/text/
+audit_report/*/final/text/

@@ -1,0 +1,178 @@
+{# component: action_toolbar
+   status: FROZEN
+   purpose: The bar of actions on a list: the groups, the buttons, and the one
+            state the server can know for certain - nothing is selected yet.
+   states: selected, loading
+   classes: action-bar, action-group, action-label, btn-action,
+            btn-outline-primary, btn-outline-warning, btn-outline-danger,
+            btn-outline-secondary, btn-primary, btn-warning, spinner-border,
+            select-toggle-icon, select-toggle-label, select-toggle-count
+   notes: Presentation and runtime presentation, and nothing else. The toolbar
+          owns how scope is displayed, how a button visually reflects it and how
+          its accessible name changes; the page owns selection calculation,
+          business logic, API calls and the outcome. It never learns what an
+          action does. The boundary and the states are in the block below, and
+          neither moves without the contract test in
+          tests/unit/test_action_toolbar.py changing with it.
+#}
+{#
+   Usage:
+
+       {% from 'components/action_toolbar.html' import action_toolbar,
+            action_group, action_button, bulk_action_button, selection_summary,
+            select_toggle_button %}
+
+       {% call action_toolbar(id='itemsActionBar', label=_('Actions')) %}
+           {% call action_group(_('Selection:')) %}
+               {{ select_toggle_button(onclick='toggleAllSelection()') }}
+           {% endcall %}
+           {% call action_group(_('Bulk Actions:')) %}
+               {{ selection_summary(total_items, _('items'), _('item')) }}
+               {{ bulk_action_button(_('Export Selected'), icon='bi-download',
+                    onclick='exportSelected()', tone='outline-primary',
+                    id='exportSelectedBtn') }}
+           {% endcall %}
+       {% endcall %}
+
+   The page owns the count and says it out loud:
+
+       ActionToolbar.sync('itemsActionBar', {
+           selected: document.querySelectorAll('.source-checkbox:checked').length,
+           total: totalSources,
+           noun: _('items'),
+           nounSingular: _('item')
+       });
+#}
+
+{% macro action_toolbar(extra_class=None, label=None, id=None, interface_id=None) %}
+{#- `interface_id` is diagnostic metadata, and only that: which screen this bar
+    belongs to, so the Screen Inspector can trace a control back to the registry
+    it came from. It decides nothing, no runtime reads it, and a page that omits
+    it gets exactly the bar it got before. -#}
+<div class="action-bar{{ ' ' ~ extra_class if extra_class }}" role="toolbar"
+     {% if id %}id="{{ id }}"{% endif %}
+     {% if label %}aria-label="{{ label }}"{% endif %}
+     data-action-toolbar data-selected-count="0"
+     data-inspector-component="action_toolbar"{% if interface_id %}
+
+     data-inspector-interface="{{ interface_id }}"{% endif %}
+     data-text-select-first="{{ _('Select {noun} first') }}"
+     data-text-selected="{{ _('{count} {noun} selected') }}"
+     data-text-all-selected="{{ _('{count} of {total} {noun} selected') }}">
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+
+{% macro action_group(label=None, icon=None, extra_class=None) %}
+<div class="action-group{{ ' ' ~ extra_class if extra_class }}" data-action-group>
+    {% if label %}<span class="action-label">
+        {%- if icon %}<i class="bi {{ icon }} me-1" aria-hidden="true"></i>{% endif -%}
+        {{ label }}</span>{% endif %}
+    {{ caller() }}
+</div>
+{% endmacro %}
+
+
+{% macro select_toggle_button(onclick='toggleAllSelection()', id='selectToggleBtn',
+                              select_label=None, deselect_label=None,
+                              interface_id=None, action_id=None) %}
+{#- One selection control: Select All when nothing is chosen, Select None
+    when any row is chosen. The runtime rewrites label, icon, pressed state
+    and count from ActionToolbar.sync; the page owns the checkbox math. -#}
+{%- set label_all = select_label or _('Select All') -%}
+{%- set label_none = deselect_label or _('Select None') -%}
+{%- set inspector -%}{% if interface_id %} data-inspector-interface="{{ interface_id }}"{% endif %}{% if action_id %} data-inspector-action="{{ action_id }}"{% endif %}{% if action_id or interface_id %} data-inspector-component="action_toolbar" data-inspector-role="control"{% endif %}{% endset -%}
+<button type="button" class="btn-action btn-select-toggle" id="{{ id }}"
+        data-on-click="{{ onclick }}" data-select-toggle
+        data-text-select-all="{{ label_all }}"
+        data-text-select-none="{{ label_none }}"
+        aria-pressed="false"{{ inspector }}
+        aria-label="{{ label_all }}" title="{{ label_all }}">
+    <i class="bi bi-check-square-fill select-toggle-icon" aria-hidden="true"></i>
+    <span class="select-toggle-label">{{ label_all }}</span>
+    <span class="select-toggle-count" data-select-toggle-count hidden>0</span>
+</button>
+{% endmacro %}
+
+
+{% macro action_button(label, icon=None, onclick=None, href=None, tone=None,
+                       id=None, disabled=False, disabled_reason=None,
+                       loading=False, submit=False, title=None,
+                       extra_class=None, bulk=False, noun=None,
+                       interface_id=None, action_id=None, bulk_handler=None) %}
+{#- A single action. The page owns what it does; this renders how it is
+    invoked - a handler, a link, or the form it sits in. A bulk action's
+    handler is `data-bulk-handler`, which the declarative event layer runs only
+    while the button is enabled, i.e. once the toolbar knows a scope. -#}
+{%- set class_name = 'btn-action' ~ (' btn-' ~ tone if tone) ~ (' ' ~ extra_class if extra_class) -%}
+{#- A disabled action says why, in the accessible name and not only in a
+    tooltip: the runtime keeps that sentence in step with the selection. -#}
+{%- set hint = disabled_reason if (disabled and disabled_reason) else (title or label) -%}
+{%- if bulk -%}
+    {%- set scope_word = noun|default(_('records')) -%}
+    {%- set accessible_name = label ~ ': ' ~
+        _('Select {noun} first').replace('{noun}', scope_word) -%}
+{%- else -%}
+    {%- set accessible_name = title or label -%}
+{%- endif -%}
+{#- The action this control presents, in the registry's own vocabulary. The page
+    supplies it: the component renders actions, it does not discover them. -#}
+{%- set inspector -%}{% if interface_id %} data-inspector-interface="{{ interface_id }}"{% endif %}{% if action_id %} data-inspector-action="{{ action_id }}"{% endif %}{% if action_id or interface_id %} data-inspector-component="action_toolbar" data-inspector-role="control"{% endif %}{% endset -%}
+{%- set body -%}
+{%- if loading %}<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>{% endif -%}
+{%- if icon and not loading %}<i class="bi {{ icon }}" aria-hidden="true"></i> {% endif -%}
+{{ label }}
+{%- endset -%}
+{%- if href and not disabled -%}
+<a class="{{ class_name }}" href="{{ href }}"
+   {% if id %}id="{{ id }}"{% endif %}
+   {% if bulk %}data-bulk-action data-action-label="{{ label }}"{% endif %}{{ inspector }}
+   aria-label="{{ accessible_name }}" title="{{ hint }}">
+    {{ body }}
+</a>
+{%- else -%}
+<button type="{{ 'submit' if submit else 'button' }}" class="{{ class_name }}"
+        {% if id %}id="{{ id }}"{% endif %}
+        {% if onclick and not disabled %}data-on-click="{{ onclick }}"{% endif %}{{ inspector }}
+        {% if loading %}aria-busy="true"{% endif %}
+        {% if disabled %}disabled aria-disabled="true"{% endif %}
+        {% if bulk %}data-bulk-action data-action-label="{{ label }}"{% endif %}
+        {% if bulk and bulk_handler %}data-bulk-handler="{{ bulk_handler }}"{% endif %}
+        {% if bulk %}aria-label="{{ accessible_name }}"{% endif %}
+        {% if hint %}title="{{ hint }}"{% endif %}>
+    {{ body }}
+</button>
+{%- endif -%}
+{% endmacro %}
+
+
+{% macro bulk_action_button(label, icon=None, onclick=None, tone=None,
+                            id=None, extra_class=None, noun=None,
+                            interface_id=None, action_id=None) %}
+{#- An action that affects the selection. It renders the state that is known
+    at render time - nothing is selected - and the runtime takes it from
+    there. There is no `scope` argument: the runtime owns scope, and one
+    thing must have one owner. -#}
+{{ action_button(label, icon=icon, tone=tone, id=id, disabled=True,
+                 extra_class=extra_class, bulk=True, noun=noun,
+                 interface_id=interface_id, action_id=action_id,
+                 bulk_handler=onclick) }}
+{% endmacro %}
+
+
+{% macro selection_summary(total=None, noun=None, noun_singular=None) %}
+{#- What the selection-scoped actions would affect, in words. A polite live
+    region: the runtime rewrites it as the reader selects, so the scope is
+    announced rather than only drawn. -#}
+<span class="action-label" data-selection-summary role="status" aria-live="polite"
+      data-selected-count="0" data-total="{{ total if total is not none else '' }}"
+      data-noun="{{ noun or '' }}"
+      data-noun-singular="{{ noun_singular or noun or '' }}">
+    {%- if noun -%}
+        {{ _('Select {noun} first').replace('{noun}', noun) }}
+    {%- else -%}
+        {{ _('Select {noun} first').replace('{noun}', _('records')) }}
+    {%- endif -%}
+</span>
+{% endmacro %}

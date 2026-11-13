@@ -1,0 +1,57 @@
+.tab-content {
+    display: block !important;
+}
+
+.tab-content .tab-pane {
+    display: none;
+}
+
+.tab-content .tab-pane.active, .tab-content .tab-pane.show {
+    display: block;
+}
+
+/* File detail: never stack panes — inline styles from legacy scripts must not win. */
+#fileTabContent > .tab-pane:not(.active):not(.show) {
+    display: none !important;
+    visibility: hidden;
+    height: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    border: 0;
+}
+
+#fileTabContent > .tab-pane.active.show {
+    display: block !important;
+    visibility: visible;
+    height: auto;
+    overflow: visible;
+}
+
+@media (max-width: 991.98px) {
+    .tab-content {
+        padding: 1rem;
+    }
+    .tab-content .tab-pane {
+        padding: 0.875rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .tab-content {
+        padding: 0.875rem;
+    }
+    .tab-content .tab-pane {
+        padding: 0.75rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .tab-content {
+        padding: 0.75rem;
+    }
+    .tab-content .tab-pane {
+        padding: 0.625rem;
+    }
+}
+

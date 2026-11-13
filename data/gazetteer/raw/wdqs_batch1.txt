@@ -1,0 +1,75 @@
+@@New York City\|Q60\|Point(-74.006111111 40.712777777)\|US\|New York City\|نيويورك\|ניו יורק\|نیویورک\|New York City, New York\|New York@en
+@@San Francisco\|Q62\|Point(-122.419444444 37.775)\|US\|San Francisco\|سان فرانسيسكو\|סן פרנסיסקו\|سان فرانسیسکو\|San Francisco\|San Francisco@en
+@@Los Angeles\|Q65\|Point(-118.24368 34.05223)\|US\|Los Angeles\|لوس أنجلوس\|לוס אנג'לס\|لس آنجلس\|Los Angeles\|El Pueblo de Nuestra Señora la Reina de los Ángeles del Río de Porciúncula@es
+@@Alexandria\|Q87\|Point(29.8925 31.1975)\|EG\|Alexandria\|الإسكندرية\|אלכסנדריה\|اسکندریه\|Aleksandrija\|الإسكندرية@ar
+@@Boston\|Q100\|Point(-71.057777777 42.360277777)\|US\|Boston\|بوسطن\|בוסטון\|بوستون\|Boston\|Boston@en
+@@São Paulo\|Q174\|Point(-46.633947222 -23.550394444)\|BR\|São Paulo\|ساو باولو\|סאו פאולו\|سائوپائولو\|São Paulo\|São Paulo@pt
+@@Toronto\|Q172\|Point(-79.386666666 43.670277777)\|CA\|Toronto\|تورونتو\|טורונטו\|تورنتو\|Toronto\|Toronto@en/City of Toronto@en
+@@Saint Petersburg\|Q656\|Point(30.316666666 59.95)\|RU\|Saint Petersburg\|سانت بطرسبرغ\|סנקט פטרבורג\|سنت پترزبورگ\|Sankt-Peterburg\|Санкт-Петербург@ru
+@@Prague\|Q1085\|Point(14.421388888 50.0875)\|CZ\|Prague\|براغ\|פראג\|پراگ\|Prag\|Praha@cs
+@@Moscow\|Q649\|Point(37.6175 55.750555555)\|RU\|Moscow\|موسكو\|מוסקבה\|مسکو\|Moskva\|Москва@ru
+@@Montreal\|Q340\|Point(-73.5868411 45.5033426)\|CA\|Montreal\|مونتريال\|מונטריאול\|مونترآل\|Montréal\|Montréal@fr/Molian@abe/Tiohtià:ke@moh/Tiohtiake@moh/Mooniyang@oj
+@@Jerusalem\|Q1218\|Point(35.234156 31.776679)\|PS,IL\|Jerusalem\|القدس\|ירושלים\|قدس\|Jeruzalem\|ירושלים@he/القدس@ar
+@@Chicago\|Q1297\|Point(-87.627777777 41.881944444)\|US\|Chicago\|شيكاغو\|שיקגו\|شیکاگو\|Chicago\|Chicago@en
+@@Buenos Aires\|Q1486\|Point(-58.381944444 -34.599722222)\|AR\|Buenos Aires\|بوينس آيرس\|בואנוס איירס\|بوئنوس آیرس\|Buenos Aires\|Ciudad Autónoma de Buenos Aires@es
+@@Baghdad\|Q1530\|Point(44.366111111 33.315277777)\|IQ\|Baghdad\|بغداد\|בגדאד\|بغداد\|Bagdad\|بغداد@ar
+@@Mexico City\|Q1489\|Point(-99.13589 19.353773)\|MX\|Mexico City\|مدينة مكسيكو\|מקסיקו סיטי\|مکزیکو سیتی\|Ciudad de México\|Ciudad de México@es
+@@Stockholm\|Q1754\|Point(18.068611111 59.329444444)\|SE\|Stockholm\|ستوكهولم\|סטוקהולם\|استکهلم\|Stockholm\|Stockholm@sv
+@@Copenhagen\|Q1748\|Point(12.568888888 55.676111111)\|DK\|Copenhagen\|كوبنهاغن\|קופנהגן\|کپنهاگ\|Kopenhagen\|København@da
+@@Dublin\|Q1761\|Point(-6.260277777 53.349722222)\|IE\|Dublin\|دبلن\|דבלין\|دوبلین\|Dublin\|Dublin@en/Baile Átha Cliath@ga
+@@Helsinki\|Q1757\|Point(24.9375 60.170833333)\|FI\|Helsinki\|هلسنكي\|הלסינקי\|هلسینکی\|Helsinki\|Helsingfors@sv/Helsinki@fi
+@@Gdańsk\|Q1792\|Point(18.6540233 54.3482907)\|PL\|Gdańsk\|غدانسك\|גדנסק\|گدانسک\|Gdanjsk\|Gdańsk@pl/Danzig@de
+@@Sanaa\|Q2471\|Point(44.2 15.35)\|YE\|Sanaa\|صنعاء\|צנעא\|صنعا\|Sana\|صنعاء@ar
+@@Bogotá\|Q2841\|Point(-74.08175 4.60971)\|CO\|Bogotá\|بوغوتا\|בוגוטה\|بوگوتا\|Bogotá\|Bogotá@es
+@@Lima\|Q2868\|Point(-77.0375 -12.06)\|PE\|Lima\|ليما\|לימה\|لیما\|Lima\|Lima@es
+@@Sydney\|Q3130\|Point(151.21 -33.867777777)\|AU\|Sydney\|سيدني\|סידני\|سیدنی\|Sydney\|Sydney@en/悉尼@zh
+@@Perth\|Q3183\|Point(115.859722222 -31.955833333)\|AU\|Perth\|برث\|פרת'\|پرث\|Perth\|Perth@en/Boorloo@nys
+@@Panama City\|Q3306\|Point(-79.534722222 8.971111111)\|PA\|Panama City\|مدينة بنما\|פנמה סיטי\|پاناماسیتی\|Panamá\|Panamá@es
+@@Tehran\|Q3616\|Point(51.389722222 35.688888888)\|IR\|Tehran\|طهران\|טהראן\|تهران\|Teheran\|تهران@fa
+@@Melbourne\|Q3141\|Point(144.963055555 -37.814166666)\|AU\|Melbourne\|ملبورن\|מלבורן\|ملبورن\|Melbourne\|Melbourne@en-au
+@@Santiago\|Q2887\|Point(-70.65 -33.4375)\|CL\|Santiago\|سانتياغو\|סנטיאגו דה צ'ילה\|سانتیاگو\|Santiago de Chile\|Santiago de Chile@es
+@@Ankara\|Q3640\|Point(32.83869 39.93576)\|TR\|Ankara\|أنقرة\|אנקרה\|آنکارا\|Ankara\|Ankara@tr
+@@Damascus\|Q3766\|Point(36.292 33.513)\|SY\|Damascus\|دمشق\|דמשק\|دمشق\|Damask\|دمشق@ar
+@@Muscat\|Q3826\|Point(58.592222222 23.613888888)\|OM\|Muscat\|مسقط\|מסקט\|مسقط\|Muskat\|مسقط@ar
+@@Amman\|Q3805\|Point(35.926084 31.930983)\|JO\|Amman\|عَمَّان\|עמאן\|امان\|Amman\|عَمَّان@ar
+@@Manama\|Q3882\|Point(50.583333333 26.216666666)\|BH\|Manama\|المنامة\|מנאמה\|منامه\|Manama\|
+@@Seattle\|Q5083\|Point(-122.33 47.605)\|US\|Seattle\|سياتل\|סיאטל\|سیاتل\|Seattle\|Seattle@en
+@@Mecca\|Q5806\|Point(39.826111111 21.4225)\|SA\|Mecca\|مكة المكرمة\|מכה\|مکه\|Meka\|مكة المكرمة@ar
+@@Kabul\|Q5838\|Point(69.165833333 34.532777777)\|AF\|Kabul\|كابل\|קאבול\|کابل\|Kabul\|کابل@fa
+@@Rio de Janeiro\|Q8678\|Point(-43.205555555 -22.911111111)\|BR\|Rio de Janeiro\|ريو دي جانيرو\|ריו דה ז'ניירו\|ریو د ژانیرو\|Rio de Janeiro\|Rio de Janeiro@pt
+@@Miami\|Q8652\|Point(-80.193611111 25.774166666)\|US\|Miami\|ميامي\|מיאמי\|میامی\|Miami\|Miami@en
+@@Houston\|Q16555\|Point(-95.383055555 29.762777777)\|US\|Houston\|هيوستن\|יוסטון\|هیوستون\|Houston\|
+@@Dallas\|Q16557\|Point(-96.808888888 32.779166666)\|US\|Dallas\|دالاس\|דאלאס\|دالاس\|Dallas\|Dallas@en
+@@Long Beach, California\|Q16739\|Point(-118.195555555 33.768055555)\|US\|Long Beach\|لونغ بيتش\|לונג ביץ'\|لانگ بیچ\|Long Beach\|Long Beach@en
+@@Denver\|Q16554\|Point(-104.984722222 39.739166666)\|US\|Denver\|دنفر\|דנוור\|دنور\|Denver\|Denver@en
+@@Atlanta\|Q23556\|Point(-84.389722222 33.754444444)\|US\|Atlanta\|أتلانتا\|אטלנטה\|آتلانتا\|Atlanta\|Atlanta@en
+@@Oakland, California\|Q17042\|Point(-122.25 37.8)\|US\|Oakland\|أوكلاند\|אוקלנד\|اوکلند\|Oakland\|Oakland@en
+@@Gothenburg\|Q25287\|Point(11.9675 57.7075)\|SE\|Gothenburg\|غوتنبرغ\|גטבורג\|یوتبری\|Göteborg\|Göteborg@sv
+@@Vancouver\|Q24639\|Point(-123.113888888 49.260833333)\|CA\|Vancouver\|فانكوفر\|ונקובר\|ونکوور\|Vancouver\|
+@@Newark, New Jersey\|Q25395\|Point(-74.172222222 40.735555555)\|US\|Newark\|نيوآرك\|ניוארק\|نیوآرک\|Newark\|Newark@en
+@@Brisbane\|Q34932\|Point(153.027777777 -27.467777777)\|AU\|Brisbane\|بريزبان\|בריזבן\|بریزبن\|Brisbane\|
+@@Kuwait City\|Q35178\|Point(47.98 29.375)\|KW\|Kuwait City\|مدينة الكويت\|כווית סיטי\|کویتشهر\|Kuwait\|الكويت@ar
+@@Medina\|Q35484\|Point(39.61 24.47)\|SA\|Medina\|المدينة المنورة\|אל-מדינה\|مدینه\|Medina\|المدينة المنورة@ar
+@@Auckland\|Q37100\|Point(174.765277777 -36.849166666)\|NZ\|Auckland\|أوكلاند\|אוקלנד\|آوکلند\|Auckland\|Auckland@en/Tāmaki Makaurau@mi
+@@Aleppo\|Q41183\|Point(37.16 36.2)\|SY\|Aleppo\|حلب\|חלב\|حلب\|Alep\|ܚܠܒ@arc/Halep@tr/ﺣَﻠَﺐ@ar/Helep@ku-latn
+@@Herat\|Q45313\|Point(62.203056 34.341944)\|AF\|Herat\|هراة\|הראת\|هرات\|Herat\|
+@@Gaza City\|Q47492\|Point(34.459722222 31.5075)\|PS\|Gaza City\|غزة\|עזה\|غزه\|Gaza\|غزة@ar
+@@Basra\|Q48195\|Point(47.81 30.515)\|IQ\|Basra\|البصرة\|בצרה\|بصره\|Basra\|البصرة@ar
+@@Tabriz\|Q80053\|Point(46.296111111 38.073888888)\|IR\|Tabriz\|تبريز\|תבריז\|تبریز\|Tabriz\|تبریز@fa/تبریز@az-arab
+@@Charleston, South Carolina\|Q47716\|Point(-79.931944444 32.783333333)\|US\|Charleston\|تشارلستون\|צ'ארלסטון\|چارلستون\|Charleston\|Charleston@en
+@@Isfahan\|Q42053\|Point(51.674722222 32.6525)\|IR\|Isfahan\|أصفهان\|אספהאן\|اصفهان\|Isfahan\|اصفهان@fa
+@@Santos, São Paulo\|Q81882\|Point(-46.3286399 -23.9335988)\|BR\|Santos\|سانتوس\|סנטוס\|سانتوس\|Santos\|Santos@pt
+@@Mosul\|Q83317\|Point(43.129166666 36.341666666)\|IQ\|Mosul\|الموصل\|מוסול\|موصل\|Mosul\|الموصل@ar
+@@Mashhad\|Q121157\|Point(59.605923055 36.297494444)\|IR\|Mashhad\|مشهد\|משהד\|مشهد\|Mašhad\|مشهد@fa
+@@Haifa\|Q41621\|Point(34.999166666 32.819166666)\|IL\|Haifa\|حيفا\|חיפה\|حیفا\|Haifa\|חֵיפָה@he
+@@Erbil\|Q132754\|Point(44.009444444 36.191111111)\|IQ\|Erbil\|أربيل\|ארביל\|اربیل\|Arbil\|Hewlêr@ku/ھەولێر@ckb
+@@Ramallah\|Q158119\|Point(35.201666666 31.896944444)\|PS\|Ramallah\|رام الله\|רמאללה\|رامالله\|Ramala\|רמאללה@he/رام الله@ar
+@@Hebron\|Q168225\|Point(35.098611111 31.535)\|PS\|Hebron\|الخليل\|חברון\|الخلیل\|Hebron\|الخليل@ar/חֶבְרוֹן@he
+@@Ahvaz\|Q170366\|Point(48.684166666 31.318888888)\|IR\|Ahvaz\|الأهواز\|אהוואז\|اهواز\|Ahvaz\|الاهواز@ar
+@@Qom\|Q170573\|Point(50.876388888 34.64)\|IR\|Qom\|قم\|קום\|قم\|Kom\|قم@fa
+@@Nablus\|Q214178\|Point(35.262777777 32.220833333)\|PS\|Nablus\|نابلس\|שכם\|نابلس\|Nablus\|نابلس@ar/שְׁכֶם@he
+@@Shiraz\|Q6397066\|Point(52.531111111 29.610277777)\|IR\|Shiraz\|شيراز\|שיראז\|شیراز\|Širaz\|شیراز@fa
+@@Aden\|Q131694\|Point(45.033333333 12.8)\|YE\|Aden\|عدن\|עדן\|عدن\|Aden\|عَدَن@ar
+@@Oslo\|Q585\|Point(10.738888888 59.913333333)\|NO\|\|أوسلو\|אוסלו\|اسلو\|\|Oslo@no
+@@Norfolk, Virginia\|Q49231\|Point(-76.285277777 36.846944444)\|US\|\|نورفولك\|נורפוק\|نورفوک\|\|Norfolk@en
+@@Savannah, Georgia\|Q83813\|Point(-81.103888888 32.050833333)\|US\|Savannah\|سافانا\|סוואנה\|ساوانا\|\|Savannah@en

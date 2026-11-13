@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Notifications') }}{% endblock %}
+
+{% block page_type %}notifications{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/notifications.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-container notifications-page">
+
+    {#- ── Header: one job — identify the page and expose primary actions ── -#}
+    <div class="page-header notif-header">
+        <div class="notif-header-copy">
+            <h1 class="page-title">
+                <i class="bi bi-bell" aria-hidden="true"></i>
+                {{ _('Notifications') }}
+            </h1>
+            <p class="notif-header-sub">{{ _('Alerts for duplicates, future dates, and system events') }}</p>
+        </div>
+        <div class="notif-header-actions" role="group" aria-label="{{ _('Notification actions') }}">
+            <button type="button" class="btn btn-primary" data-on-click="scanForNotifications()" id="scanBtn">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <span id="scanBtnText">{{ _('Scan') }}</span>
+                <span class="spinner-border spinner-border-sm ms-1 d-none" id="scanSpinner" role="status" aria-hidden="true"></span>
+            </button>
+            <button type="button" class="btn btn-outline-primary" data-on-click="markAllAsRead()" title="{{ _('Mark every visible notification as read') }}">
+                <i class="bi bi-check-all" aria-hidden="true"></i>
+                <span>{{ _('Mark All Read') }}</span>
+            </button>
+            <button type="button" class="btn btn-outline-secondary" data-on-click="refreshAll()" title="{{ _('Reload the current view') }}">
+                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                <span>{{ _('Refresh') }}</span>
+            </button>
+        </div>
+    </div>
+
+    {#- ── Tips: short and precise ── -#}
+    {% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-bell" aria-hidden="true"></i>
+            {{ _('How this page works') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Type tabs separate all alerts, duplicate files, and future-date findings.') }}</li>
+            <li>{{ _('Status chips (All / Unread / Read) narrow the list without changing the type.') }}</li>
+            <li>{{ _('Scan looks for duplicate content and future dates, then creates alerts for new findings.') }}</li>
+            <li>{{ _('Source and Side filters limit alerts to files linked to that origin or aspect.') }}</li>
+        </ul>
+    </div>
+    {% endcall %}
+
+    {#- ── Overview: exact counts for the active type filter ── -#}
+    <section class="notif-overview" aria-label="{{ _('Notification counts') }}">
+        <div class="notif-stat" data-stat="total">
+            <span class="notif-stat-label">{{ _('Total') }}</span>
+            <span class="notif-stat-value" id="statTotal">{{ stats.total|default(0) }}</span>
+        </div>
+        <div class="notif-stat notif-stat-unread" data-stat="unread">
+            <span class="notif-stat-label">{{ _('Unread') }}</span>
+            <span class="notif-stat-value" id="statUnread">{{ stats.unread|default(0) }}</span>
+        </div>
+        <div class="notif-stat" data-stat="read">
+            <span class="notif-stat-label">{{ _('Read') }}</span>
+            <span class="notif-stat-value" id="statRead">{{ ((stats.total|default(0)) - (stats.unread|default(0))) }}</span>
+        </div>
+    </section>
+
+    {#- ── Workspace: type → filters → status → list ── -#}
+    <section class="notif-workspace" aria-label="{{ _('Notification list') }}">
+
+        <nav class="notif-type-nav" role="tablist" aria-label="{{ _('Notification type') }}">
+            <button type="button" class="notif-type-btn active" role="tab" aria-selected="true"
+                    data-tab="all" data-on-click="switchTab('all')">
+                <i class="bi bi-inbox" aria-hidden="true"></i>
+                <span>{{ _('All') }}</span>
+            </button>
+            <button type="button" class="notif-type-btn" role="tab" aria-selected="false"
+                    data-tab="duplicates" data-on-click="switchTab('duplicates')">
+                <i class="bi bi-files" aria-hidden="true"></i>
+                <span>{{ _('Duplicates') }}</span>
+            </button>
+            <button type="button" class="notif-type-btn" role="tab" aria-selected="false"
+                    data-tab="future" data-on-click="switchTab('future')">
+                <i class="bi bi-calendar-event" aria-hidden="true"></i>
+                <span>{{ _('Future Dates') }}</span>
+            </button>
+        </nav>
+
+        <div class="notif-filters">
+            <div class="notif-search">
+                <i class="bi bi-search" aria-hidden="true"></i>
+                <input type="search" id="notifSearch" class="form-control"
+                       placeholder="{{ _('Search title, message, or file…') }}"
+                       aria-label="{{ _('Search notifications') }}"
+                       data-on-keyup="handleSearch(event)">
+            </div>
+            <div class="notif-filter-field">
+                <label for="notifSort" class="notif-filter-label">{{ _('Sort') }}</label>
+                <select id="notifSort" class="form-select" data-on-change="setSort(this.value)"
+                        aria-label="{{ _('Sort notifications') }}">
+                    <option value="created_at_desc">{{ _('Newest first') }}</option>
+                    <option value="created_at_asc">{{ _('Oldest first') }}</option>
+                    <option value="priority_desc">{{ _('Priority: high → low') }}</option>
+                    <option value="priority_asc">{{ _('Priority: low → high') }}</option>
+                    <option value="title_asc">{{ _('Title: A–Z') }}</option>
+                    <option value="title_desc">{{ _('Title: Z–A') }}</option>
+                </select>
+            </div>
+            <div class="notif-filter-field">
+                <label for="notifSource" class="notif-filter-label">{{ _('Source') }}</label>
+                <select id="notifSource" class="form-select" data-on-change="setFilter('source', this.value)"
+                        aria-label="{{ _('Filter by source') }}">
+                    <option value="">{{ _('All sources') }}</option>
+                    {% for sid, sname in (sources or {}).items() %}
+                    <option value="{{ sid }}">{{ sname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="notif-filter-field">
+                <label for="notifSide" class="notif-filter-label">{{ _('Side') }}</label>
+                <select id="notifSide" class="form-select" data-on-change="setFilter('side', this.value)"
+                        aria-label="{{ _('Filter by side') }}">
+                    <option value="">{{ _('All sides') }}</option>
+                    {% for sid, sname in (sides or {}).items() %}
+                    <option value="{{ sid }}">{{ sname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <div class="notif-status-nav" role="tablist" aria-label="{{ _('Read status') }}">
+            <button type="button" class="notif-status-btn active" role="tab" aria-selected="true"
+                    data-status="all" data-on-click="switchStatus('all')">
+                <span>{{ _('All') }}</span>
+                <span class="notif-status-count" id="countAll">0</span>
+            </button>
+            <button type="button" class="notif-status-btn" role="tab" aria-selected="false"
+                    data-status="unread" data-on-click="switchStatus('unread')">
+                <span>{{ _('Unread') }}</span>
+                <span class="notif-status-count" id="countUnread">0</span>
+            </button>
+            <button type="button" class="notif-status-btn" role="tab" aria-selected="false"
+                    data-status="read" data-on-click="switchStatus('read')">
+                <span>{{ _('Read') }}</span>
+                <span class="notif-status-count" id="countRead">0</span>
+            </button>
+        </div>
+
+        <div class="notif-list-panel">
+            <div class="messages-list" id="messagesList" aria-live="polite"></div>
+        </div>
+    </section>
+</div>
+
+{#- Detail modal -#}
+<div class="message-detail-modal" id="messageDetailModal" data-on-click="closeMessageDetail(event)">
+    <div class="message-detail-content" data-on-click="event.stopPropagation()" role="dialog"
+         aria-modal="true" aria-labelledby="detailTitle">
+        <div class="message-detail-header">
+            <h3 id="detailTitle">{{ _('Notification Details') }}</h3>
+            <button type="button" class="message-detail-close" data-on-click="closeMessageDetail()"
+                    aria-label="{{ _('Close') }}">
+                <i class="bi bi-x-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="message-detail-body" id="detailBody"></div>
+        <div class="message-detail-actions">
+            <button type="button" class="btn btn-outline-primary" id="detailMarkReadBtn"
+                    data-on-click="markAsReadFromDetail()">
+                <i class="bi bi-check" aria-hidden="true"></i>
+                <span id="markReadText">{{ _('Mark as Read') }}</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="notifications-page-data">{{ {
+    "sources": sources or {},
+    "sides": sides or {},
+    "translations": {
+        "scanning": _('Scanning…'),
+        "scan": _('Scan'),
+        "scanDone": _('Scan completed'),
+        "noNew": _('No new notifications created'),
+        "duplicatesFound": _('duplicate file(s)'),
+        "futureFound": _('future date(s)'),
+        "created": _('notification(s) created'),
+        "scanFailed": _('Scan failed'),
+        "loading": _('Loading…'),
+        "errorLoading": _('Error loading notifications'),
+        "noneTitle": _('No notifications'),
+        "noneBody": _('Nothing matches the current type, status, and filters.'),
+        "markRead": _('Mark as Read'),
+        "dismiss": _('Dismiss'),
+        "markAllConfirm": _('Mark all visible notifications as read?'),
+        "dismissConfirm": _('Dismiss this notification?')
+    }
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/notifications-page.js') }}"></script>
+{% endblock %}

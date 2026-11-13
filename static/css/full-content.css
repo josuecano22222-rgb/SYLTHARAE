@@ -1,0 +1,101 @@
+.reader {
+    max-height: 78vh;
+    overflow: auto;
+    background: var(--reader-bg, hsl(0, 17%, 92%));
+}
+
+.content {
+    margin: 0;
+    padding: 1rem 1.25rem;
+    font-family: 'Courier New', monospace;
+    line-height: 1.6;
+    font-size: 14px;
+    color: var(--reader-fg, #000000);
+}
+
+.pre-wrap {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.pre {
+    white-space: pre;
+}
+
+.hl {
+    background: var(--warning-color);
+    padding: 0 2px;
+    border-radius: 2px;
+    opacity: 0.7;
+}
+
+.hl.current {
+    background: var(--warning-color);
+     outline: 2px solid var(--btn-warning);
+}
+
+.dark .reader {
+    background: var(--bg-dark);
+}
+
+.dark .content {
+    color: var(--text-white);
+}
+
+.sentinel {
+    border-top: 1px solid var(--border-light);
+}
+
+@media (max-width: 1199.98px) {
+    .reader {
+        max-height: 75vh;
+    }
+    .content {
+        padding: 0.875rem 1.125rem;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .reader {
+        max-height: 70vh;
+    }
+    .content {
+        padding: 0.75rem 1rem;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .reader {
+        max-height: 65vh;
+    }
+    .content {
+        padding: 0.625rem 0.875rem;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+    .hl {
+        padding: 0 1px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .reader {
+        max-height: 60vh;
+    }
+    .content {
+        padding: 0.5rem 0.75rem;
+        font-size: 11px;
+        line-height: 1.4;
+    }
+    .hl {
+        padding: 0 1px;
+        border-radius: 1px;
+    }
+    .hl.current {
+        outline-width: 1px;
+    }
+}
+

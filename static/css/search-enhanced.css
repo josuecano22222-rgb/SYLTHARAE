@@ -1,0 +1,141 @@
+.search-sidebar {
+    background: var(--bg-section);
+    border-radius: 8px;
+    padding: 1.5rem;
+    height: fit-content;
+    position: sticky;
+    top: 20px;
+}
+
+.filter-section {
+    margin-bottom: 1.5rem;
+}
+
+.filter-section h6 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--text-dark);
+}
+
+.search-results-card {
+    min-height: 400px;
+}
+
+.result-item:hover {
+    background-color: var(--bg-section);
+    transform: translateX(4px);
+}
+
+.line-matches mark {
+    background-color: var(--warning-color);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.line-matches .badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+}
+
+@media (max-width: 1199.98px) {
+    .search-sidebar {
+        padding: 1.25rem;
+    }
+    .filter-section {
+        margin-bottom: 1.25rem;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .search-sidebar {
+        padding: 1rem;
+        position: relative;
+        top: 0;
+        margin-bottom: 1.5rem;
+    }
+    .filter-section {
+        margin-bottom: 1.25rem;
+    }
+    .filter-section h6 {
+        font-size: 0.8125rem;
+        margin-bottom: 0.625rem;
+    }
+    .search-results-card {
+        min-height: 350px;
+    }
+    .result-item {
+        padding: 0.875rem;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .search-sidebar {
+        padding: 0.875rem;
+        margin-bottom: 1.25rem;
+        border-radius: 6px;
+    }
+    .filter-section {
+        margin-bottom: 1rem;
+    }
+    .filter-section h6 {
+        font-size: 0.75rem;
+        margin-bottom: 0.5rem;
+    }
+    .search-results-card {
+        min-height: 300px;
+    }
+    .result-item {
+        padding: 0.75rem;
+    }
+    .result-item:hover {
+        transform: translateX(2px);
+    }
+    .line-matches {
+        font-size: 0.875rem;
+    }
+    .line-matches mark {
+        padding: 1px 3px;
+    }
+    .line-matches .badge {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.45rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .search-sidebar {
+        padding: 0.75rem;
+        margin-bottom: 1rem;
+        border-radius: 4px;
+    }
+    .filter-section {
+        margin-bottom: 0.875rem;
+    }
+    .filter-section h6 {
+        font-size: 0.7rem;
+        margin-bottom: 0.45rem;
+    }
+    .search-results-card {
+        min-height: 250px;
+    }
+    .result-item {
+        padding: 0.625rem;
+    }
+    .result-item:hover {
+        transform: none;
+    }
+    .line-matches {
+        font-size: 0.8125rem;
+    }
+    .line-matches mark {
+        padding: 1px 2px;
+        border-radius: 2px;
+    }
+    .line-matches .badge {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.4rem;
+    }
+}
+

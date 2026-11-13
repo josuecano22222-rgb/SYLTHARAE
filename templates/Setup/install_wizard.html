@@ -1,0 +1,1169 @@
+{% set brand_name = user_settings.get('system', 'app_name', 'SYLTHARAE System') if user_settings is defined and user_settings else 'SYLTHARAE System' %}
+<!DOCTYPE html>
+<html lang="{{ current_language|default('en') }}" dir="{% if current_language in ['ar', 'fa', 'he', 'ur'] %}rtl{% else %}ltr{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ _('Installation Wizard') }} — {{ brand_name }}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logos/logo_347c1538.png') }}">
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='icons/bootstrap-icons.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='fonts/inter.css') }}" rel="stylesheet">
+    <style>
+        /* ============================================================
+           Design tokens
+           ============================================================ */
+        :root{
+            --brand-1:#4f46e5;          /* indigo  */
+            --brand-2:#06b6d4;          /* cyan    */
+            --brand-grad:linear-gradient(135deg,#4f46e5 0%,#06b6d4 100%);
+            --ink-900:#0f172a;
+            --ink-700:#334155;
+            --ink-500:#64748b;
+            --ink-400:#94a3b8;
+            --line:#e2e8f0;
+            --line-soft:#eef2f7;
+            --surface:#f8fafc;
+            --ok:#10b981;
+            --ok-soft:#ecfdf5;
+            --ok-line:#a7f3d0;
+            --err:#ef4444;
+            --err-soft:#fef2f2;
+            --err-line:#fecaca;
+            --warn:#f59e0b;
+            --warn-soft:#fffbeb;
+            --warn-line:#fde68a;
+            --focus-ring:rgba(99,102,241,.16);
+            --radius:14px;
+            --shadow-card:0 30px 80px -20px rgba(2,6,23,.55), 0 0 0 1px rgba(255,255,255,.07);
+        }
+
+        *{box-sizing:border-box}
+
+        html,body{min-height:100%}
+
+        body{
+            margin:0;
+            font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,sans-serif;
+            color:var(--ink-900);
+            background-color:#0b1020;
+            background-image:
+                radial-gradient(900px 520px at 12% -8%,  rgba(79,70,229,.38), transparent 62%),
+                radial-gradient(820px 520px at 104% 12%, rgba(6,182,212,.30), transparent 62%),
+                radial-gradient(720px 620px at 50% 112%, rgba(99,102,241,.26), transparent 62%);
+            background-attachment:fixed;
+            min-height:100vh;
+            display:flex;
+            align-items:flex-start;
+            justify-content:center;
+            padding:36px 16px;
+            -webkit-font-smoothing:antialiased;
+            -moz-osx-font-smoothing:grayscale;
+            text-rendering:optimizeLegibility;
+        }
+        /* Subtle dot-grid overlay */
+        body::before{
+            content:'';
+            position:fixed;
+            inset:0;
+            background-image:radial-gradient(rgba(255,255,255,.055) 1px, transparent 1.4px);
+            background-size:26px 26px;
+            pointer-events:none;
+        }
+
+        /* ============================================================
+           Card shell
+           ============================================================ */
+        .wizard{
+            position:relative;
+            background:#fff;
+            border-radius:22px;
+            box-shadow:var(--shadow-card);
+            max-width:760px;
+            width:100%;
+            overflow:hidden;
+            animation:cardIn .5s cubic-bezier(.22,.9,.32,1) both;
+        }
+        /* Brand accent strip along the top edge of the card */
+        .wizard::before{
+            content:'';
+            display:block;
+            height:4px;
+            background:var(--brand-grad);
+        }
+        @keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+
+        /* ============================================================
+           Header
+           ============================================================ */
+        .wizard-header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:16px;
+            padding:22px 28px;
+            border-bottom:1px solid var(--line-soft);
+            background:linear-gradient(180deg,#ffffff, #fbfcfe);
+        }
+        .brand{display:flex;align-items:center;gap:14px;min-width:0}
+        .brand-logo{
+            width:46px;height:46px;flex:none;
+            border-radius:13px;
+            box-shadow:0 6px 16px -4px rgba(37,64,247,.45), inset 0 0 0 1px rgba(15,23,42,.06);
+            object-fit:cover;
+        }
+        .brand-overline{
+            display:block;
+            font-size:.68rem;
+            font-weight:700;
+            letter-spacing:.14em;
+            text-transform:uppercase;
+            color:var(--ink-400);
+            margin-bottom:2px;
+        }
+        .wizard-header h1{
+            font-size:1.22rem;
+            font-weight:800;
+            letter-spacing:-.015em;
+            margin:0;
+            color:var(--ink-900);
+        }
+        .header-chip{
+            display:inline-flex;align-items:center;gap:7px;
+            padding:7px 13px;
+            border-radius:99px;
+            background:#eef2ff;
+            color:var(--brand-1);
+            border:1px solid #dbe1ff;
+            font-size:.76rem;
+            font-weight:600;
+            white-space:nowrap;
+        }
+        .header-chip .bi{font-size:.9rem}
+
+        /* ============================================================
+           Stepper
+           ============================================================ */
+        .stepper-zone{padding:18px 28px 2px;border-bottom:1px solid var(--line-soft);background:#fbfcfe}
+        .stepper-meta{
+            display:flex;align-items:center;justify-content:space-between;
+            margin-bottom:14px;
+        }
+        .sm-label{
+            display:inline-flex;align-items:center;gap:7px;
+            font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+            color:var(--ink-400);
+        }
+        .sm-label .bi{font-size:.85rem}
+        .sm-count{
+            font-size:.76rem;font-weight:700;color:var(--brand-1);
+            background:#eef2ff;border:1px solid #dbe1ff;
+            padding:4px 11px;border-radius:99px;
+            font-variant-numeric:tabular-nums;
+        }
+        .stepper{
+            display:grid;
+            grid-template-columns:repeat(5,1fr);
+            position:relative;
+        }
+        .step-pill{
+            display:flex;flex-direction:column;align-items:center;gap:8px;
+            position:relative;
+            padding-bottom:16px;
+        }
+        /* Connector segment between steps (colored when the left pill is done) */
+        .step-pill:not(:last-child)::after{
+            content:'';
+            position:absolute;
+            top:21px;                              /* half of .num height */
+            inset-inline-start:calc(50% + 28px);
+            inset-inline-end:calc(-50% + 28px);
+            height:2px;
+            border-radius:2px;
+            background:var(--line);
+            transition:background .35s ease;
+        }
+        .step-pill.done::after{background:linear-gradient(90deg,var(--ok),#34d399)}
+        .step-pill .num{
+            position:relative;
+            width:42px;height:42px;
+            border-radius:50%;
+            display:flex;align-items:center;justify-content:center;
+            background:var(--surface);
+            border:1.5px solid var(--line);
+            color:var(--ink-400);
+            font-size:1.05rem;
+            z-index:1;
+            transition:all .35s cubic-bezier(.22,.9,.32,1);
+        }
+        .step-pill .num .num-icon,
+        .step-pill .num .num-check{transition:opacity .25s ease, transform .25s cubic-bezier(.34,1.56,.64,1)}
+        .step-pill .num .num-check{
+            position:absolute;inset:0;
+            display:flex;align-items:center;justify-content:center;
+            opacity:0;transform:scale(.4);
+        }
+        .step-pill .step-label{
+            font-size:.72rem;font-weight:600;letter-spacing:.02em;
+            color:var(--ink-400);
+            text-align:center;
+            transition:color .3s ease;
+        }
+        .step-pill.active .num{
+            background:var(--brand-grad);
+            border-color:transparent;
+            color:#fff;
+            box-shadow:0 0 0 5px var(--focus-ring), 0 10px 22px -8px rgba(79,70,229,.55);
+            transform:translateY(-1px);
+        }
+        .step-pill.active .step-label{color:var(--ink-900);font-weight:700}
+        .step-pill.done .num{
+            background:linear-gradient(135deg,#10b981,#059669);
+            border-color:transparent;color:#fff;
+        }
+        .step-pill.done .num .num-icon{opacity:0;transform:scale(.4)}
+        .step-pill.done .num .num-check{opacity:1;transform:scale(1)}
+        .step-pill.done .step-label{color:#059669}
+
+        .stepper-progress{
+            height:4px;
+            background:var(--line-soft);
+            border-radius:99px 99px 0 0;
+            overflow:hidden;
+        }
+        .stepper-progress-fill{
+            height:100%;width:0;
+            background:var(--brand-grad);
+            border-radius:inherit;
+            transition:width .45s cubic-bezier(.22,.9,.32,1);
+        }
+
+        /* ============================================================
+           Body & panels
+           ============================================================ */
+        .wizard-body{padding:26px 28px 8px}
+        .step-panel{display:none}
+        .step-panel.active{display:block;animation:panelIn .38s cubic-bezier(.22,.9,.32,1) both}
+        @keyframes panelIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+        .panel-head{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+        .panel-head .ph-icon{
+            width:44px;height:44px;flex:none;
+            border-radius:13px;
+            background:linear-gradient(135deg,#eef2ff,#cffafe);
+            color:var(--brand-1);
+            display:flex;align-items:center;justify-content:center;
+            font-size:1.3rem;
+            box-shadow:inset 0 0 0 1px rgba(79,70,229,.12);
+        }
+        .panel-head h4{
+            margin:0;
+            font-size:1.14rem;font-weight:800;letter-spacing:-.01em;
+            color:var(--ink-900);
+        }
+        .panel-sub{color:var(--ink-500);font-size:.9rem;margin:4px 0 22px;line-height:1.55}
+
+        .subsection{
+            display:flex;align-items:center;gap:8px;
+            font-size:.7rem;font-weight:700;
+            letter-spacing:.1em;text-transform:uppercase;
+            color:var(--ink-400);
+            margin:22px 0 14px;
+        }
+        .subsection .bi{font-size:.85rem;color:#6366f1}
+        .subsection::after{content:'';flex:1;height:1px;background:var(--line-soft)}
+
+        /* ============================================================
+           System-check rows (Step 1)
+           ============================================================ */
+        .check-item{
+            display:flex;align-items:center;gap:12px;
+            padding:11px 14px;
+            border-radius:12px;
+            margin-bottom:9px;
+            background:var(--surface);
+            border:1px solid var(--line-soft);
+            transition:background .3s ease,border-color .3s ease,box-shadow .3s ease;
+        }
+        .check-item .lead{
+            width:38px;height:38px;flex:none;
+            border-radius:11px;
+            display:flex;align-items:center;justify-content:center;
+            background:#eef2ff;color:var(--brand-1);
+            font-size:1.05rem;
+            transition:background .3s ease,color .3s ease;
+        }
+        .check-item .label{font-weight:600;font-size:.92rem;color:var(--ink-900)}
+        .check-item .detail{
+            margin-inline-start:auto;
+            font-size:.8rem;color:var(--ink-500);
+            text-align:end;
+            font-variant-numeric:tabular-nums;
+        }
+        .check-item .icon{
+            width:24px;flex:none;
+            text-align:center;
+            font-size:1.2rem;
+            color:var(--ink-400);
+        }
+        .check-item.ok{background:var(--ok-soft);border-color:var(--ok-line)}
+        .check-item.ok .lead{background:#d1fae5;color:#059669}
+        .check-item.ok .icon{color:var(--ok)}
+        .check-item.fail{background:var(--err-soft);border-color:var(--err-line)}
+        .check-item.fail .lead{background:#fee2e2;color:#dc2626}
+        .check-item.fail .icon{color:var(--err)}
+
+        /* ============================================================
+           Form fields
+           ============================================================ */
+        .form-group{margin-bottom:16px}
+        .form-group label{
+            font-weight:600;color:var(--ink-700);
+            font-size:.85rem;
+            display:flex;align-items:center;gap:5px;
+            margin-bottom:6px;
+        }
+        .form-group label .req{color:var(--err);font-weight:700}
+        .form-text{font-size:.78rem;color:var(--ink-400);margin-top:5px;display:flex;align-items:center;gap:5px}
+
+        .field-control{
+            display:flex;align-items:stretch;
+            background:#fff;
+            border:1.5px solid var(--line);
+            border-radius:11px;
+            overflow:hidden;
+            transition:border-color .2s ease, box-shadow .2s ease;
+        }
+        .field-control:focus-within{
+            border-color:#6366f1;
+            box-shadow:0 0 0 4px var(--focus-ring);
+        }
+        .field-icon{
+            display:flex;align-items:center;justify-content:center;
+            width:42px;flex:none;
+            color:var(--ink-400);
+            background:var(--surface);
+            border-inline-end:1px solid var(--line-soft);
+            font-size:1rem;
+            transition:color .2s ease,background .2s ease;
+        }
+        .field-control:focus-within .field-icon{color:var(--brand-1);background:#eef2ff;border-inline-end-color:#dbe1ff}
+        .field-control .form-control{
+            flex:1;min-width:0;
+            border:none;box-shadow:none;border-radius:0;
+            padding:10px 13px;
+            font-size:.93rem;
+            height:auto;
+            background:transparent;
+            color:var(--ink-900);
+            font-family:inherit;
+        }
+        .field-control .form-control:focus{box-shadow:none;outline:none}
+        .field-control .form-control::placeholder{color:#cbd5e1}
+        .field-control .form-control:read-only{background:#f8fafc;color:var(--ink-500)}
+        select.form-control{appearance:none;-webkit-appearance:none;cursor:pointer;padding-inline-end:38px}
+        .select-chevron{
+            position:absolute;inset-inline-end:14px;top:50%;
+            transform:translateY(-50%);
+            color:var(--ink-400);pointer-events:none;
+            font-size:.85rem;
+        }
+        .field{position:relative}
+        .field-trail{
+            display:flex;align-items:center;
+            padding:0 8px;
+            background:var(--surface);
+            border-inline-start:1px solid var(--line-soft);
+        }
+        .pw-toggle{
+            border:none;background:transparent;
+            width:34px;height:34px;border-radius:9px;
+            display:flex;align-items:center;justify-content:center;
+            color:var(--ink-400);cursor:pointer;
+            transition:background .2s ease,color .2s ease;
+        }
+        .pw-toggle:hover{background:#e2e8f0;color:var(--brand-1)}
+        .pw-toggle:focus-visible{outline:2px solid var(--brand-1);outline-offset:1px}
+
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        @media(max-width:560px){.form-row{grid-template-columns:1fr}}
+
+        /* ============================================================
+           Buttons
+           ============================================================ */
+        .btn-wiz{
+            border-radius:11px;
+            padding:11px 26px;
+            font-weight:700;font-size:.93rem;
+            font-family:inherit;
+            border:none;cursor:pointer;
+            display:inline-flex;align-items:center;justify-content:center;gap:8px;
+            transition:transform .18s ease, box-shadow .18s ease, background .18s ease, opacity .18s ease;
+        }
+        .btn-wiz:disabled{opacity:.5;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+        .btn-wiz:focus-visible{outline:2px solid var(--brand-1);outline-offset:2px}
+        .btn-back{background:#f1f5f9;color:var(--ink-700);border:1px solid var(--line)}
+        .btn-back:hover:not(:disabled){background:#e2e8f0}
+        .btn-next{
+            background:var(--brand-grad);
+            color:#fff;
+            box-shadow:0 10px 24px -8px rgba(79,70,229,.55);
+        }
+        .btn-next:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 14px 28px -8px rgba(79,70,229,.6)}
+
+        .btn-ghost-accent{
+            display:inline-flex;align-items:center;gap:8px;
+            padding:9px 18px;border-radius:10px;
+            border:1.5px solid #c7d2fe;background:#fff;
+            color:var(--brand-1);font-weight:700;font-size:.87rem;font-family:inherit;
+            cursor:pointer;
+            transition:all .2s ease;
+        }
+        .btn-ghost-accent:hover:not(:disabled){background:#eef2ff;border-color:#a5b4fc;transform:translateY(-1px)}
+        .btn-ghost-accent:disabled{opacity:.6;cursor:wait}
+        .btn-ghost-accent:focus-visible{outline:2px solid var(--brand-1);outline-offset:2px}
+
+        /* ============================================================
+           Test-connection result
+           ============================================================ */
+        .test-result{
+            display:none;
+            padding:12px 14px;border-radius:11px;
+            margin-top:12px;
+            font-size:.88rem;
+            align-items:flex-start;gap:9px;
+        }
+        .test-result .bi{font-size:1.05rem;line-height:1.35;margin-top:1px}
+        .test-result.ok{display:flex;background:var(--ok-soft);color:#065f46;border:1px solid var(--ok-line)}
+        .test-result.ok .bi{color:var(--ok)}
+        .test-result.fail{display:flex;background:var(--err-soft);color:#991b1b;border:1px solid var(--err-line)}
+        .test-result.fail .bi{color:var(--err)}
+
+        /* ============================================================
+           Alerts (injected)
+           ============================================================ */
+        .wizard .alert{
+            display:flex;align-items:flex-start;gap:10px;
+            border-radius:12px;
+            padding:13px 16px;
+            margin:14px 0 0;
+            font-size:.88rem;line-height:1.5;
+            border:1px solid transparent;
+        }
+        .wizard .alert .bi{font-size:1.05rem;margin-top:1px;flex:none}
+        .wizard .alert-warning{background:var(--warn-soft);border-color:var(--warn-line);color:#92400e}
+        .wizard .alert-warning .bi{color:var(--warn)}
+        .wizard .alert-danger{background:var(--err-soft);border-color:var(--err-line);color:#991b1b}
+        .wizard .alert-danger .bi{color:var(--err)}
+        .wizard .alert-success{background:var(--ok-soft);border-color:var(--ok-line);color:#065f46}
+        .wizard .alert-success .bi{color:var(--ok)}
+        .wizard .alert a{color:inherit;font-weight:700}
+        .wizard .alert small{opacity:.85}
+
+        /* ============================================================
+           Password strength
+           ============================================================ */
+        .pw-bar{
+            height:6px;border-radius:99px;
+            background:var(--line-soft);
+            margin-top:8px;overflow:hidden;
+            box-shadow:inset 0 0 0 1px rgba(148,163,184,.25);
+        }
+        .pw-bar-fill{height:100%;border-radius:inherit;transition:width .35s ease,background .35s ease}
+        #pw-hint{display:flex;align-items:center;gap:5px}
+
+        /* ============================================================
+           Install timeline (Step 5)
+           ============================================================ */
+        .install-progress{margin:6px 0 4px;position:relative}
+        .install-step{
+            display:flex;align-items:center;gap:12px;
+            padding:10px 12px;border-radius:11px;
+            font-size:.92rem;
+            position:relative;
+            transition:background .3s ease,color .3s ease;
+        }
+        /* Vertical connector line between timeline entries — runs the full
+           row height behind the tiles for a continuous rail */
+        .install-step:not(:last-child)::before{
+            content:'';
+            position:absolute;
+            inset-inline-start:29px;top:0;bottom:-10px;
+            width:2px;border-radius:2px;
+            background:var(--line-soft);
+            transition:background .3s ease;
+        }
+        .install-step.ok:not(:last-child)::before{background:var(--ok-line)}
+        .install-step:first-child::before{top:46px}
+        .install-step .isp-lead{
+            order:0;
+            position:relative;z-index:1;
+            width:36px;height:36px;flex:none;
+            border-radius:10px;
+            display:flex;align-items:center;justify-content:center;
+            background:var(--surface);border:1px solid var(--line-soft);
+            color:var(--ink-400);font-size:1rem;
+            transition:all .3s ease;
+        }
+        .install-step .isp-name{order:1;font-weight:600;color:var(--ink-700);flex:1}
+        .install-step .isp-detail{
+            order:2;margin-inline-start:auto;
+            font-size:.78rem;color:var(--ink-400);
+            font-variant-numeric:tabular-nums;
+        }
+        .install-step .isp-icon{
+            order:3;
+            width:24px;flex:none;text-align:center;
+            font-size:1.15rem;color:var(--ink-400);
+        }
+        .install-step.pending .isp-name{color:var(--ink-400);font-weight:500}
+        .install-step.running{
+            background:#eef2ff;
+            box-shadow:inset 0 0 0 1px #dbe1ff;
+        }
+        .install-step.running .isp-lead{background:#e0e7ff;border-color:#c7d2fe;color:var(--brand-1)}
+        .install-step.running .isp-name{color:var(--brand-1);font-weight:700}
+        .install-step.running .isp-icon{color:var(--brand-1)}
+        .install-step.ok .isp-lead{background:#d1fae5;border-color:var(--ok-line);color:#059669}
+        .install-step.ok .isp-name{color:var(--ink-700)}
+        .install-step.ok .isp-icon{color:var(--ok)}
+        .install-step.err{
+            background:var(--err-soft);
+            box-shadow:inset 0 0 0 1px var(--err-line);
+        }
+        .install-step.err .isp-lead{background:#fee2e2;border-color:var(--err-line);color:#dc2626}
+        .install-step.err .isp-name{color:#991b1b}
+        .install-step.err .isp-icon{color:var(--err)}
+
+        /* Spinner */
+        .icon-spin{display:inline-block;animation:spin 1s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+
+        /* ============================================================
+           Completion screen
+           ============================================================ */
+        .completion{text-align:center;padding:28px 0 12px}
+        .completion-badge{
+            width:92px;height:92px;margin:0 auto 22px;
+            border-radius:50%;
+            background:linear-gradient(135deg,#10b981,#059669);
+            color:#fff;
+            display:flex;align-items:center;justify-content:center;
+            font-size:2.7rem;
+            position:relative;
+            box-shadow:0 16px 34px -8px rgba(16,185,129,.5);
+            animation:popIn .55s cubic-bezier(.34,1.56,.64,1) both;
+        }
+        .completion-badge::before{
+            content:'';
+            position:absolute;inset:-9px;
+            border-radius:50%;
+            border:2px solid rgba(16,185,129,.45);
+            animation:ringPulse 2.2s ease-out infinite;
+        }
+        .completion-badge .spark{
+            position:absolute;
+            font-size:1.1rem;color:#34d399;
+            animation:twinkle 2.4s ease-in-out infinite;
+        }
+        .completion-badge .spark.s1{top:-14px;inset-inline-end:-18px;animation-delay:.2s}
+        .completion-badge .spark.s2{bottom:-10px;inset-inline-start:-20px;animation-delay:1.1s}
+        @keyframes ringPulse{0%{transform:scale(.92);opacity:.9}70%{transform:scale(1.18);opacity:0}100%{opacity:0}}
+        @keyframes twinkle{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.1)}}
+        @keyframes popIn{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+        .completion h3{
+            font-size:1.5rem;font-weight:800;letter-spacing:-.02em;
+            margin:0 0 8px;color:var(--ink-900);
+        }
+        .completion p{color:var(--ink-500);margin:0}
+        .completion .redirect-note{
+            display:inline-flex;align-items:center;gap:8px;
+            margin-top:16px;
+            font-size:.8rem;color:var(--ink-400);
+        }
+
+        /* Summary card (injected into #completion-summary) */
+        .summary-card{
+            max-width:440px;margin:24px auto 0;
+            border:1px solid var(--line);
+            border-radius:var(--radius);
+            overflow:hidden;
+            text-align:start;
+            box-shadow:0 10px 26px -14px rgba(15,23,42,.18);
+        }
+        .summary-card .summary-row{
+            display:flex;align-items:center;gap:12px;
+            padding:12px 16px;
+        }
+        .summary-card .summary-row + .summary-row{border-top:1px solid var(--line-soft)}
+        .summary-card .sr-icon{
+            width:34px;height:34px;flex:none;
+            border-radius:9px;
+            display:flex;align-items:center;justify-content:center;
+            background:#eef2ff;color:var(--brand-1);font-size:.95rem;
+        }
+        .summary-card .sr-label{font-size:.78rem;color:var(--ink-400);font-weight:600;display:block}
+        .summary-card .sr-value{font-size:.9rem;color:var(--ink-900);font-weight:700;word-break:break-all}
+        .completion .cta{
+            display:inline-flex;align-items:center;justify-content:center;gap:8px;
+            max-width:440px;width:100%;
+            margin:20px auto 0;
+            padding:12px 24px;
+            border-radius:11px;
+            background:var(--brand-grad);color:#fff;
+            font-weight:700;font-size:.95rem;text-decoration:none;
+            box-shadow:0 12px 26px -8px rgba(79,70,229,.55);
+            transition:transform .18s ease,box-shadow .18s ease;
+        }
+        .completion .cta:hover{transform:translateY(-1px);box-shadow:0 16px 30px -8px rgba(79,70,229,.6);color:#fff}
+
+        /* ============================================================
+           Footer
+           ============================================================ */
+        .wizard-footer{
+            padding:16px 28px 22px;
+            display:flex;justify-content:space-between;align-items:center;gap:12px;
+            border-top:1px solid var(--line-soft);
+            background:linear-gradient(0deg,#ffffff,#fbfcfe);
+        }
+        /* AGPL-3.0 section 13 source offer, sized not to compete with the
+           Back/Next controls. */
+        .wizard-footer .footer-licence{
+            margin:0;font-size:.78rem;color:var(--ink-500);text-align:center;
+        }
+        .wizard-footer .footer-licence a{color:var(--brand-1);text-decoration:none;font-weight:600}
+        .wizard-footer .footer-licence a:hover{text-decoration:underline}
+        .wizard-header .header-release{
+            display:flex;flex-direction:column;align-items:flex-end;gap:2px;
+            font-size:.75rem;color:var(--ink-500);line-height:1.25;text-align:end;
+        }
+        .wizard-header .header-release a{color:var(--brand-1);font-weight:600;text-decoration:none}
+        .wizard-header .header-release a:hover{text-decoration:underline}
+
+        /* ============================================================
+           Inline validation error (Step 3)
+           ============================================================ */
+        .step-error{
+            display:none;
+            align-items:flex-start;gap:9px;
+            background:var(--err-soft);border:1px solid var(--err-line);
+            color:#991b1b;
+            border-radius:12px;
+            padding:12px 15px;
+            font-size:.87rem;line-height:1.5;
+            margin-bottom:16px;
+        }
+        .step-error.show{display:flex;animation:panelIn .25s ease both}
+        .step-error .bi{color:var(--err);font-size:1.05rem;margin-top:1px}
+
+        /* ============================================================
+           Responsive
+           ============================================================ */
+        @media(max-width:640px){
+            body{padding:18px 10px}
+            .wizard{border-radius:18px}
+            .wizard-header{padding:18px 20px}
+            .header-chip{display:none}
+            .stepper-zone{padding:14px 20px 0}
+            .wizard-body{padding:22px 20px 6px}
+            .wizard-footer{padding:14px 20px 20px}
+            .step-pill .step-label{font-size:.62rem;letter-spacing:0}
+            .step-pill:not(:last-child)::after{inset-inline-start:calc(50% + 24px);inset-inline-end:calc(-50% + 24px)}
+        }
+        @media(max-width:400px){
+            .step-pill .step-label{display:none}
+            .panel-head .ph-icon{width:38px;height:38px;font-size:1.1rem}
+        }
+
+        /* Respect users who prefer reduced motion */
+        @media (prefers-reduced-motion: reduce){
+            *,*::before,*::after{animation:none!important;transition:none!important}
+        }
+            .header-language{display:inline-flex;align-items:center;gap:.4rem;margin-inline-start:auto}
+        .header-language select{width:auto;min-width:8.5rem;padding-block:.25rem}
+            .dependency-tools{margin-block-start:.5rem}
+        .dependency-panel{margin-block-start:.75rem;padding:.9rem 1rem;border:1px solid var(--line-soft);border-radius:12px;background:#fff}
+        .dependency-panel[hidden]{display:none}
+        .dependency-summary{margin:0 0 .6rem;font-weight:600;color:var(--ink-700,#273142)}
+        .dependency-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-block-end:.5rem}
+        .dependency-status{min-height:1.2em;margin:0 0 .4rem;color:var(--ink-500);font-size:.85rem}
+        .dependency-list{max-block-size:320px;overflow-y:auto}
+        .dep-item{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:.5rem;align-items:center;padding-block:.4rem;border-block-end:1px solid var(--line-soft)}
+        .dep-name{margin:0;font-weight:600;overflow-wrap:anywhere}
+        .dep-meta{font-size:.78rem;color:var(--ink-500)}
+        .dep-state{font-size:.75rem;font-weight:600;padding:.12rem .5rem;border-radius:999px;background:#eef2f7;color:#334155;white-space:nowrap}
+        .dep-state.ok{background:#e7f6ec;color:#1d6b3a}
+        .dep-state.pending{background:#fff4d6;color:#7a5200}
+        .dep-state.bad{background:#fde8e8;color:#8a1c1c}
+        .dep-detail{grid-column:1 / -1;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:.25rem .75rem;margin:.2rem 0 .4rem;font-size:.8rem}
+        .dep-detail[hidden]{display:none}
+        .dep-detail dt{color:var(--ink-500);font-weight:600}
+        .dep-detail dd{margin:0;overflow-wrap:anywhere;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+    </style>
+</head>
+<body>
+
+<div class="wizard">
+    <!-- Header -->
+    <header class="wizard-header">
+        <div class="brand">
+            <img src="{{ url_for('static', filename='logos/logo_347c1538.png') }}" alt="{{ brand_name }}" class="brand-logo">
+            <div class="brand-text">
+                <span class="brand-overline">{{ brand_name }}</span>
+                <h1>{{ _('Installation Wizard') }}</h1>
+            </div>
+        </div>
+        <span class="header-chip"><i class="bi bi-shield-check"></i> {{ _('Guided setup') }}</span>
+        {# First-run language choice. Persisted by /set_language (system.language)
+           and a user_language cookie, exactly like the login-screen switcher. #}
+        <label class="header-language">
+            <span class="visually-hidden">{{ _('Language') }}</span>
+            <select id="setup-language" class="form-control form-control-sm" aria-label="{{ _('Language') }}">
+                {% for code, endonym in wizard_language_options %}
+                <option value="{{ code }}" lang="{{ code }}"{% if code == (current_language|default('en')) %} selected{% endif %}>{{ endonym }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        {# AGPL-3.0 section 13: the source offer must reach the setup screen too,
+           because on a fresh install it is the only page a user sees. Same
+           markup and wording as the login page; href goes through |e and the
+           value is validated (http/https only) in apps/web/app.py. #}
+        <span class="header-release">
+            <a href="{{ source_code_url|e }}" rel="noopener" target="_blank">{{ _('Source code') }}</a>
+            <span class="header-version">(AGPL-3.0) {{ _('Version') }} {{ version }}</span>
+        </span>
+    </header>
+
+    <!-- Stepper -->
+    <div class="stepper-zone">
+        <div class="stepper-meta">
+            <span class="sm-label"><i class="bi bi-list-check"></i> {{ _('Setup progress') }}</span>
+            <span class="sm-count" id="step-counter" aria-live="polite">{{ _('Step %(current)s of %(total)s', current=1, total=5) }}</span>
+        </div>
+        <div class="stepper" id="stepper" role="list" aria-label="{{ _('Installation steps') }}">
+            <div class="step-pill active" data-step="1" role="listitem" aria-current="step">
+                <span class="num"><i class="bi bi-pc-display-horizontal num-icon"></i><i class="bi bi-check-lg num-check"></i></span>
+                <span class="step-label">{{ _('System Check') }}</span>
+            </div>
+            <div class="step-pill" data-step="2" role="listitem">
+                <span class="num"><i class="bi bi-database num-icon"></i><i class="bi bi-check-lg num-check"></i></span>
+                <span class="step-label">{{ _('Database') }}</span>
+            </div>
+            <div class="step-pill" data-step="3" role="listitem">
+                <span class="num"><i class="bi bi-shield-lock num-icon"></i><i class="bi bi-check-lg num-check"></i></span>
+                <span class="step-label">{{ _('Admin & Security') }}</span>
+            </div>
+            <div class="step-pill" data-step="4" role="listitem">
+                <span class="num"><i class="bi bi-sliders num-icon"></i><i class="bi bi-check-lg num-check"></i></span>
+                <span class="step-label">{{ _('Settings') }}</span>
+            </div>
+            <div class="step-pill" data-step="5" role="listitem">
+                <span class="num"><i class="bi bi-rocket-takeoff num-icon"></i><i class="bi bi-check-lg num-check"></i></span>
+                <span class="step-label">{{ _('Install') }}</span>
+            </div>
+        </div>
+        <div class="stepper-progress" aria-hidden="true"><div class="stepper-progress-fill" id="stepper-progress-fill"></div></div>
+    </div>
+
+    <div class="wizard-body">
+
+        <!-- ==================== STEP 1: System Check ==================== -->
+        <div class="step-panel active" id="step-1">
+            <div class="panel-head">
+                <span class="ph-icon"><i class="bi bi-pc-display-horizontal"></i></span>
+                <h4>{{ _('System Prerequisites') }}</h4>
+            </div>
+            <p class="panel-sub">{{ _('Checking that your system meets the requirements…') }}</p>
+            <div id="system-checks">
+                <div class="check-item" id="chk-python">
+                    <span class="lead"><i class="bi bi-filetype-py"></i></span>
+                    <span class="label">{{ _('Python') }}</span>
+                    <span class="detail">{{ _('Checking…') }}</span>
+                    <span class="icon"><i class="bi bi-arrow-repeat icon-spin"></i></span>
+                </div>
+                <div class="check-item" id="chk-packages">
+                    <span class="lead"><i class="bi bi-boxes"></i></span>
+                    <span class="label">{{ _('Dependencies') }}</span>
+                    <span class="detail">{{ _('Checking…') }}</span>
+                    <span class="icon"><i class="bi bi-arrow-repeat icon-spin"></i></span>
+                </div>
+                <div class="check-item" id="chk-postgresql">
+                    <span class="lead"><i class="bi bi-database"></i></span>
+                    <span class="label">{{ _('PostgreSQL') }}</span>
+                    <span class="detail">{{ _('Checking…') }}</span>
+                    <span class="icon"><i class="bi bi-arrow-repeat icon-spin"></i></span>
+                </div>
+                <div class="check-item" id="chk-disk">
+                    <span class="lead"><i class="bi bi-device-hdd"></i></span>
+                    <span class="label">{{ _('Disk Space') }}</span>
+                    <span class="detail">{{ _('Checking…') }}</span>
+                    <span class="icon"><i class="bi bi-arrow-repeat icon-spin"></i></span>
+                </div>
+                <div class="check-item" id="chk-os">
+                    <span class="lead"><i class="bi bi-motherboard"></i></span>
+                    <span class="label">{{ _('Operating System') }}</span>
+                    <span class="detail">{{ _('Checking…') }}</span>
+                    <span class="icon"><i class="bi bi-arrow-repeat icon-spin"></i></span>
+                </div>
+                <div class="dependency-tools">
+                    <button type="button" class="btn btn-link btn-sm" id="btn-dep-details" hidden>{{ _('Dependency details') }}</button>
+                </div>
+                <div class="dependency-panel" id="dependency-panel" hidden>
+                    <p class="dependency-summary" id="dependency-summary" aria-live="polite"></p>
+                    <div class="dependency-actions">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="btn-dep-refresh">{{ _('Refresh') }}</button>
+                        <button type="button" class="btn btn-primary btn-sm" id="btn-dep-install">{{ _('Install selected') }}</button>
+                    </div>
+                    <p class="dependency-status" id="dependency-status" role="status" aria-live="polite"></p>
+                    <div class="dependency-list" id="dependency-list" role="list"></div>
+                </div>
+            </div>
+            <div id="step1-alert"></div>
+        </div>
+
+        <!-- ==================== STEP 2: Database ==================== -->
+        <div class="step-panel" id="step-2">
+            <div class="panel-head">
+                <span class="ph-icon"><i class="bi bi-database"></i></span>
+                <h4>{{ _('Database Configuration') }}</h4>
+            </div>
+            <p class="panel-sub">{{ _('Enter your PostgreSQL connection details. The database and tables will be created automatically.') }}</p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="db_host">{{ _('Host') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-hdd-network"></i></span>
+                            <input type="text" class="form-control" id="db_host" value="localhost" maxlength="253" required autocomplete="off">
+                        </div>
+                        <div class="form-text">{{ _('PostgreSQL server address') }}</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="db_port">{{ _('Port') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-ethernet"></i></span>
+                            <input type="number" class="form-control" id="db_port" value="5432" min="1" max="65535" required>
+                        </div>
+                        <div class="form-text">{{ _('Default: 5432') }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="db_user">{{ _('Username') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-person-fill"></i></span>
+                            <input type="text" class="form-control" id="db_user" value="postgres" maxlength="63" required autocomplete="off">
+                        </div>
+                        <div class="form-text">{{ _('PostgreSQL superuser') }}</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="db_name">{{ _('Database Name') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-database-fill"></i></span>
+                            <input type="text" class="form-control" id="db_name" value="analysis" maxlength="63" required autocomplete="off">
+                        </div>
+                        <div class="form-text">{{ _('Created automatically if missing') }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="db_password">{{ _('Password') }} <span class="req">*</span></label>
+                <div class="field">
+                    <div class="field-control">
+                        <span class="field-icon"><i class="bi bi-key-fill"></i></span>
+                        <input type="password" class="form-control" id="db_password" placeholder="{{ _('Enter your PostgreSQL password') }}" autocomplete="off" maxlength="1024" required>
+                        <span class="field-trail">
+                            <button type="button" class="pw-toggle" data-target="db_password" aria-label="{{ _('Show password') }}" data-show-label="{{ _('Show password') }}" data-hide-label="{{ _('Hide password') }}" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </span>
+                    </div>
+                    <div class="form-text">{{ _('The password you set during PostgreSQL installation') }}</div>
+                </div>
+            </div>
+            <button type="button" class="btn-ghost-accent" id="btn-test-db">
+                <i class="bi bi-lightning-charge-fill"></i> {{ _('Test Connection') }}
+            </button>
+            <div class="test-result" id="db-test-result" role="status" aria-live="polite" aria-atomic="true"></div>
+        </div>
+
+        <!-- ==================== STEP 3: Admin & Security ==================== -->
+        <div class="step-panel" id="step-3">
+            <div class="panel-head">
+                <span class="ph-icon"><i class="bi bi-shield-lock"></i></span>
+                <h4>Administrator &amp; Security</h4>
+            </div>
+            <p class="panel-sub">{{ _('Create the initial administrator account and configure security policies.') }}</p>
+            <div id="step3-error" class="step-error" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span id="step3-error-msg"></span>
+            </div>
+
+            <div class="subsection"><i class="bi bi-person-workspace"></i> {{ _('Administrator Account') }}</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="admin_username">{{ _('Admin Username') }} <span class="req">*</span></label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-person-badge"></i></span>
+                            <input type="text" class="form-control" id="admin_username" value="admin" maxlength="64" required autocomplete="username">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="admin_password">{{ _('Admin Password') }} <span class="req">*</span></label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-key-fill"></i></span>
+                            <input type="password" class="form-control" id="admin_password" placeholder="{{ _('Min 12 characters') }}" autocomplete="new-password" minlength="12" maxlength="256" required>
+                            <span class="field-trail">
+                                <button type="button" class="pw-toggle" data-target="admin_password" aria-label="{{ _('Show password') }}" data-show-label="{{ _('Show password') }}" data-hide-label="{{ _('Hide password') }}" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                            </span>
+                        </div>
+                        <div class="pw-bar"><div class="pw-bar-fill" id="pw-strength" style="width:0"></div></div>
+                        <div class="form-text" id="pw-hint"><i class="bi bi-shield-lock"></i> {{ _('Minimum 12 characters') }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="admin_password2">{{ _('Confirm Password') }} <span class="req">*</span></label>
+                <div class="field">
+                    <div class="field-control">
+                        <span class="field-icon"><i class="bi bi-key"></i></span>
+                        <input type="password" class="form-control" id="admin_password2" placeholder="{{ _('Re-enter password') }}" autocomplete="new-password" minlength="12" maxlength="256" required>
+                        <span class="field-trail">
+                            <button type="button" class="pw-toggle" data-target="admin_password2" aria-label="{{ _('Show password') }}" data-show-label="{{ _('Show password') }}" data-hide-label="{{ _('Hide password') }}" aria-pressed="false"><i class="bi bi-eye" aria-hidden="true"></i></button>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subsection"><i class="bi bi-shield-check"></i> {{ _('Security Policies') }}</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sec_max_failed">{{ _('Max Failed Logins') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-shield-exclamation"></i></span>
+                            <input type="number" class="form-control" id="sec_max_failed" value="5" min="1" max="20" required>
+                        </div>
+                        <div class="form-text">{{ _('Account locked after this many failures') }}</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="sec_lockout">{{ _('Lockout Duration (min)') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-lock-fill"></i></span>
+                            <input type="number" class="form-control" id="sec_lockout" value="15" min="1" max="1440" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sec_session">{{ _('Session Lifetime (hours)') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-hourglass-split"></i></span>
+                            <input type="number" class="form-control" id="sec_session" value="12" min="1" max="720" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="sec_idle">{{ _('Idle Timeout (hours)') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-clock-history"></i></span>
+                            <input type="number" class="form-control" id="sec_idle" value="6" min="1" max="720" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="sec_pw_min">{{ _('Min Password Length') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-textarea-t"></i></span>
+                            <input type="number" class="form-control" id="sec_pw_min" value="12" min="8" max="128" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="sec_rate_min">{{ _('Rate Limit (req/min)') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-speedometer2"></i></span>
+                            <input type="number" class="form-control" id="sec_rate_min" value="60" min="1" max="1000000" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="sec_rate_hour">{{ _('Rate Limit (req/hour)') }}</label>
+                <div class="field" style="max-width:250px">
+                    <div class="field-control">
+                        <span class="field-icon"><i class="bi bi-activity"></i></span>
+                        <input type="number" class="form-control" id="sec_rate_hour" value="600" min="1" max="1000000" required>
+                    </div>
+                    <div class="form-text">{{ _('Must be at least the per-minute limit.') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== STEP 4: Settings ==================== -->
+        <div class="step-panel" id="step-4">
+            <div class="panel-head">
+                <span class="ph-icon"><i class="bi bi-sliders"></i></span>
+                <h4>{{ _('Application Settings') }}</h4>
+            </div>
+            <p class="panel-sub">{{ _('Configure the application environment and processing options.') }}</p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="app_env">{{ _('Environment') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-globe2"></i></span>
+                            <select class="form-control" id="app_env" required>
+                                <option value="production" selected>{{ _('Production (recommended)') }}</option>
+                                <option value="staging">{{ _('Staging') }}</option>
+                                <option value="development">{{ _('Development') }}</option>
+                            </select>
+                            <i class="bi bi-chevron-down select-chevron"></i>
+                        </div>
+                        <div class="form-text">{{ _('Affects security defaults, logging, and rate limits') }}</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="app_loglevel">{{ _('Log Level') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-terminal"></i></span>
+                            <select class="form-control" id="app_loglevel" required>
+                                <option value="INFO" selected>{{ _('INFO (recommended)') }}</option>
+                                <option value="DEBUG">{{ _('DEBUG (verbose)') }}</option>
+                                <option value="WARNING">{{ _('WARNING (quiet)') }}</option>
+                                <option value="ERROR">{{ _('ERROR (minimal)') }}</option>
+                            </select>
+                            <i class="bi bi-chevron-down select-chevron"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="app_port">{{ _('Web Port') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-plug"></i></span>
+                            <input type="number" class="form-control" id="app_port" value="5000" min="1" max="65535" required>
+                        </div>
+                        <div class="form-text">{{ _('Default: 5000') }}</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="app_host">{{ _('Bind Address') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-diagram-3"></i></span>
+                            <input type="text" class="form-control" id="app_host" value="0.0.0.0" maxlength="253" required>
+                        </div>
+                        <div class="form-text">{{ _('0.0.0.0 = all interfaces; 127.0.0.1 = local only') }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="app_workers">{{ _('Max Processing Workers') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-people"></i></span>
+                            <input type="number" class="form-control" id="app_workers" value="8" min="1" max="32" required>
+                        </div>
+                        <div class="form-text">{{ _('Concurrent file analysis threads') }}</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="app_timeout">{{ _('Processing Timeout (sec)') }}</label>
+                    <div class="field">
+                        <div class="field-control">
+                            <span class="field-icon"><i class="bi bi-stopwatch"></i></span>
+                            <input type="number" class="form-control" id="app_timeout" value="1200" min="30" max="7200" required>
+                        </div>
+                        <div class="form-text">{{ _('Per-file timeout') }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="app_ingestion">{{ _('Ingestion Roots') }} <span class="text-muted" style="font-weight:500">{{ _('(optional)') }}</span></label>
+                <div class="field">
+                    <div class="field-control">
+                        <span class="field-icon"><i class="bi bi-folder-symlink"></i></span>
+                        <input type="text" class="form-control" id="app_ingestion" placeholder="C:\data;D:\evidence  or  /data;/srv/inbox" maxlength="4096">
+                    </div>
+                    <div class="form-text">{{ _('Semicolon-separated server directories the app may read. Leave empty for uploads only.') }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== STEP 5: Install ==================== -->
+        <div class="step-panel" id="step-5">
+            <div class="panel-head">
+                <span class="ph-icon"><i class="bi bi-rocket-takeoff"></i></span>
+                <h4>{{ _('Installing…') }}</h4>
+            </div>
+            <p class="panel-sub">{{ _('Setting up your File Analysis system. This takes 15–60 seconds.') }}</p>
+            <div class="install-progress" id="install-progress" role="list"
+                 aria-label="{{ _('Installation progress') }}"></div>
+            <div id="install-result" aria-live="polite" aria-atomic="true"></div>
+        </div>
+
+        <!-- ==================== Completion (hidden until done) ==================== -->
+        <div class="step-panel" id="step-done">
+            <div class="completion">
+                <div class="completion-badge">
+                    <i class="bi bi-check-lg"></i>
+                    <i class="bi bi-stars spark s1"></i>
+                    <i class="bi bi-stars spark s2"></i>
+                </div>
+                <h3>{{ _('Installation Complete!') }}</h3>
+                <p>{{ _('Your File Analysis system is ready to use.') }}</p>
+                <div id="completion-summary"></div>
+                <div class="redirect-note" id="redirect-note" style="display:none">
+                    <i class="bi bi-arrow-repeat icon-spin"></i> {{ _('Redirecting to login…') }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="wizard-footer" id="wizard-footer">
+        <button type="button" class="btn-wiz btn-back" id="btn-back" disabled>
+            <i class="bi bi-arrow-left"></i> {{ _('Back') }}
+        </button>
+        {# AGPL-3.0 section 13, second placement: the wizard body scrolls, so the
+           offer also sits in the always-visible footer. #}
+        <p class="footer-licence">
+            <a href="{{ source_code_url|e }}" rel="noopener" target="_blank">{{ _('Source code') }}</a>
+            (AGPL-3.0) {{ _('Version') }} {{ version }}
+        </p>
+        <button type="button" class="btn-wiz btn-next" id="btn-next">
+            {{ _('Next') }} <i class="bi bi-arrow-right"></i>
+        </button>
+    </div>
+</div>
+
+<script type="application/json" id="install-wizard-page-data">{{ {
+    "retrySystemCheck": _('Retry system check'),
+    "reviewSettings": _('Review settings')
+}|tojson }}</script>
+<script type="application/json" id="install-wizard-strings">{{ wizard_script_strings|tojson }}</script>
+<script src="{{ url_for('static', filename='js/pages/install-wizard-page.js') }}"></script>
+</body>
+</html>

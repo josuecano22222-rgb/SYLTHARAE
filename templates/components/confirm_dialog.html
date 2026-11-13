@@ -1,0 +1,107 @@
+{# component: confirm_dialog
+   purpose: One way to ask "are you sure?" before something irreversible. The
+            component renders the question; it never performs the operation and
+            never knows what the operation is. The page decides - and it says
+            which action it is asking about, by id, so the dialog and the
+            action registry agree on what is happening.
+   inputs: id (required, stable), title, message, scope_label, scope,
+           confirm_label, cancel_label, dangerous, typed_confirmation, action,
+           confirmation_key
+   outputs: none - the dialog returns an answer, never a result
+   events: shown.bs.modal / hidden.bs.modal (Bootstrap), accept and cancel
+           resolved by the runtime as a Promise<boolean>
+   states: normal, saving, error, unauthorized
+   slots: scope line (runtime text, e.g. "27 files"), error line
+   accessibility: role="dialog" aria-modal="true", labelled by its title and
+           described by its message; focus moves to the dialog and returns to
+           the control that opened it (Bootstrap's own focus handling); Escape
+           cancels; the typed-confirmation field is a real labelled input, and
+           the accept button stays disabled until it matches.
+   third_party: Bootstrap 5 modal only. No other dependency.
+   css: btn-action, btn-outline-secondary, btn-danger, btn-primary, alert,
+        spinner-border - all from the stylesheet this project already ships.
+   boundary: destructive actions ask through here, and the server still
+             authorises the request that follows. This dialog is a courtesy to
+             the operator, never a security control.
+#}
+{#
+   Usage - the page renders the dialog once and asks it at runtime:
+
+       {% from 'components/confirm_dialog.html' import confirm_dialog %}
+       {{ confirm_dialog(id='confirmDialog',
+                         title=_('Delete these files?'),
+                         message=_('This permanently removes the selected records.'),
+                         confirm_label=_('Delete'),
+                         dangerous=True) }}
+
+       const yes = await ConfirmDialog.request({
+           action: 'files.delete_selected',
+           scope: '27 files',
+           confirmLabel: 'Delete 27 Files',
+       });
+       if (yes) { ...the page performs the operation... }
+
+   A typed confirmation (`typed_confirmation='DELETE'`) is for operations where
+   a mis-click is unacceptable; the runtime keeps the accept button disabled
+   until the word is typed exactly.
+#}
+
+{%- macro confirm_dialog(id, title, message, scope_label=None, scope=None,
+                        confirm_label=None, cancel_label=None, dangerous=False,
+                        typed_confirmation=None, action=None,
+                        confirmation_key=None) -%}
+<div class="modal fade" id="{{ id }}" tabindex="-1" role="dialog"
+     aria-modal="true" aria-labelledby="{{ id }}Title"
+     aria-describedby="{{ id }}Message"
+     data-confirm-dialog
+     {% if action %}data-confirm-action="{{ action }}"{% endif %}
+     {% if confirmation_key %}data-confirm-key="{{ confirmation_key }}"{% endif %}
+     data-confirm-dangerous="{{ 'true' if dangerous else 'false' }}"
+     {% if typed_confirmation %}data-confirm-typed="{{ typed_confirmation }}"{% endif %}>
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="{{ id }}Title">
+                    <i class="bi {{ 'bi-exclamation-triangle' if dangerous else 'bi-question-circle' }} me-2"
+                       aria-hidden="true"></i>{{ title }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"
+                        aria-label="{{ cancel_label or _('Cancel') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p id="{{ id }}Message" class="mb-2" data-confirm-message>{{ message }}</p>
+                <p class="mb-2 {% if not scope %}d-none{% endif %}" data-confirm-scope-line>
+                    {%- if scope_label %}<span class="text-muted">{{ scope_label }}:</span>{% endif -%}
+                    <strong data-confirm-scope>{{ scope or '' }}</strong>
+                </p>
+                <div class="alert alert-danger py-2 px-3 mb-2 d-none" role="alert"
+                     data-confirm-error></div>
+                {% if typed_confirmation %}
+                <div class="mt-3">
+                    <label class="form-label" for="{{ id }}Typed">
+                        {{ _('Type') }} <code>{{ typed_confirmation }}</code>
+                        {{ _('to continue.') }}
+                    </label>
+                    <input type="text" class="form-control" id="{{ id }}Typed"
+                           autocomplete="off" spellcheck="false"
+                           data-confirm-typed-input>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-action btn-outline-secondary"
+                        data-bs-dismiss="modal" data-confirm-cancel>
+                    {{ cancel_label or _('Cancel') }}
+                </button>
+                <button type="button"
+                        class="btn-action {{ 'btn-danger' if dangerous else 'btn-primary' }}"
+                        data-confirm-accept>
+                    <span class="spinner-border spinner-border-sm me-2 d-none"
+                          role="status" aria-hidden="true" data-confirm-spinner></span>
+                    <span data-confirm-accept-label>{{ confirm_label or _('Continue') }}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{%- endmacro -%}

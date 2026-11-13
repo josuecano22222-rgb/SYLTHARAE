@@ -1,0 +1,796 @@
+/* ==========================================================================
+   Theme mode — the dark half of the interface.
+
+   The application's colours are a mix of tokens (`--bg-white`, `--text-dark`,
+   …) and literal hex values written into 40-odd component stylesheets. This
+   file does two things, in this order:
+
+     1. It redefines the **tokens** for `[data-theme-mode="dark"]`, which fixes
+        everything that was already built on them.
+     2. It remaps the **surfaces and ink** of the component families that were
+        written with literal colours — page shell, cards, tables, forms,
+        modals, menus, the file manager, the tips card — by element role,
+        never by page, so a page added tomorrow inherits the behaviour.
+
+   Rules of the house:
+     * no page-specific selectors;
+     * no `filter: invert()` tricks — they lie about brand colours and break
+       images;
+     * every colour is a token defined once at the top, so the palette can be
+       changed in one place;
+     * print and the documents the reader exports are untouched: they stay
+       black on white, because paper is light.
+
+   `data-theme-mode` is set on <html> by `js/theme-mode-init.js` (before paint)
+   and kept in step by `js/modules/ui/theme-mode.js`.
+   ========================================================================== */
+
+:root {
+    color-scheme: light;
+
+    /* Dark palette. Named by role, not by shade. */
+    --dm-canvas: #0b1020;
+    --dm-surface: #111a2e;
+    --dm-surface-raised: #16203a;
+    --dm-surface-sunken: #0d1526;
+    --dm-overlay: rgba(4, 8, 18, 0.72);
+    --dm-border: #24314e;
+    --dm-border-strong: #33436a;
+    --dm-ink: #e6ebf7;
+    --dm-ink-soft: #b3bed6;
+    --dm-ink-muted: #8592ae;
+    --dm-accent: #8b9bff;
+    --dm-accent-ink: #0b1020;
+    --dm-success: #34d399;
+    --dm-warning: #fbbf24;
+    --dm-danger: #f87171;
+    --dm-info: #60a5fa;
+    --dm-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   1. Tokens
+   -------------------------------------------------------------------------- */
+
+[data-theme-mode="dark"] {
+    color-scheme: dark;
+
+    /* Backgrounds */
+    --bg-light: var(--dm-canvas);
+    --bg-white: var(--dm-surface);
+    --bg-dark: #060a14;
+    --bg-card: var(--dm-surface);
+    --bg-section: var(--dm-surface-sunken);
+    --section-bg: var(--dm-surface);
+    --section-border: var(--dm-border);
+    --card-bg: var(--dm-surface);
+    --card-border: var(--dm-border);
+    --card-header-bg: var(--dm-surface-raised);
+
+    /* Ink */
+    --text-dark: var(--dm-ink);
+    --text-light: var(--dm-ink-soft);
+    --text-muted: var(--dm-ink-muted);
+    --text-heading: #f2f5ff;
+    --text-white: #f8fafc;
+
+    /* Borders */
+    --border-color: var(--dm-border);
+    --border-light: #1b2740;
+    --border-dark: var(--dm-border-strong);
+
+    /* Accents keep their hue; only the "on accent" ink changes. */
+    --link-color: var(--dm-accent);
+    --link-hover: #a8b4ff;
+    --btn-outline-border: var(--dm-accent);
+    --input-bg: var(--dm-surface-sunken);
+    --input-border: var(--dm-border);
+    --input-text: var(--dm-ink);
+    --input-focus: var(--dm-accent);
+
+    /* Tables and forms */
+    --table-header-bg: var(--dm-surface-raised);
+    --table-header-text: var(--dm-ink);
+    --table-row-bg: var(--dm-surface);
+    --table-row-hover: #1a2540;
+    --table-border: var(--dm-border);
+
+    /* Alerts: darker fills, readable ink */
+    --alert-success-bg: #052e22;
+    --alert-success-text: #6ee7b7;
+    --alert-danger-bg: #3b1219;
+    --alert-danger-text: #fca5a5;
+    --alert-warning-bg: #3a2a06;
+    --alert-warning-text: #fcd34d;
+    --alert-info-bg: #0b2440;
+    --alert-info-text: #93c5fd;
+
+    /* Derived surfaces from design-system.css */
+    --surface-sunken: #0d1526;
+    --surface-raised: var(--dm-surface);
+    --text-primary: var(--dm-ink);
+    --text-secondary: var(--dm-ink-soft);
+    --elevation-1: var(--dm-shadow);
+    --elevation-2: var(--dm-shadow);
+    --elevation-3: var(--dm-shadow);
+    --focus-ring-offset: 0 0 0 2px var(--dm-surface);
+
+    /* Bootstrap 5.3 surfaces, so Bootstrap components follow without a
+       second theme build. */
+    --bs-body-bg: var(--dm-canvas);
+    --bs-body-color: var(--dm-ink);
+    --bs-emphasis-color: #ffffff;
+    --bs-secondary-color: var(--dm-ink-muted);
+    --bs-border-color: var(--dm-border);
+    --bs-tertiary-bg: var(--dm-surface-raised);
+    --bs-secondary-bg: var(--dm-surface-sunken);
+    --bs-heading-color: #f2f5ff;
+    --bs-link-color: var(--dm-accent);
+    --bs-link-hover-color: #a8b4ff;
+}
+
+/* --------------------------------------------------------------------------
+   2. Page shell
+   -------------------------------------------------------------------------- */
+
+[data-theme-mode="dark"] body {
+    background-color: var(--dm-canvas) !important;
+    color: var(--dm-ink);
+}
+
+[data-theme-mode="dark"] .main-content,
+[data-theme-mode="dark"] .content-wrapper,
+[data-theme-mode="dark"] .page-container,
+[data-theme-mode="dark"] .container-fluid {
+    background-color: transparent;
+    color: var(--dm-ink);
+}
+
+/* The sidebar is already dark in the light theme; in dark mode it recedes
+   one step further instead of staying the brightest thing on screen. */
+[data-theme-mode="dark"] .sidebar,
+[data-theme-mode="dark"] .sidebar-nav,
+[data-theme-mode="dark"] #sidebar {
+    background-color: #060a14 !important;
+    border-right-color: var(--dm-border);
+}
+
+[data-theme-mode="dark"] .page-navigation-bar,
+[data-theme-mode="dark"] .topbar,
+[data-theme-mode="dark"] .navbar {
+    background-color: var(--dm-surface) !important;
+    border-color: var(--dm-border) !important;
+    color: var(--dm-ink);
+}
+
+[data-theme-mode="dark"] .breadcrumb-item + .breadcrumb-item::before,
+[data-theme-mode="dark"] .breadcrumb-item.active,
+[data-theme-mode="dark"] .topbar-page-identity {
+    color: var(--dm-ink-soft) !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. Surfaces: cards, panels, sections, tiles
+   -------------------------------------------------------------------------- */
+
+[data-theme-mode="dark"] .card,
+[data-theme-mode="dark"] .panel,
+[data-theme-mode="dark"] .section,
+[data-theme-mode="dark"] .modal-content,
+[data-theme-mode="dark"] .dropdown-menu,
+[data-theme-mode="dark"] .offcanvas,
+[data-theme-mode="dark"] .accordion-item,
+[data-theme-mode="dark"] .list-group-item,
+[data-theme-mode="dark"] .popover,
+[data-theme-mode="dark"] .toast,
+[data-theme-mode="dark"] .tooltip-inner,
+[data-theme-mode="dark"] .page-tips-card,
+[data-theme-mode="dark"] .stat-card,
+[data-theme-mode="dark"] .info-card,
+[data-theme-mode="dark"] .summary-card,
+[data-theme-mode="dark"] .filter-card,
+[data-theme-mode="dark"] .chart-card,
+[data-theme-mode="dark"] .dashboard-card,
+[data-theme-mode="dark"] .fmas-card,
+[data-theme-mode="dark"] .fmas-files-panel,
+[data-theme-mode="dark"] .file-manager-content,
+[data-theme-mode="dark"] .file-manager-sidebar,
+[data-theme-mode="dark"] .category-item,
+[data-theme-mode="dark"] .tile,
+[data-theme-mode="dark"] .workspace-card,
+[data-theme-mode="dark"] .doc-analysis-dialog-panel,
+[data-theme-mode="dark"] .fmas-ops-dialog-panel {
+    background-color: var(--dm-surface) !important;
+    border-color: var(--dm-border) !important;
+    color: var(--dm-ink);
+    box-shadow: none;
+}
+
+[data-theme-mode="dark"] .card-header,
+[data-theme-mode="dark"] .card-footer,
+[data-theme-mode="dark"] .modal-header,
+[data-theme-mode="dark"] .modal-footer,
+[data-theme-mode="dark"] .panel-header,
+[data-theme-mode="dark"] .panel-footer,
+[data-theme-mode="dark"] .section-header {
+    background-color: var(--dm-surface-raised) !important;
+    border-color: var(--dm-border) !important;
+    color: var(--dm-ink);
+}
+
+/* Hover / elevated states */
+[data-theme-mode="dark"] .card:hover,
+[data-theme-mode="dark"] .tile:hover,
+[data-theme-mode="dark"] .category-item:hover,
+[data-theme-mode="dark"] .dropdown-item:hover,
+[data-theme-mode="dark"] .dropdown-item:focus,
+[data-theme-mode="dark"] .list-group-item:hover,
+[data-theme-mode="dark"] .nav-link:hover {
+    background-color: #1a2540 !important;
+    color: var(--dm-ink);
+}
+
+/* The tips banner is a warm callout; keep it warm but not blinding. */
+[data-theme-mode="dark"] .page-tips-card,
+[data-theme-mode="dark"] .page-tips-header {
+    background-color: #2b2410 !important;
+    border-color: #4a3f1c !important;
+    color: #f6e6b8 !important;
+}
+
+/* Component families written with literal colours. Each is a surface the
+   reader sees on more than one page; naming it here fixes it everywhere. */
+[data-theme-mode="dark"] .breadcrumb,
+[data-theme-mode="dark"] .breadcrumb-item,
+[data-theme-mode="dark"] .nav-tabs,
+[data-theme-mode="dark"] .nav-pills,
+[data-theme-mode="dark"] .setting-group,
+[data-theme-mode="dark"] .setting-item,
+[data-theme-mode="dark"] .sidebar-item,
+[data-theme-mode="dark"] .explorer-item,
+[data-theme-mode="dark"] .chart-container,
+[data-theme-mode="dark"] .files-display-container,
+[data-theme-mode="dark"] .action-bar,
+[data-theme-mode="dark"] .view-toggle,
+[data-theme-mode="dark"] .view-mode-toggle,
+[data-theme-mode="dark"] .analysis-view-navigation,
+[data-theme-mode="dark"] .navigation-bar,
+[data-theme-mode="dark"] .signals-tabs,
+[data-theme-mode="dark"] .signals-bucket,
+[data-theme-mode="dark"] .signals-panel,
+[data-theme-mode="dark"] .signals-card,
+[data-theme-mode="dark"] .search-view-btn,
+[data-theme-mode="dark"] .results-container,
+[data-theme-mode="dark"] .results-header,
+[data-theme-mode="dark"] .summary-bar,
+[data-theme-mode="dark"] .stat-tile,
+[data-theme-mode="dark"] .kpi-tile,
+[data-theme-mode="dark"] .insight-card,
+[data-theme-mode="dark"] .empty-state,
+[data-theme-mode="dark"] .modal-body,
+[data-theme-mode="dark"] .modal-dialog,
+[data-theme-mode="dark"] .fmas-toolbar,
+[data-theme-mode="dark"] .fmas-toolbar-row,
+[data-theme-mode="dark"] .fmas-files-toolbar,
+[data-theme-mode="dark"] .file-details-panel,
+[data-theme-mode="dark"] .file-modal-content,
+[data-theme-mode="dark"] .tab-content,
+[data-theme-mode="dark"] .panel-body,
+[data-theme-mode="dark"] .card-body,
+[data-theme-mode="dark"] .card-header,
+[data-theme-mode="dark"] .breadcrumb ol,
+[data-theme-mode="dark"] .page-navigation-bar .breadcrumb {
+    background-color: transparent !important;
+    color: var(--dm-ink);
+}
+
+/* These need a fill rather than transparency. */
+[data-theme-mode="dark"] .sidebar-item,
+[data-theme-mode="dark"] .explorer-item,
+[data-theme-mode="dark"] .setting-item,
+[data-theme-mode="dark"] .chart-container,
+[data-theme-mode="dark"] .files-display-container,
+[data-theme-mode="dark"] .action-bar,
+[data-theme-mode="dark"] .view-toggle,
+[data-theme-mode="dark"] .view-mode-toggle,
+[data-theme-mode="dark"] .analysis-view-navigation,
+[data-theme-mode="dark"] .navigation-bar,
+[data-theme-mode="dark"] .signals-tabs,
+[data-theme-mode="dark"] .signals-bucket,
+[data-theme-mode="dark"] .search-view-btn,
+[data-theme-mode="dark"] .results-container,
+[data-theme-mode="dark"] .summary-bar,
+[data-theme-mode="dark"] .stat-tile,
+[data-theme-mode="dark"] .kpi-tile,
+[data-theme-mode="dark"] .insight-card,
+[data-theme-mode="dark"] .setting-group,
+[data-theme-mode="dark"] .modal-body,
+[data-theme-mode="dark"] .fmas-toolbar,
+[data-theme-mode="dark"] .fmas-toolbar-row,
+[data-theme-mode="dark"] .fmas-files-toolbar,
+[data-theme-mode="dark"] .file-details-panel,
+[data-theme-mode="dark"] .file-modal-content,
+[data-theme-mode="dark"] .empty-state {
+    background-color: var(--dm-surface) !important;
+    border-color: var(--dm-border) !important;
+}
+
+[data-theme-mode="dark"] .chart-container,
+[data-theme-mode="dark"] .files-display-container,
+[data-theme-mode="dark"] .analysis-view-navigation,
+[data-theme-mode="dark"] .navigation-bar {
+    background-color: var(--dm-surface-sunken) !important;
+}
+
+[data-theme-mode="dark"] .setting-item:hover,
+[data-theme-mode="dark"] .sidebar-item:hover,
+[data-theme-mode="dark"] .explorer-item:hover {
+    background-color: #1a2540 !important;
+}
+
+/* The warning / info callouts are washed pastels in the light theme; at 70%
+   opacity over a dark canvas they read as dirt. Solid, darker fill. */
+[data-theme-mode="dark"] .tips-warning,
+[data-theme-mode="dark"] .alert-warning,
+[data-theme-mode="dark"] .tips-info,
+[data-theme-mode="dark"] .alert-info {
+    background-color: #3a2a06 !important;
+    border-color: #6b520f !important;
+    color: #fde68a !important;
+}
+
+[data-theme-mode="dark"] .alert-danger,
+[data-theme-mode="dark"] .tips-danger {
+    background-color: #3b1219 !important;
+    border-color: #7f1d1d !important;
+    color: #fca5a5 !important;
+}
+
+[data-theme-mode="dark"] .alert-success {
+    background-color: #052e22 !important;
+    border-color: #065f46 !important;
+    color: #6ee7b7 !important;
+}
+
+[data-theme-mode="dark"] .btn-control,
+[data-theme-mode="dark"] .chart-customize-button-wrapper button,
+[data-theme-mode="dark"] .chart-customize-button-wrapper .btn {
+    background-color: var(--dm-surface-raised) !important;
+    border-color: var(--dm-border-strong) !important;
+    color: var(--dm-ink) !important;
+}
+
+/* Ink. Headings and labels were written with literal slate values; in dark
+   mode they are the difference between a theme and a smudge. */
+[data-theme-mode="dark"] h1,
+[data-theme-mode="dark"] h2,
+[data-theme-mode="dark"] h3,
+[data-theme-mode="dark"] h4,
+[data-theme-mode="dark"] h5,
+[data-theme-mode="dark"] h6,
+[data-theme-mode="dark"] .page-title,
+[data-theme-mode="dark"] .section-title,
+[data-theme-mode="dark"] .card-title,
+[data-theme-mode="dark"] .modal-title,
+[data-theme-mode="dark"] .page-header h1,
+[data-theme-mode="dark"] .settings-title,
+[data-theme-mode="dark"] .lexis-card-title,
+[data-theme-mode="dark"] .brand-text {
+    color: var(--text-heading, #f2f5ff) !important;
+}
+
+[data-theme-mode="dark"] .stat-card-label,
+[data-theme-mode="dark"] .stat-label,
+[data-theme-mode="dark"] .filter-label,
+[data-theme-mode="dark"] .msdd-trigger-label,
+[data-theme-mode="dark"] .ut-info,
+[data-theme-mode="dark"] .dt-info,
+[data-theme-mode="dark"] .form-text,
+[data-theme-mode="dark"] .help-text,
+[data-theme-mode="dark"] .hint,
+[data-theme-mode="dark"] .muted,
+[data-theme-mode="dark"] .sub,
+[data-theme-mode="dark"] .page-subtitle,
+[data-theme-mode="dark"] .sidebar-nav-badge,
+[data-theme-mode="dark"] .table-meta,
+[data-theme-mode="dark"] .file-row-meta,
+[data-theme-mode="dark"] .setting-desc {
+    color: var(--dm-ink-muted) !important;
+}
+
+[data-theme-mode="dark"] .stat-card-value,
+[data-theme-mode="dark"] .stat-value,
+[data-theme-mode="dark"] .metric-value,
+[data-theme-mode="dark"] .ut-count,
+[data-theme-mode="dark"] strong,
+[data-theme-mode="dark"] b {
+    color: var(--dm-ink) !important;
+}
+
+/* The tips callout: its own ink, for its own fill. */
+[data-theme-mode="dark"] .page-tips-card h1,
+[data-theme-mode="dark"] .page-tips-card h2,
+[data-theme-mode="dark"] .page-tips-card h3,
+[data-theme-mode="dark"] .page-tips-card h4,
+[data-theme-mode="dark"] .page-tips-card h5,
+[data-theme-mode="dark"] .page-tips-card p,
+[data-theme-mode="dark"] .page-tips-card li,
+[data-theme-mode="dark"] .page-tips-card strong,
+[data-theme-mode="dark"] .page-tips-card code,
+[data-theme-mode="dark"] .page-tips-header,
+[data-theme-mode="dark"] .page-tips-body,
+[data-theme-mode="dark"] .page-tips-body * {
+    color: #f6e6b8 !important;
+}
+
+[data-theme-mode="dark"] .page-tips-card code {
+    background-color: rgba(246, 230, 184, 0.14) !important;
+}
+
+/* Links and active tabs: the light theme's indigo is 3:1 on a dark canvas. */
+[data-theme-mode="dark"] a:not(.btn):not(.nav-link):not(.page-link):not(.skip-to-content),
+[data-theme-mode="dark"] .nav-link.active,
+[data-theme-mode="dark"] .nav-pills .nav-link.active,
+[data-theme-mode="dark"] .signals-tab.active,
+[data-theme-mode="dark"] .signals-tabs .active,
+[data-theme-mode="dark"] .tab-pane a {
+    color: var(--dm-accent) !important;
+}
+
+[data-theme-mode="dark"] .nav-tabs .nav-link.active,
+[data-theme-mode="dark"] .nav-pills .nav-link.active {
+    background-color: var(--dm-surface-raised) !important;
+    border-color: var(--dm-border) !important;
+}
+
+/* A warning button keeps its amber; its label has to be dark to be read. */
+[data-theme-mode="dark"] .btn-warning,
+[data-theme-mode="dark"] .btn-warning:hover,
+[data-theme-mode="dark"] .btn-info,
+[data-theme-mode="dark"] .btn-success {
+    color: #10131f !important;
+}
+
+/* DataTables / unified-table counters and the "no results" rows */
+[data-theme-mode="dark"] .dataTables_info,
+[data-theme-mode="dark"] .dataTables_length,
+[data-theme-mode="dark"] .dataTables_filter,
+[data-theme-mode="dark"] .dataTables_paginate,
+[data-theme-mode="dark"] .ut-toolbar {
+    color: var(--dm-ink-soft) !important;
+}
+
+[data-theme-mode="dark"] .dataTables_empty,
+[data-theme-mode="dark"] td.dataTables_empty {
+    color: var(--dm-ink-muted) !important;
+}
+
+/* Component ink that was written per-component with literal slate values. */
+[data-theme-mode="dark"] .tips-section-title,
+[data-theme-mode="dark"] .tips-note,
+[data-theme-mode="dark"] .tips-text,
+[data-theme-mode="dark"] .tips-body,
+[data-theme-mode="dark"] .tips-body *,
+[data-theme-mode="dark"] .page-tips-card *,
+[data-theme-mode="dark"] .value,
+[data-theme-mode="dark"] .action-label,
+[data-theme-mode="dark"] .breadcrumb-current,
+[data-theme-mode="dark"] .sidebar-item-name,
+[data-theme-mode="dark"] .explorer-item-name,
+[data-theme-mode="dark"] .language-card-native,
+[data-theme-mode="dark"] .file-name,
+[data-theme-mode="dark"] .file-title,
+[data-theme-mode="dark"] .entry-name {
+    color: var(--dm-ink) !important;
+}
+
+[data-theme-mode="dark"] .sidebar-item-count,
+[data-theme-mode="dark"] .explorer-item-details,
+[data-theme-mode="dark"] .language-card-english,
+[data-theme-mode="dark"] .ut-per-page-label,
+[data-theme-mode="dark"] .table-label,
+[data-theme-mode="dark"] .file-meta,
+[data-theme-mode="dark"] .entry-meta,
+[data-theme-mode="dark"] .card-subtitle,
+[data-theme-mode="dark"] .subtitle {
+    color: var(--dm-ink-muted) !important;
+}
+
+/* Tabs: the inactive label and the active one both need their own value. */
+[data-theme-mode="dark"] .tab-button,
+[data-theme-mode="dark"] .tab-btn,
+[data-theme-mode="dark"] .analysis-view-btn,
+[data-theme-mode="dark"] .search-view-btn,
+[data-theme-mode="dark"] .btn-outline-primary {
+    background-color: transparent !important;
+    border-color: var(--dm-border-strong) !important;
+    color: var(--dm-accent) !important;
+}
+
+[data-theme-mode="dark"] .tab-button.active,
+[data-theme-mode="dark"] .tab-btn.active,
+[data-theme-mode="dark"] .analysis-view-btn.active,
+[data-theme-mode="dark"] .search-view-btn.active {
+    background-color: var(--dm-surface-raised) !important;
+    border-color: var(--dm-accent) !important;
+    color: var(--dm-accent) !important;
+}
+
+[data-theme-mode="dark"] a.skip-to-content,
+[data-theme-mode="dark"] a.skip-to-content:focus {
+    background-color: var(--dm-accent) !important;
+    color: #0b1020 !important;
+}
+
+/* Form labels: the ones outside a .form-control wrapper kept a literal slate. */
+[data-theme-mode="dark"] label,
+[data-theme-mode="dark"] .form-label,
+[data-theme-mode="dark"] legend {
+    color: var(--dm-ink-soft) !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. Tables
+   -------------------------------------------------------------------------- */
+
+[data-theme-mode="dark"] .table,
+[data-theme-mode="dark"] table.dataTable,
+[data-theme-mode="dark"] .unified-table,
+[data-theme-mode="dark"] .fmas-table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--dm-ink);
+    --bs-table-border-color: var(--dm-border);
+    --bs-table-striped-bg: var(--dm-surface-raised);
+    --bs-table-striped-color: var(--dm-ink);
+    --bs-table-hover-bg: #1a2540;
+    --bs-table-hover-color: var(--dm-ink);
+    color: var(--dm-ink);
+}
+
+[data-theme-mode="dark"] .table thead th,
+[data-theme-mode="dark"] th {
+    background-color: var(--dm-surface-raised);
+    color: var(--dm-ink);
+    border-color: var(--dm-border);
+}
+
+[data-theme-mode="dark"] .table tbody td,
+[data-theme-mode="dark"] td {
+    border-color: var(--dm-border);
+    color: var(--dm-ink);
+}
+
+[data-theme-mode="dark"] .table-striped tbody tr:nth-of-type(odd) > * {
+    background-color: var(--dm-surface-sunken);
+    color: var(--dm-ink);
+}
+
+/* --------------------------------------------------------------------------
+   5. Forms and controls
+   -------------------------------------------------------------------------- */
+
+[data-theme-mode="dark"] .form-control,
+[data-theme-mode="dark"] .form-select,
+[data-theme-mode="dark"] .input-group-text,
+[data-theme-mode="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+[data-theme-mode="dark"] select,
+[data-theme-mode="dark"] textarea,
+[data-theme-mode="dark"] .search-input,
+[data-theme-mode="dark"] .fmas-search {
+    background-color: var(--dm-surface-sunken) !important;
+    border-color: var(--dm-border) !important;
+    color: var(--dm-ink) !important;
+}
+
+[data-theme-mode="dark"] input::placeholder,
+[data-theme-mode="dark"] textarea::placeholder {
+    color: var(--dm-ink-muted) !important;
+    opacity: 1;
+}
+
+[data-theme-mode="dark"] .btn-outline-secondary,
+[data-theme-mode="dark"] .btn-outline-primary,
+[data-theme-mode="dark"] .btn-outline-dark,
+[data-theme-mode="dark"] .btn-light,
+[data-theme-mode="dark"] .btn-default,
+[data-theme-mode="dark"] .action-btn,
+[data-theme-mode="dark"] .fmas-toolbar .btn {
+    background-color: var(--dm-surface-raised);
+    border-color: var(--dm-border-strong);
+    color: var(--dm-ink);
+}
+
+[data-theme-mode="dark"] .btn-outline-secondary:hover,
+[data-theme-mode="dark"] .btn-outline-primary:hover,
+[data-theme-mode="dark"] .action-btn:hover,
+[data-theme-mode="dark"] .fmas-toolbar .btn:hover {
+    background-color: #223055;
+    color: #ffffff;
+}
+
+[data-theme-mode="dark"] .btn-primary {
+    color: #ffffff;
+}
+
+[data-theme-mode="dark"] .text-muted,
+[data-theme-mode="dark"] .text-secondary,
+[data-theme-mode="dark"] small.text-muted {
+    color: var(--dm-ink-muted) !important;
+}
+
+[data-theme-mode="dark"] .text-dark,
+[data-theme-mode="dark"] .text-body {
+    color: var(--dm-ink) !important;
+}
+
+[data-theme-mode="dark"] .bg-white,
+[data-theme-mode="dark"] .bg-light {
+    background-color: var(--dm-surface) !important;
+}
+
+[data-theme-mode="dark"] .border,
+[data-theme-mode="dark"] .border-top,
+[data-theme-mode="dark"] .border-bottom,
+[data-theme-mode="dark"] .border-start,
+[data-theme-mode="dark"] .border-end,
+[data-theme-mode="dark"] hr {
+    border-color: var(--dm-border) !important;
+}
+
+[data-theme-mode="dark"] .dropdown-divider {
+    border-color: var(--dm-border);
+}
+
+/* Pagination, badges, chips */
+[data-theme-mode="dark"] .page-link {
+    background-color: var(--dm-surface-raised);
+    border-color: var(--dm-border);
+    color: var(--dm-ink);
+}
+
+[data-theme-mode="dark"] .page-item.active .page-link {
+    background-color: var(--primary-color, #4f46e5);
+    border-color: var(--primary-color, #4f46e5);
+    color: #ffffff;
+}
+
+[data-theme-mode="dark"] .badge.text-bg-light,
+[data-theme-mode="dark"] .badge.text-bg-secondary {
+    background-color: var(--dm-surface-raised) !important;
+    color: var(--dm-ink) !important;
+}
+
+/* --------------------------------------------------------------------------
+   6. File manager (FMAS) and LEXIS
+   -------------------------------------------------------------------------- */
+
+[data-theme-mode="dark"] .fmas-files-toolbar,
+[data-theme-mode="dark"] .fmas-toolbar-row,
+[data-theme-mode="dark"] .fmas-bulk-actions,
+[data-theme-mode="dark"] .fmas-file-row,
+[data-theme-mode="dark"] .file-row-item,
+[data-theme-mode="dark"] .file-card,
+[data-theme-mode="dark"] .fmas-filters,
+[data-theme-mode="dark"] .unified-content-view {
+    background-color: var(--dm-surface) !important;
+    border-color: var(--dm-border) !important;
+    color: var(--dm-ink);
+}
+
+[data-theme-mode="dark"] .file-row-item:hover,
+[data-theme-mode="dark"] .fmas-file-row:hover {
+    background-color: #1a2540 !important;
+}
+
+[data-theme-mode="dark"] .file-row-item.selected,
+[data-theme-mode="dark"] .fmas-file-row.selected {
+    background-color: #1d2a4d !important;
+    border-color: var(--dm-accent) !important;
+}
+
+/* LEXIS already ships a dark canvas of its own; in light mode it keeps it, so
+   here only the modal sheets need to follow the page. */
+[data-theme-mode="dark"] .lexis-sheet {
+    background-color: var(--dm-surface);
+    color: var(--dm-ink);
+    border-color: var(--dm-border);
+}
+
+[data-theme-mode="dark"] .lexis-modal .close {
+    color: var(--dm-ink);
+}
+
+/* --------------------------------------------------------------------------
+   7. Scrollbars, selection, focus
+   -------------------------------------------------------------------------- */
+
+[data-theme-mode="dark"] ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+[data-theme-mode="dark"] ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--dm-ink-muted) 55%, transparent);
+}
+
+[data-theme-mode="dark"] ::selection {
+    background: color-mix(in srgb, var(--dm-accent) 40%, transparent);
+    color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   8. Things that must stay light
+   -------------------------------------------------------------------------- */
+
+/* Documents the reader prints or exports are paper: black ink on white. The
+   print root is only shown by @media print, but a preview of it on screen
+   keeps the same contrast. */
+[data-theme-mode="dark"] .lexis-print-root,
+[data-theme-mode="dark"] .lexis-print-root .p-page,
+[data-theme-mode="dark"] .print-preview,
+[data-theme-mode="dark"] .preview-paper {
+    background: #ffffff !important;
+    color: #15193a !important;
+}
+
+/* Small icon controls are drawn with a hard-coded white background in
+   fmas.css, which the surface pass never counted because they are 36x36.
+   Found by the lightControls check on /archives and /files. */
+[data-theme-mode="dark"] .nav-btn,
+[data-theme-mode="dark"] .view-toggle-btn {
+    background: var(--dm-surface-raised) !important;
+    border-color: var(--dm-border-strong) !important;
+    color: var(--dm-ink) !important;
+}
+
+[data-theme-mode="dark"] .nav-btn:hover:not(:disabled),
+[data-theme-mode="dark"] .view-toggle-btn:hover {
+    background: #223055 !important;
+    border-color: var(--dm-accent) !important;
+    color: #ffffff !important;
+}
+
+[data-theme-mode="dark"] .nav-btn:disabled {
+    background: #16203a !important;
+    color: var(--dm-ink-muted) !important;
+}
+
+[data-theme-mode="dark"] .view-toggle-btn.active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: #ffffff !important;
+}
+
+[data-theme-mode="dark"] .btn-outline-warning,
+[data-theme-mode="dark"] .btn-action.btn-outline-warning,
+[data-theme-mode="dark"] .btn-action.btn-outline-warning.btn-action-icon-only {
+    background-color: var(--dm-surface-raised) !important;
+    border-color: #b98900 !important;
+    color: #f0c000 !important;
+}
+
+/* File-type chips pair --primary-color ink with an -info background; both are
+   tuned for light, and the pair only reaches 2.49:1 once the background turns
+   dark (measured on /files). */
+[data-theme-mode="dark"] .badge-type,
+[data-theme-mode="dark"] .badge-size {
+    color: #c7d2fe !important;
+    background: #16233f !important;
+}
+
+[data-theme-mode="dark"] .btn-outline-warning:hover {
+    background-color: #3a2f00;
+    color: #ffd84d;
+}
+
+/* Logos and brand marks are drawn for a light background; do not invert them. */
+[data-theme-mode="dark"] .brand-logo,
+[data-theme-mode="dark"] .app-logo,
+[data-theme-mode="dark"] img.logo {
+    filter: none;
+}
+
+/* The mode is a preference, not an animation target. */
+@media (prefers-reduced-motion: reduce) {
+    [data-theme-mode] * {
+        transition-duration: 0.01ms !important;
+    }
+}

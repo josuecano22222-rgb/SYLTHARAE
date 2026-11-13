@@ -1,0 +1,9 @@
+/* Noto Sans Hebrew - variable font (wght 100-900), SIL OFL 1.1.
+ * Loaded by templates/base.html only when the current language is Hebrew. */
+@font-face {
+  font-family: 'Noto Sans Hebrew';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('NotoSansHebrew-VF.ttf') format('truetype-variations');
+}

@@ -1,0 +1,218 @@
+{# component: pagination
+   purpose: Moving through a long list: where you are, how much there is, and
+            how to get to a page you know the number of.
+   states: normal, filtered
+   classes: pagination, page-item, page-link, page-navigation-bar, unified-pagination-container, unified-pagination-jump
+   notes: Renders links for the endpoint it is given; it does not query and
+          does not decide the page size.
+#}
+{#- The one Load More control. A table that is paged by a numbered pager
+    renders it inside that pager; a table with no pager renders it under
+    itself (components/table.html). Same markup, same attributes, same JS
+    engine (static/js/modules/ui/unified-table.js). -#}
+{#- The registration range, one shape everywhere: "Showing first–last of total".
+    An empty list reads 0–0. The table engine keeps the same spans in step
+    (static/js/modules/ui/unified-table.js, renderRange). -#}
+{%- macro showing_range(first_row, rows_shown, total_count) -%}
+{%- set shown = (rows_shown or 0)|int -%}
+{%- set first = (first_row or 1)|int if shown > 0 else 0 -%}
+{%- set last = (first_row or 1)|int + shown - 1 if shown > 0 else 0 -%}
+{{ _('Showing') }} <span data-ut-first>{{ first }}</span>&ndash;<span data-ut-last>{{ last }}</span> {{ _('of') }} <span data-ut-total>{{ total_count or 0 }}</span>
+{%- endmacro -%}
+
+{#- The one Load More control. `page_size` is the table's rows per page; the
+    first row of the view is derived from it, so the range reads 26–50 on
+    page 2 and keeps counting correctly through every Show More batch. -#}
+{%- macro load_more_control(table_id, page, total_pages, total_count, rows_shown, label=None, page_size=None) -%}
+{%- set page = (page or 1)|int -%}
+{%- set total_pages = (total_pages or 1)|int -%}
+{%- set size = (page_size or 0)|int -%}
+{%- set first_row = ((page - 1) * size + 1) if size > 0 else 1 -%}
+{%- if total_pages > 1 and page < total_pages %}
+    <div class="ut-load-more"
+         data-ut-load-more
+         data-table-id="{{ table_id }}"
+         data-page="{{ page }}"
+         data-total-pages="{{ total_pages }}"
+         data-total="{{ total_count or 0 }}"
+         data-shown="{{ rows_shown or 0 }}"
+         data-page-size="{{ size }}"
+         data-first-row="{{ first_row }}">
+        <button type="button" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-arrow-down-circle me-2" aria-hidden="true"></i>{{ label or _('Show More') }}
+        </button>
+        <span class="ut-load-more-info" aria-live="polite">
+            {{ showing_range(first_row, rows_shown, total_count) }}
+        </span>
+        <span class="ut-load-more-error text-danger" data-ut-load-error hidden role="alert">
+            {{ _('Could not load more. Click to try again.') }}
+        </span>
+    </div>
+{%- endif %}
+{%- endmacro -%}
+
+{%- macro unified_pagination(page, total_pages, url_for_func, endpoint, url_params={}, show_info=true, show_jump=true, table_id=None, total_count=None, rows_shown=None, load_more_label=None, page_size=None) -%}
+{# 
+    Unified Pagination Component
+    
+    Parameters:
+    - page: Current page number (1-based)
+    - total_pages: Total number of pages
+    - url_for_func: Flask url_for function (usually just 'url_for')
+    - endpoint: Flask route endpoint name (e.g., 'search_page', 'files.files_list')
+    - url_params: Dictionary of additional URL parameters to preserve (e.g., {'q': 'search term'})
+    - show_info: Whether to show pagination info (default: true)
+    - show_jump: Whether to show jump to page input (default: true)
+#}
+{% set total_pages = total_pages|default(1)|int %}
+{% set page = page|default(1)|int %}
+{% if total_pages > 1 %}
+<div class="unified-pagination-container" data-endpoint="{{ endpoint }}" data-current-page="{{ page }}" data-total-pages="{{ total_pages }}" data-page-size="{{ page_size or 0 }}">
+    {% if show_info %}
+    <div class="unified-pagination-info">
+        <span class="pagination-text">
+            <i class="bi bi-info-circle me-1"></i>
+            {{ _('Page') }} <span data-ut-page>{{ page }}</span> {{ _('of') }} <span data-ut-pages>{{ total_pages }}</span>
+        </span>
+    </div>
+    {% endif %}
+    
+    <div class="unified-pagination-controls d-flex align-items-center flex-wrap gap-2">
+        {% if table_id and page < total_pages %}
+        {# One control: the table's own Load More, placed here. #}
+        {{ load_more_control(table_id, page, total_pages, total_count, rows_shown, load_more_label, page_size) }}
+        {% endif %}
+        <nav aria-label="{{ _('Page navigation') }}">
+            <ul class="unified-pagination-list" data-ut-pager-list>
+                {# First Page Button #}
+                <li class="unified-pagination-item">
+                    <a class="unified-pagination-link {% if page <= 1 %}disabled{% endif %}" 
+                       href="{% if page > 1 %}{{ url_for_func(endpoint, page=1, **url_params) }}{% else %}#{% endif %}"
+                       aria-label="{{ _('First Page') }}" data-ut-nav="first"
+                       {% if page <= 1 %}aria-disabled="true" tabindex="-1"{% endif %}>
+                        <i class="bi bi-chevron-double-left"></i>
+                        <span class="d-none d-sm-inline ms-1">{{ _('First') }}</span>
+                    </a>
+                </li>
+                
+                {# Previous Page Button #}
+                <li class="unified-pagination-item">
+                    <a class="unified-pagination-link {% if page <= 1 %}disabled{% endif %}" 
+                       href="{% if page > 1 %}{{ url_for_func(endpoint, page=page - 1, **url_params) }}{% else %}#{% endif %}"
+                       aria-label="{{ _('Previous Page') }}" data-ut-nav="previous"
+                       {% if page <= 1 %}aria-disabled="true" tabindex="-1"{% endif %}>
+                        <i class="bi bi-chevron-left"></i>
+                        <span class="d-none d-sm-inline ms-1">{{ _('Previous') }}</span>
+                    </a>
+                </li>
+                
+                {# Page Numbers #}
+                {% set window_size = 2 %}
+                {% set start_page = [1, page - window_size]|max %}
+                {% set end_page = [total_pages, page + window_size]|min %}
+                
+                {# Show first page and ellipsis if needed #}
+                {% if start_page > 1 %}
+                    <li data-ut-numbered class="unified-pagination-item">
+                        <a class="unified-pagination-link" href="{{ url_for_func(endpoint, page=1, **url_params) }}">
+                            1
+                        </a>
+                    </li>
+                    {% if start_page > 2 %}
+                        <li data-ut-numbered class="unified-pagination-item disabled">
+                            <span class="unified-pagination-ellipsis">...</span>
+                        </li>
+                    {% endif %}
+                {% endif %}
+                
+                {# Page number buttons #}
+                {% for p in range(start_page, end_page + 1) %}
+                    <li data-ut-numbered class="unified-pagination-item {% if p == page %}active{% endif %}">
+                        {% if p == page %}
+                            <span class="unified-pagination-link active" aria-current="page">{{ p }}</span>
+                        {% else %}
+                            <a class="unified-pagination-link" href="{{ url_for_func(endpoint, page=p, **url_params) }}">
+                                {{ p }}
+                            </a>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+                
+                {# Show last page and ellipsis if needed #}
+                {% if end_page < total_pages %}
+                    {% if end_page < total_pages - 1 %}
+                        <li data-ut-numbered class="unified-pagination-item disabled">
+                            <span class="unified-pagination-ellipsis">...</span>
+                        </li>
+                    {% endif %}
+                    <li data-ut-numbered class="unified-pagination-item">
+                        <a class="unified-pagination-link" href="{{ url_for_func(endpoint, page=total_pages, **url_params) }}">
+                            {{ total_pages }}
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {# Next Page Button #}
+                <li class="unified-pagination-item">
+                    <a class="unified-pagination-link {% if page >= total_pages %}disabled{% endif %}" 
+                       href="{% if page < total_pages %}{{ url_for_func(endpoint, page=page + 1, **url_params) }}{% else %}#{% endif %}"
+                       aria-label="{{ _('Next Page') }}" data-ut-nav="next"
+                       {% if page >= total_pages %}aria-disabled="true" tabindex="-1"{% endif %}>
+                        <span class="d-none d-sm-inline me-1">{{ _('Next') }}</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                
+                {# Last Page Button #}
+                <li class="unified-pagination-item">
+                    <a class="unified-pagination-link {% if page >= total_pages %}disabled{% endif %}" 
+                       href="{% if page < total_pages %}{{ url_for_func(endpoint, page=total_pages, **url_params) }}{% else %}#{% endif %}"
+                       aria-label="{{ _('Last Page') }}" data-ut-nav="last"
+                       {% if page >= total_pages %}aria-disabled="true" tabindex="-1"{% endif %}>
+                        <span class="d-none d-sm-inline me-1">{{ _('Last') }}</span>
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+            </ul>
+            {# Prototypes for the numbered window. The table engine clones these
+               when a Show More batch moves the page; it never writes this markup
+               itself. Hidden: they are not part of the visible list. #}
+            <ul hidden data-ut-protos>
+                <li class="unified-pagination-item" data-ut-proto="page"><a class="unified-pagination-link" href="#" data-ut-page-link></a></li>
+                <li class="unified-pagination-item active" data-ut-proto="current"><span class="unified-pagination-link active" aria-current="page" data-ut-page-link></span></li>
+                <li class="unified-pagination-item disabled" data-ut-proto="gap"><span class="unified-pagination-ellipsis">...</span></li>
+            </ul>
+        </nav>
+        
+        {# Jump to Page Input #}
+        {% if show_jump and total_pages > 5 %}
+        <div class="unified-pagination-jump">
+            <label for="jumpToPageInput-{{ endpoint }}" class="visually-hidden">{{ _('Jump to page') }}</label>
+            <input type="number" 
+                   id="jumpToPageInput-{{ endpoint }}" data-ut-jump 
+                   class="form-control form-control-sm unified-pagination-jump-input" 
+                   min="1" 
+                   max="{{ total_pages }}" 
+                   value="{{ page }}"
+                   placeholder="{{ _('Page') }}"
+                   data-endpoint="{{ endpoint }}"
+                   data-total-pages="{{ total_pages }}"
+                   data-url-params='{{ url_params|tojson }}'
+                   style="width: 70px;">
+            <button type="button" 
+                    class="btn btn-sm btn-outline-primary unified-pagination-jump-btn" 
+                    data-endpoint="{{ endpoint }}"
+                    data-url-params='{{ url_params|tojson }}'
+                    aria-label="{{ _('Go to page') }}">
+                <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{# Show More / jump wiring lives in base.html (unified-pagination.js) so soft
+   navigation always has the handlers. Do not re-inject the script here. -#}
+{% endif %}
+{%- endmacro -%}
+

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Keyword Details') }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        <i class="bi bi-key me-2"></i>
+        {{ _('Keyword Details') }}
+    </h1>
+    <a href="{{ url_for('keywords_list') }}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-left me-2"></i>
+        {{ _('Back to Keywords') }}
+    </a>
+</div>
+
+<!-- Page Tips -->
+{% from 'components/page_tips.html' import page_tips %}
+    {% call page_tips() %}
+
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-key"></i>
+        {{ _('Keyword Details Overview') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('View comprehensive information about this keyword including usage statistics') }}</li>
+        <li>{{ _('See which files are tagged with this keyword') }}</li>
+        <li>{{ _('View categories and associations linked to this keyword') }}</li>
+        <li>{{ _('Edit keyword information or manage file associations from this page') }}</li>
+    </ul>
+</div>
+<div class="tips-section">
+    <div class="tips-section-title">
+        <i class="bi bi-file-text"></i>
+        {{ _('Keyword Usage') }}
+    </div>
+    <ul class="tips-list">
+        <li>{{ _('See usage count showing how many files are tagged with this keyword') }}</li>
+        <li>{{ _('View file types where this keyword is most commonly used') }}</li>
+        <li>{{ _('Review when this keyword was last used and its creation date') }}</li>
+        <li>{{ _('Use this information to understand keyword distribution and relevance') }}</li>
+    </ul>
+</div>
+{% endcall %}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="stat-card">
+            <h5 class="mb-3">{{ _('Keyword Information') }}</h5>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Keyword ID') }}</label>
+                        <p class="form-control-plaintext">{{ keyword.id }}</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('Usage Count') }}</label>
+                        <p class="form-control-plaintext">
+                            <span class="badge bg-info">{{ keyword.usage_count }}</span> files
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="mb-3">
+                        <label class="form-label">{{ _('File Types') }}</label>
+                        <p class="form-control-plaintext">
+                            <span class="badge bg-secondary">{{ keyword.file_types|default(0) }}</span> types
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">{{ _('Keyword Text') }}</label>
+                <p class="form-control-plaintext"><strong>{{ keyword.text }}</strong></p>
+            </div>
+            {% if keyword.last_used %}
+            <div class="mb-3">
+                <label class="form-label">{{ _('Last Used') }}</label>
+                <p class="form-control-plaintext text-muted">{{ keyword.last_used.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card">
+            <h5 class="mb-3">{{ _('Actions') }}</h5>
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('keywords_add') }}?keyword_id={{ keyword.id }}" class="btn btn-success">
+                    <i class="bi bi-pencil me-2"></i> {{ _('Edit Keyword') }}
+                </a>
+                <button class="btn btn-outline-danger" data-on-click="deleteKeyword({{ keyword.id }})">
+                    <i class="bi bi-trash me-2"></i> {{ _('Delete Keyword') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/json" id="keyword-detail-page-data">{{ {
+    "translations": {
+        "deleteConfirm": _('Are you sure you want to delete this keyword?'),
+        "keywordDeletedSuccessfully": _('Keyword deleted successfully!'),
+        "error": _('Error')
+    },
+    "keywords_list_url": url_for('keywords_list', _external=False)
+}|tojson }}</script>
+<script type="module" src="{{ url_for('static', filename='js/pages/keyword-detail-page.js') }}"></script>
+{% endblock %}

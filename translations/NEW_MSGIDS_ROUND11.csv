@@ -1,0 +1,36 @@
+msgid,templates,origin,context for the translator
+All collapsed,categories_tree.html,new this round,depth selector option: nothing expanded
+As a new parent above existing categories,categories_list.html categories_tree.html,new this round,placement: create a node and move chosen categories under it
+CSV downloaded,categories_tree.html,new this round,"status after the export finished, followed by a row count"
+Categories on this page to move under the new parent,categories_list.html,new this round,multi-select label on the list page (only rows on the current page can be adopted there)
+Categories to move under the new parent,categories_tree.html,new this round,multi-select label on the tree page
+Category Hierarchy,categories_tree.html,new this round,page title and the nav/aria label for the tree page
+Category deleted,categories_tree.html,new this round,success toast after a delete
+Category moved,categories_tree.html,new this round,success toast after drag-and-drop re-parenting
+Child categories (one per line),categories_list.html categories_tree.html,new this round,label of the batch-children textarea
+Children,categories_tree.html,new this round,column: number of direct children
+Choose a parent category,categories_list.html categories_tree.html,new this round,validation toast when placement is child and no parent was picked
+Choose at least one category to move,categories_list.html categories_tree.html,new this round,validation toast for the parent-above placement
+Could not move the category,categories_tree.html,new this round,prefix of the error toast when a move is refused
+Delete and move children up,categories_tree.html,new this round,row action: delete a node and re-home its children
+Deleting a category will remove it from all associated files. Consider merging categories instead of deleting them.,categories_list.html,"pre-existing string, never extracted",
+Drop to make this the parent,categories_tree.html,new this round,tooltip while dragging a node over a candidate parent
+Expand all,categories_tree.html,new this round,depth selector option: every level expanded
+Expand to depth,categories_tree.html,new this round,label for the depth selector
+Hierarchy,categories_list.html,new this round,button on the categories list page that opens the tree page
+Hierarchy Map,categories_tree.html,new this round,view switch: column-per-level card layout
+Indented List,categories_tree.html,new this round,"view switch: one row per node, indented by level"
+Inside another category,categories_list.html categories_tree.html,new this round,placement: a child of the chosen parent
+Level,categories_tree.html,new this round,breadcrumb suffix showing the node's depth
+Main Category,categories_list.html,"pre-existing string, never extracted",
+Open the hierarchy view,categories_list.html,new this round,link text next to the list-page adopt selector
+Parent Category,categories_list.html categories_tree.html,new this round,label of the searchable tree selector
+Placement,categories_list.html categories_tree.html,new this round,add-category modal: where the new node goes
+Preparing CSV...,categories_tree.html,new this round,status while the export walks the pages
+Select a category to see its path,categories_tree.html,new this round,placeholder in the breadcrumb bar
+Sub-category one,categories_tree.html,new this round,placeholder line 1 of the batch-children textarea
+Sub-category two,categories_tree.html,new this round,placeholder line 2 of the batch-children textarea
+"This category has children. Move them first or choose ""reparent"".",categories_tree.html,new this round,refusal shown when a delete is blocked by children
+Top level,categories_list.html categories_tree.html,new this round,placement: a root category
+Type to search the tree; the indent shows the level.,categories_list.html categories_tree.html,new this round,help text under the parent selector
+to group categories from anywhere in the tree.,categories_list.html,new this round,continuation of the sentence started by the link above

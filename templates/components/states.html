@@ -1,0 +1,137 @@
+{# component: states
+   purpose: The states a region can be in, in one place, so a page never
+            invents its own wording for "nothing here yet" or its own markup
+            for "this failed".
+   states: loading, empty, filtered, success, warning, error, unauthorized,
+           unavailable, archived
+   classes: empty-state, spinner-border, bi, text-danger, text-warning,
+            text-success, text-muted, btn, btn-primary, btn-outline-primary
+   notes: Presentation only. A page decides which state is true and passes
+          what the reader needs to know; these macros never fetch, never
+          authorize and never choose a state for themselves.
+#}
+{#
+   Usage:
+
+       {% from 'components/states.html' import empty_state, error_state %}
+
+       {% if not rows %}
+           {{ empty_state(
+                message=_('No keywords yet.'),
+                action_label=_('Add your first keyword'),
+                action_onclick='openAddKeywordModal()') }}
+       {% endif %}
+
+   `role` follows the meaning: a loading or empty region is `status` (polite -
+   it is not an emergency), a failure or a refusal is `alert`.
+#}
+
+{% macro state_panel(state, icon, title=None, message=None, tone=None,
+                     action_label=None, action_href=None, action_onclick=None,
+                     action_icon=None, extra_class=None, role=None) %}
+<div class="empty-state{{ ' ' ~ extra_class if extra_class }}"
+     {% if role %}role="{{ role }}"{% endif %}
+     {% if state %}data-state="{{ state }}"{% endif %}>
+    {% if state == 'loading' %}
+    <span class="spinner-border{{ ' ' ~ tone if tone }}" role="presentation"
+          aria-hidden="true"></span>
+    {% else %}
+    <i class="bi {{ icon }}{{ ' ' ~ tone if tone }}" aria-hidden="true"></i>
+    {% endif %}
+    {% if title %}<h3>{{ title }}</h3>{% endif %}
+    {% if message %}<p>{{ message }}</p>{% endif %}
+    {% if action_label %}
+        {% if action_href %}
+        <a class="btn btn-primary" href="{{ action_href }}">
+            {% if action_icon %}<i class="bi {{ action_icon }} me-2" aria-hidden="true"></i>{% endif %}{{ action_label }}
+        </a>
+        {% else %}
+        <button type="button" class="btn btn-primary"
+                {% if action_onclick %}data-on-click="{{ action_onclick }}"{% endif %}>
+            {% if action_icon %}<i class="bi {{ action_icon }} me-2" aria-hidden="true"></i>{% endif %}{{ action_label }}
+        </button>
+        {% endif %}
+    {% endif %}
+</div>
+{% endmacro %}
+
+
+{% macro empty_state(title=None, message=None, icon='bi-inbox',
+                     action_label=None, action_href=None, action_onclick=None,
+                     action_icon='bi-plus-circle') %}
+{#- Nothing exists here yet. -#}
+{{ state_panel('empty', icon, title, message, role='status',
+               action_label=action_label, action_href=action_href,
+               action_onclick=action_onclick, action_icon=action_icon) }}
+{% endmacro %}
+
+
+{% macro filtered_state(title=None, message=None, icon='bi-funnel',
+                        action_label=None, action_href=None, action_onclick=None,
+                        action_icon='bi-x-circle') %}
+{#- Something exists, but not under the filters currently applied. A reader
+    must be able to tell this apart from "there is nothing here". -#}
+{{ state_panel('filtered', icon, title, message, role='status',
+               action_label=action_label, action_href=action_href,
+               action_onclick=action_onclick, action_icon=action_icon) }}
+{% endmacro %}
+
+
+{% macro loading_state(message=None, title=None) %}
+{#- Work in progress. The message says what is being waited for. -#}
+{{ state_panel('loading', None, title, message or _('Loading…'),
+               tone='text-primary', role='status') }}
+{% endmacro %}
+
+
+{% macro success_state(title=None, message=None, icon='bi-check-circle') %}
+{{ state_panel('success', icon, title, message, tone='text-success',
+               role='status') }}
+{% endmacro %}
+
+
+{% macro warning_state(title=None, message=None, icon='bi-exclamation-triangle') %}
+{{ state_panel('warning', icon, title, message, tone='text-warning',
+               role='status') }}
+{% endmacro %}
+
+
+{% macro error_state(title=None, message=None, icon='bi-exclamation-octagon',
+                     action_label=None, action_href=None, action_onclick=None,
+                     action_icon='bi-arrow-clockwise') %}
+{#- Something failed. The message is written for the reader: it says what
+    failed and what to do next, never a stack trace, a path or a query
+    (spec §38/§76). -#}
+{{ state_panel('error', icon, title, message or _('Something went wrong.'),
+               tone='text-danger', role='alert',
+               action_label=action_label or _('Try again'),
+               action_href=action_href, action_onclick=action_onclick,
+               action_icon=action_icon) }}
+{% endmacro %}
+
+
+{% macro unauthorized_state(title=None, message=None) %}
+{#- The server refused this for this account. This is a message about a
+    decision already taken elsewhere: `core/security` decides, the page
+    reports. -#}
+{{ state_panel('unauthorized', 'bi-shield-lock', title or _('Not available'),
+               message or _('Your account does not have access to this.'),
+               tone='text-danger', role='alert') }}
+{% endmacro %}
+
+
+{% macro unavailable_state(title=None, message=None) %}
+{#- It exists, but a dependency it needs is not available on this
+    installation (a decoder, a device, a service). -#}
+{{ state_panel('unavailable', 'bi-plug', title or _('Unavailable'),
+               message or _('This needs something that is not available on this installation.'),
+               role='status') }}
+{% endmacro %}
+
+
+{% macro archived_state(title=None, message=None) %}
+{#- Kept, read-only, out of the working set. -#}
+{{ state_panel('archived', 'bi-archive', title or _('Archived'),
+               message or _('This record is archived and cannot be changed.'),
+               role='status') }}
+{% endmacro %}

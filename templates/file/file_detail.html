@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+{% from "components/unified_pagination.html" import unified_pagination %}
+
+{% block title %}{{ file[1] }} - {{ _('File Details') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/file-detail.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='css/formatted-content.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='css/analyst-classify.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='css/file-nav.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='css/file-nav-dock.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='css/file-content-tabs.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='css/file-details-inspector.css') }}" rel="stylesheet" />
+<link href="{{ url_for('static', filename='css/document-analysis.css') }}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+{% from 'components/page_tips.html' import page_tips %}
+{% from 'components/analyst_classify.html' import analyst_classify %}
+{% from 'components/file_nav.html' import file_nav_dock %}
+{% from 'components/record_actions.html' import record_action_surface %}
+{% from 'components/status_badge.html' import status_badge %}
+{% call page_tips(enabled=false) %}{% endcall %}
+
+{% set file_id = file[0] if file|length > 0 else 0 %}
+<div class="container-fluid file-analyst-page" id="fileAnalystPage">
+    <header class="file-analyst-header" id="fileRecordHeader">
+        <div class="file-analyst-header__identity">
+            <div class="file-analyst-eyebrow">{{ _('File') }}</div>
+            <h1 class="file-analyst-title">{{ file[1][:120] }}{% if file[1]|length > 120 %}…{% endif %}</h1>
+            <p class="file-analyst-path mb-0">{{ file[2] }}</p>
+        </div>
+        <div class="file-analyst-header__tools">
+            <span class="file-analyst-status">{{ file[5] }}</span>
+            {{ record_action_surface(
+                record_actions, surface_id='fileRecordActions',
+                interface_id=inspector_interface,
+                label=_('Actions')) }}
+            <button type="button" class="btn btn-light btn-sm" data-on-click="toggleFullscreen()">
+                <i class="bi bi-arrows-fullscreen" aria-hidden="true"></i>
+            </button>
+            <a class="btn btn-light btn-sm" href="/reports/entries/print?ids={{ file_id }}"
+               target="_blank" rel="noopener"
+               title="{{ _('Full Entry Report') }}">
+                <i class="bi bi-file-earmark-richtext" aria-hidden="true"></i>
+                <span class="visually-hidden">{{ _('Full Entry Report') }}</span>
+            </a>
+            <button type="button" class="btn btn-light btn-sm" data-on-click="window.print()" title="{{ _('Print') }}">
+                <i class="bi bi-printer" aria-hidden="true"></i>
+            </button>
+        </div>
+    </header>
+
+    <details class="file-analyst-metadata file-detail-inspector" id="fileDetailInspector">
+        <summary><i class="bi bi-info-circle" aria-hidden="true"></i> {{ _('Metadata & lineage') }}</summary>
+        <div class="file-details-metadata-view metadata-ribbon-layout" id="pageFileMetadataSection">
+            <div class="content-loading">{{ _('Loading metadata...') }}</div>
+        </div>
+    </details>
+
+    <div class="file-analyst-workspace">
+        <section class="file-analyst-pane" aria-label="{{ _('Document content') }}">
+            <div class="file-analyst-pane__head">
+                <h2 class="file-analyst-pane__title"><i class="bi bi-file-text" aria-hidden="true"></i> {{ _('Content') }}</h2>
+                <div class="file-content-tabs" role="tablist" aria-label="{{ _('File Content') }}">
+                    <button type="button" class="file-content-tab active" id="extractedContentTab"
+                            role="tab" aria-selected="true" data-content-tab="extracted">
+                        <i class="bi bi-file-text" aria-hidden="true"></i> {{ _('Extracted') }}
+                    </button>
+                    <button type="button" class="file-content-tab" id="originalFileTab"
+                            role="tab" aria-selected="false" data-content-tab="original">
+                        <i class="bi bi-file-earmark-image" aria-hidden="true"></i> {{ _('Original') }}
+                    </button>
+                </div>
+                <div class="file-analyst-pane__head-actions" data-extracted-only>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-on-click="copyContent()">{{ _('Copy') }}</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="downloadContent()">{{ _('Download') }}</button>
+                    <a href="{{ nav.reader_url }}" class="btn btn-sm btn-outline-secondary">{{ _('Full reader') }}</a>
+                </div>
+            </div>
+            <details class="file-analyst-content-tools" id="fileContentTools">
+                <summary class="file-analyst-content-tools__summary">
+                    <i class="bi bi-sliders" aria-hidden="true"></i>
+                    {{ _('Assignment & in-document search') }}
+                </summary>
+                <div class="file-analyst-content-tools__body file-analyst-ops-deck">
+                    <section class="file-analyst-ops-card file-analyst-ops-card--assign" aria-labelledby="fileOpsAssignTitle">
+                        <header class="file-analyst-ops-card__head">
+                            <div class="file-analyst-ops-card__icon file-analyst-ops-card__icon--violet" aria-hidden="true">
+                                <i class="bi bi-person-badge"></i>
+                            </div>
+                            <div class="file-analyst-ops-card__titles">
+                                <h3 class="file-analyst-ops-card__title" id="fileOpsAssignTitle">{{ _('Analyst assignment') }}</h3>
+                                <p class="file-analyst-ops-card__subtitle">{{ _('Manual categories only — independent from smart classification') }}</p>
+                            </div>
+                        </header>
+                        <div class="file-analyst-ops-card__body file-analyst-ops-card__body--classify">
+                            {{ analyst_classify(file_id, analyst_categories, current_user.is_authenticated and current_user.has_role('admin', 'analyst'), card_id='analystClassifyCard') }}
+                        </div>
+                    </section>
+                    <section class="file-analyst-ops-card file-analyst-ops-card--search" aria-labelledby="fileOpsSearchTitle" role="search">
+                        <header class="file-analyst-ops-card__head">
+                            <div class="file-analyst-ops-card__icon file-analyst-ops-card__icon--teal" aria-hidden="true">
+                                <i class="bi bi-binoculars"></i>
+                            </div>
+                            <div class="file-analyst-ops-card__titles">
+                                <h3 class="file-analyst-ops-card__title" id="fileOpsSearchTitle">{{ _('In-document search') }}</h3>
+                                <p class="file-analyst-ops-card__subtitle">{{ _('Find terms in extracted text with match navigation') }}</p>
+                            </div>
+                        </header>
+                        <div class="file-analyst-ops-card__body">
+                            <div class="file-analyst-search-command">
+                                <label class="visually-hidden" for="searchInput">{{ _('Search in document') }}</label>
+                                <div class="input-group input-group-sm file-analyst-search-command__bar">
+                                    <span class="input-group-text"><i class="bi bi-search" aria-hidden="true"></i></span>
+                                    <input type="text" class="form-control" id="searchInput"
+                                           placeholder="{{ _('Search in document…') }}"
+                                           value="{{ search_query }}"
+                                           data-on-keypress="if(event.key==='Enter') performSearch()">
+                                    <button type="button" class="btn btn-primary" data-on-click="performSearch()">{{ _('Search') }}</button>
+                                    <button type="button" class="btn btn-outline-secondary" data-on-click="clearSearch()">{{ _('Clear') }}</button>
+                                </div>
+                                <div class="file-analyst-search-command__toggles" role="group" aria-label="{{ _('Search options') }}">
+                                    <label class="file-analyst-search-toggle">
+                                        <input class="form-check-input" type="checkbox" id="caseSensitive" {% if case_sensitive %}checked{% endif %}>
+                                        <span>{{ _('Case') }}</span>
+                                    </label>
+                                    <label class="file-analyst-search-toggle">
+                                        <input class="form-check-input" type="checkbox" id="wholeWord" {% if whole_word %}checked{% endif %}>
+                                        <span>{{ _('Whole word') }}</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="file-analyst-search-results" id="searchResults" style="display: none;">
+                                <span class="badge bg-primary" id="resultCount">{{ _('0 results') }}</span>
+                                <span class="badge bg-info" id="currentMatch">{{ _('Match 0 of 0') }}</span>
+                                <div class="file-analyst-search-results__nav">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="findPrevious()" aria-label="{{ _('Previous match') }}">↑</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" data-on-click="findNext()" aria-label="{{ _('Next match') }}">↓</button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </details>
+            <div class="file-analyst-pane__scroll" id="fileContentScroll">
+                            <!-- Extracted-text pane: pager and reader chrome hide
+                                 with it (they only describe the extraction). -->
+                            <div data-content-pane="extracted">
+                            {% set content_str = content|string if content else '' %}
+                            {% set content_length = content_str|length if content_str else 0 %}
+                            {% set file_type = file[4] if file|length > 4 else '' %}
+                            {% set file_path = file[2] if file|length > 2 else '' %}
+                            {% set file_id = file[0] if file|length > 0 else 0 %}
+                            {% if content_length > 0 %}
+                            {#- data-translatable: the reader may select any part of
+                                this text and ask for a translation; the panel
+                                below the viewer renders it side by side. -#}
+                            <div class="content-viewer" id="contentViewer" 
+                                 data-translatable
+                                 data-file-type="{{ file_type }}" 
+                                 data-file-path="{{ file_path }}"
+                                 data-file-id="{{ file_id }}"
+                                 data-content="{{ content_str|e }}"
+                                 style="width: 100%; overflow-x: auto;">
+                                <div id="contentText" class="formatted-content-wrapper" style="width: 100%; word-wrap: break-word; overflow-wrap: break-word; white-space: pre-wrap;">
+                                    <pre class="content-text" style="white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; margin: 0; padding: 1rem; font-family: inherit;">{{ content_str|e }}</pre>
+                                </div>
+                            </div>
+                            
+                            <!-- Pagination -->
+                            {% if total_pages > 1 %}
+                            <div class="pagination-controls mt-4">
+                                {#- The pager is the shared component: same bar, same
+                                    classes, same behaviour as every other list. The
+                                    links carry the query state this page keeps across
+                                    a page change, so paging while searching continues
+                                    to locate the term. The page-size selector and the
+                                    go-to box below are this page's own chrome. -#}
+                                {% set _pagination_params = {
+                                    'file_id': file_id,
+                                    'per_page': per_page,
+                                    'search': search_query or none,
+                                    'case_sensitive': case_sensitive,
+                                    'whole_word': whole_word,
+                                } %}
+                                {{ unified_pagination(current_page, total_pages, url_for,
+                                                       'files.file_detail', _pagination_params,
+                                                       show_info=false, show_jump=false) }}
+
+                                <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+                                        <label class="form-label mb-0">{{ _('Page size:') }}</label>
+                                        <select class="form-select form-select-sm" style="width: auto;" data-on-change="changePageSize(this.value)">
+                                            <option value="2000" {% if per_page == 2000 %}selected{% endif %}>2,000</option>
+                                            <option value="5000" {% if per_page == 5000 %}selected{% endif %}>5,000</option>
+                                            <option value="10000" {% if per_page == 10000 %}selected{% endif %}>10,000</option>
+                                        </select>
+                                        
+                                        <div class="d-flex align-items-center gap-1">
+                                            <label class="form-label mb-0">{{ _('Go to:') }}</label>
+                                            <input type="number" class="form-control form-control-sm" style="width: 80px;" 
+                                                   id="pageJump" min="1" max="{{ total_pages }}" value="{{ current_page }}"
+                                                   data-on-keypress="if(event.key==='Enter') jumpToPage()">
+                                            <button class="btn btn-sm btn-primary" data-on-click="jumpToPage()">{{ _('Go') }}</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="bi bi-inbox display-4 text-muted"></i>
+                                <h5 class="text-muted mt-3">{{ _('No content available') }}</h5>
+                                <p class="text-muted">{{ _('This file may not have been processed yet, or the content could not be loaded.') }}</p>
+                                {#
+                                   There is no Reprocess here. The link used to
+                                   point at /file/<id>/reprocess, which no route
+                                   ever served, and re-ingesting the stored path
+                                   is refused as a duplicate - so there is no
+                                   operation to offer. The capability is
+                                   registered and reported as not built
+                                   (docs/ACTION_SURFACE_AUDIT.md); a reader is
+                                   not given a button that answers 404.
+                                #}
+                            </div>
+                            {% endif %}
+                            </div><!-- /extracted pane -->
+
+                            <!-- The original/source file (images, PDF pages,
+                                 raw text, or an explicit "not available")
+                                 rendered in the same location, lazily on first
+                                 tab switch — the pop-up viewer, in place. -->
+                            <div class="file-details-content-view" data-content-pane="original"
+                                 style="display: none; position: relative; overflow: auto; min-height: 8rem;">
+                                <div class="content-loading">{{ _('Loading original file...') }}</div>
+                            </div>
+            </div>
+        </section>
+
+        <section class="file-analyst-pane" aria-label="{{ _('Analysis') }}">
+            <div class="file-analyst-pane__head">
+                <h2 class="file-analyst-pane__title"><i class="bi bi-graph-up" aria-hidden="true"></i> {{ _('Analysis') }}</h2>
+            </div>
+            <div class="file-analyst-pane__scroll" id="fileAnalysisScroll">
+                <div class="file-analyst-analysis-stack">
+                    <div id="pageFileAnalysisSummary" class="file-analyst-smart-analysis-slot" aria-live="polite"></div>
+                    <div id="pageFileAnalysisSection" class="file-details-analysis-view file-detail-analysis-rich"></div>
+
+                    {% if enhanced_stats %}
+                    <div class="file-analyst-stats">
+                        <div class="file-text-stat-card">
+                            <div class="file-text-stat-value">{{ enhanced_stats.sentences or 0 }}</div>
+                            <div class="file-text-stat-label">{{ _('Sentences') }}</div>
+                        </div>
+                        <div class="file-text-stat-card">
+                            <div class="file-text-stat-value">{{ enhanced_stats.paragraphs or 0 }}</div>
+                            <div class="file-text-stat-label">{{ _('Paragraphs') }}</div>
+                        </div>
+                        <div class="file-text-stat-card">
+                            <div class="file-text-stat-value">{{ enhanced_stats.characters or 0 }}</div>
+                            <div class="file-text-stat-label">{{ _('Chars') }}</div>
+                        </div>
+                        <div class="file-text-stat-card">
+                            <div class="file-text-stat-value" id="analysisTabWordCount">{{ enhanced_stats.words or 0 }}</div>
+                            <div class="file-text-stat-label">{{ _('Words') }}</div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="file-analyst-stats">
+                        <div class="file-text-stat-card">
+                            <div class="file-text-stat-value" id="analysisTabWordCount">—</div>
+                            <div class="file-text-stat-label">{{ _('Words') }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <details class="file-analyst-expand" open>
+                        <summary><i class="bi bi-pie-chart" aria-hidden="true"></i> {{ _('Classification') }}</summary>
+                        <div class="file-analyst-expand__body">
+                            <div class="chart-container">
+                                <canvas id="classificationChart"></canvas>
+                            </div>
+                            {% if percentages and percentages|length > 0 %}
+                            {% for category, data in percentages.items() %}
+                            {% if loop.index0 < 5 %}
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong>{{ category }}</strong>
+                                    <span class="badge bg-primary">{{ (data.percentage or 0)|round(1) }}%</span>
+                                </div>
+                                <div class="progress"><div class="progress-bar" style="width: {{ data.percentage or 0 }}%"></div></div>
+                            </div>
+                            {% endif %}
+                            {% endfor %}
+                            {% endif %}
+                        </div>
+                    </details>
+
+                    <details class="file-analyst-expand" open>
+                        <summary><i class="bi bi-bar-chart" aria-hidden="true"></i> {{ _('Word frequency') }}</summary>
+                        <div class="file-analyst-expand__body">
+                            {% if word_frequencies %}
+                            <div class="chart-container">
+                                <canvas id="frequencyChart"></canvas>
+                            </div>
+                            {% else %}
+                            <p class="text-muted small mb-0">{{ _('No frequency data available') }}</p>
+                            {% endif %}
+                        </div>
+                    </details>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    {#- Manual translation of a selection: below the two panes, full width. It
+        cannot live inside the content pane - that pane is a fixed-height
+        scroll box, and the panel would be clipped. -#}
+    {% include 'Translation/_selection_panel.html' %}
+
+    {{ file_nav_dock(nav) }}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% from 'components/confirm_dialog.html' import confirm_dialog %}
+{#- The question the record action surface asks before it deletes a record. The
+    runtime renders it and the page performs the operation; the words are the
+    page's, and the action it belongs to is named by id so the audit can see
+    the two agree. -#}
+{{ confirm_dialog(id='fileDeleteDialog',
+                  title=_('Delete this file?'),
+                  message=_('This permanently removes the record and everything extracted from it. The original file on disk is not touched.'),
+                  scope_label=_('File'),
+                  confirm_label=_('Delete file'),
+                  cancel_label=_('Keep it'),
+                  dangerous=True,
+                  action='files.delete',
+                  confirmation_key='action.files.delete.confirm') }}
+{% set file_id = file[0] if file is defined and file else 0 %}
+{% set file_name = file[1] if file is defined and file and file|length > 1 else '' %}
+{#-
+   The labels on the record action surface are the Action Registry's own source
+   strings, translated at render time (`_(action.label)` in the component), so
+   this template does not restate them: one owner for a label, or the same
+   action reads differently on two screens. The catalogs carry those strings
+   against the registry (see its `source=` values).
+-#}
+{% set current_page_val = current_page|default(1) %}
+{% set total_pages_val = total_pages|default(0) %}
+{% set per_page_val = per_page|default(20) %}
+{% set total_chars_val = total_chars|default(0) %}
+{% set search_query_val = search_query|default('') %}
+{% set case_sensitive_val = case_sensitive|default(False) %}
+{% set whole_word_val = whole_word|default(False) %}
+{% set percentages_val = percentages|default({}) %}
+{% set word_frequencies_val = word_frequencies|default([]) %}
+<script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
+<script type="application/json" id="file-detail-page-data">{{ {
+    "fileId": file_id,
+    "fileName": file_name,
+    "currentPage": current_page_val,
+    "totalPages": total_pages_val,
+    "perPage": per_page_val,
+    "totalChars": total_chars_val,
+    "searchQuery": search_query_val,
+    "caseSensitive": case_sensitive_val,
+    "wholeWord": whole_word_val,
+    "percentages": percentages_val,
+    "wordFrequencies": word_frequencies_val,
+    "translations": {
+        "noMatches": _('No matches'),
+        "noResults": _('0 results'),
+        "matchesFound": _('{count} matches in document'),
+        "matchOf": _('Match {current} of {total}'),
+        "onLine": _(' · line {line}'),
+        "slideLabel": _(' · Slide {n}'),
+        "pageLabel": _(' · Page {n}'),
+        "slidesNavLabel": _('Slides'),
+        "previousSlideLabel": _('Previous slide'),
+        "nextSlideLabel": _('Next slide'),
+        "sheetsNavLabel": _('Sheets'),
+        "chartLibraryNotLoaded": _('Chart library not loaded'),
+        "noDataAvailable": _('No data available'),
+        "noFrequencyDataAvailable": _('No frequency data available'),
+        "invalidDataFormat": _('Invalid data format'),
+        "noValidFrequencyData": _('No valid frequency data'),
+        "contentCopiedToClipboard": _('Content copied to clipboard!'),
+        "shareLinkCopiedToClipboard": _('Share link copied to clipboard!'),
+        "error": _('Error'),
+        "errorLoadingFileDetails": _('Error loading file details'),
+        "loadingMetadata": _('Loading metadata...'),
+        "noMetadataAvailable": _('No metadata available'),
+        "fileName": _('File Name'),
+        "fileType": _('File Type'),
+        "fileSize": _('File Size'),
+        "status": _('Status'),
+        "fileDate": _('File Date'),
+        "dateCreated": _('Date Created'),
+        "source": _('Source'),
+        "side": _('Side'),
+        "wordCount": _('Word Count'),
+        "contentChunks": _('Content Chunks'),
+        "processingStatus": _('Processing Status'),
+        "hierarchyPath": _('Origin'),
+        "ocrProvenance": _('OCR Provenance'),
+        "filePath": _('File Path'),
+        "hash": _('Content Hash'),
+        "fileId": _('File ID'),
+        "analystCategories": _('Analyst Categories'),
+        "smartCategories": _('Smart Categories'),
+        "geoMentions": _('Places Mentioned'),
+        "coordinates": _('Coordinates'),
+        "processingError": _('Processing Error'),
+        "morePlaces": _('more'),
+        "lineage": _('Contained In / Contains'),
+        "containedIn": _('Contained in'),
+        "topLevelObject": _('Top-level object'),
+        "contains": _('Contains'),
+        "lineageUnavailable": _('Lineage partially unavailable'),
+        "documentAnalysis": _('Document analysis'),
+        "errorLoadingAnalysis": _('Could not load analysis'),
+        "titleAnalysis": _('Title Analysis'),
+        "fileTitle": _('File Title'),
+        "similarTitles": _('Similar Titles')
+    }
+}|tojson|safe }}</script>
+{#- file-detail-page.js is loaded by universal-initializer.js (full load + soft-nav). -#}
+{% from 'components/analyst_classify_page_data.html' import analyst_classify_page_data %}
+{{ analyst_classify_page_data(current_user.is_authenticated and current_user.has_role('admin', 'analyst')) }}
+<script type="module" src="{{ url_for('static', filename='js/modules/analyst-classify.js') }}"></script>
+{% endblock %}
+
+

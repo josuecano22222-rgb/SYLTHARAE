@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('File Classification Analysis') }} - {{ _('File Analysis System') }}{% endblock %}
+
+{% block extra_css %}
+<link href="{{ url_for('static', filename='css/file-classification.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">
+                <i class="bi bi-file-earmark-text me-2"></i>
+                {{ _('File Classification Analysis') }}
+            </h1>
+        </div>
+    </div>
+
+    <!-- Analysis View Navigation -->
+    <div class="analysis-view-navigation section-card">
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ url_for('archives_page') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'archives_page' %}active{% endif %}" data-view="file">
+                <i class="bi bi-archive"></i> {{ _('File Analysis') }}
+            </a>
+            <a href="{{ url_for('path_analysis_page') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'path_analysis_page' %}active{% endif %}" data-view="path">
+                <i class="bi bi-briefcase"></i> {{ _('Path Analysis') }}
+            </a>
+            <a href="{{ url_for('analysis_batch') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'analysis_batch' %}active{% endif %}" data-view="batch">
+                <i class="bi bi-lightning-charge"></i> {{ _('Batch Analysis') }}
+            </a>
+            <a href="{{ url_for('file_classification_page') }}" class="btn btn-outline-primary analysis-view-btn {% if request.endpoint == 'file_classification_page' %}active{% endif %}" data-view="classification">
+                <i class="bi bi-file-earmark-text"></i> {{ _('Classification') }}
+            </a>
+        </div>
+    </div>
+    
+    <!-- Page Tips -->
+    {% from 'components/page_tips.html' import page_tips %}
+        {% call page_tips() %}
+
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-file-earmark-text"></i>
+            {{ _('File Classification Overview') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('File Classification automatically categorizes files based on their content and characteristics') }}</li>
+            <li>{{ _('Analyze individual files or entire folders to classify them into categories') }}</li>
+            <li>{{ _('View classification results with confidence scores and suggested categories') }}</li>
+            <li>{{ _('Review and adjust classifications to improve accuracy over time') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-folder"></i>
+            {{ _('Analysis Modes') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('Folder Analysis: Analyze all files in a directory and its subdirectories') }}</li>
+            <li>{{ _('File Analysis: Analyze a specific file by entering its path or ID') }}</li>
+            <li>{{ _('Text Classification: Classify text content directly without uploading files') }}</li>
+            <li>{{ _('Each mode provides different options and output formats') }}</li>
+        </ul>
+    </div>
+    <div class="tips-section">
+        <div class="tips-section-title">
+            <i class="bi bi-graph-up"></i>
+            {{ _('Classification Results') }}
+        </div>
+        <ul class="tips-list">
+            <li>{{ _('View classification statistics showing distribution across categories') }}</li>
+            <li>{{ _('See confidence scores indicating how certain the system is about each classification') }}</li>
+            <li>{{ _('Review detailed results for each file including suggested categories and keywords') }}</li>
+            <li>{{ _('Export classification results for further analysis or reporting') }}</li>
+        </ul>
+    </div>
+{% endcall %}
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p id="loadingText">{{ _('Processing...') }}</p>
+        </div>
+    </div>
+    
+    <!-- Statistics -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div class="stat-card">
+            <div class="stat-card-value" id="statTotalFiles">{{ stats.get('total_files', 0) }}</div>
+            <div class="stat-card-title">{{ _('Total Files') }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-value" id="statAnalyzedFiles">{{ stats.get('analyzed_files', 0) }}</div>
+            <div class="stat-card-title">{{ _('Analyzed Files') }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-value" id="statCategories">{{ stats.get('total_categories', 0) }}</div>
+            <div class="stat-card-title">{{ _('Categories') }}</div>
+        </div>
+    </div>
+    
+    <!-- Analysis Tabs -->
+    <div class="analysis-tabs">
+        <button class="analysis-tab active" data-panel="folder">
+            <i class="bi bi-folder"></i> {{ _('Folder Analysis') }}
+        </button>
+        <button class="analysis-tab" data-panel="file">
+            <i class="bi bi-file-earmark"></i> {{ _('File Analysis') }}
+        </button>
+        <button class="analysis-tab" data-panel="database">
+            <i class="bi bi-database"></i> {{ _('Database Analysis') }}
+        </button>
+    </div>
+    
+    <!-- Folder Analysis Panel -->
+    <div id="panel-folder" class="analysis-panel active">
+        <div class="control-panel">
+            <h3><i class="bi bi-folder"></i> {{ _('Folder Analysis') }}</h3>
+            <p class="text-muted">{{ _('Analyze and classify all files in a specific folder') }}</p>
+            
+            <div class="mb-3">
+                <label class="form-label"><strong>{{ _('Folder Path:') }}</strong></label>
+                <input type="text" id="folderPathInput" class="form-control" 
+                       placeholder="{{ _('Enter full folder path (e.g., C:\\Users\\Documents or /home/user/documents)') }}"
+                       autocomplete="off">
+                <small class="text-muted">{{ _('Enter the complete path to the folder you want to analyze') }}</small>
+            </div>
+            
+            <div class="method-selector">
+                <label class="form-label"><strong>{{ _('Classification Method:') }}</strong></label>
+                <div class="method-option active" data-method="rule_based">
+                    <i class="bi bi-list-check"></i> {{ _('Rule-Based') }}
+                </div>
+                <div class="method-option" data-method="ml">
+                    <i class="bi bi-cpu"></i> {{ _('Machine Learning') }}
+                </div>
+                <div class="method-option" data-method="deep_learning">
+                    <i class="bi bi-diagram-3"></i> {{ _('Deep Learning') }}
+                </div>
+                <div class="method-option" data-method="ensemble">
+                    <i class="bi bi-stack"></i> {{ _('Ensemble') }}
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" data-on-click="analyzeFolder()">
+                <i class="bi bi-play-circle"></i> {{ _('Analyze Folder') }}
+            </button>
+        </div>
+        
+        <div id="folderResults" class="results-section" style="display: none;"></div>
+    </div>
+    
+    <!-- File Analysis Panel -->
+    <div id="panel-file" class="analysis-panel">
+        <div class="control-panel">
+            <h3><i class="bi bi-file-earmark"></i> {{ _('File Analysis') }}</h3>
+            <p class="text-muted">{{ _('Analyze and classify a single file by content and title') }}</p>
+            
+            <div class="mb-3">
+                <label class="form-label"><strong>{{ _('File ID:') }}</strong></label>
+                <input type="number" id="fileIdInput" class="form-control" placeholder="{{ _('Enter file ID') }}">
+            </div>
+            
+            <div class="method-selector">
+                <label class="form-label"><strong>{{ _('Classification Method:') }}</strong></label>
+                <div class="method-option active" data-method="rule_based">
+                    <i class="bi bi-list-check"></i> {{ _('Rule-Based') }}
+                </div>
+                <div class="method-option" data-method="ml">
+                    <i class="bi bi-cpu"></i> {{ _('Machine Learning') }}
+                </div>
+                <div class="method-option" data-method="deep_learning">
+                    <i class="bi bi-diagram-3"></i> {{ _('Deep Learning') }}
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" data-on-click="analyzeFile()">
+                <i class="bi bi-search"></i> {{ _('Analyze File') }}
+            </button>
+        </div>
+        
+        <div id="fileResults" class="results-section" style="display: none;"></div>
+    </div>
+    
+    <!-- Database Analysis Panel -->
+    <div id="panel-database" class="analysis-panel">
+        <div class="control-panel">
+            <h3><i class="bi bi-database"></i> {{ _('Database Analysis') }}</h3>
+            <p class="text-muted">{{ _('Analyze and classify files across the entire database') }}</p>
+            
+            <div class="mb-3">
+                <label class="form-label"><strong>{{ _('Limit:') }}</strong></label>
+                <input type="number" id="dbLimitInput" class="form-control" value="1000" min="1" max="10000">
+                <small class="text-muted">{{ _('Maximum number of files to analyze (1-10000)') }}</small>
+            </div>
+            
+            <div class="method-selector">
+                <label class="form-label"><strong>{{ _('Classification Method:') }}</strong></label>
+                <div class="method-option active" data-method="rule_based">
+                    <i class="bi bi-list-check"></i> {{ _('Rule-Based') }}
+                </div>
+                <div class="method-option" data-method="ml">
+                    <i class="bi bi-cpu"></i> {{ _('Machine Learning') }}
+                </div>
+                <div class="method-option" data-method="deep_learning">
+                    <i class="bi bi-diagram-3"></i> {{ _('Deep Learning') }}
+                </div>
+            </div>
+            
+            <button class="btn btn-primary" data-on-click="analyzeDatabase()">
+                <i class="bi bi-play-circle"></i> {{ _('Analyze Database') }}
+            </button>
+        </div>
+        
+        <div id="databaseResults" class="results-section" style="display: none;"></div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/chart.umd.js') }}"></script>
+<script type="module" src="{{ url_for('static', filename='js/pages/file-classification-page.js') }}"></script>
+{% endblock %}
+

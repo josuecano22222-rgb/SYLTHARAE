@@ -1,0 +1,305 @@
+/**
+ * Document analysis chip summary — Categories / Category terms / Keywords.
+ */
+
+.doc-analysis-summary {
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 0.5rem;
+    background: var(--card-bg, #f8fafc);
+    color: var(--text-dark, #1e293b);
+    min-height: 0;
+    max-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+}
+
+.doc-analysis-summary.loading,
+.doc-analysis-summary.error,
+.doc-analysis-summary.empty {
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+}
+
+.doc-analysis-summary.error {
+    color: var(--danger, #b91c1c);
+    border-color: rgba(185, 28, 28, 0.25);
+    background: #fef2f2;
+}
+
+.doc-analysis-heading {
+    font-weight: 650;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--text-muted, #64748b);
+    margin-bottom: 0.55rem;
+}
+
+.doc-analysis-row {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 8.5rem) minmax(0, 1fr);
+    gap: 0.35rem 0.75rem;
+    align-items: start;
+    margin-bottom: 0.45rem;
+}
+
+.doc-analysis-row:last-child {
+    margin-bottom: 0;
+}
+
+.doc-analysis-label {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-dark, #334155);
+    padding-top: 0.15rem;
+}
+
+.doc-analysis-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem 0.15rem;
+    min-width: 0;
+    max-width: 100%;
+    line-height: 1.45;
+}
+
+.doc-analysis-chip {
+    display: inline-block;
+    max-width: 100%;
+    padding: 0.12rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-color, #cbd5e1);
+    background: #fff;
+    font-size: 0.78rem;
+    color: var(--text-dark, #0f172a);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.doc-analysis-sep {
+    color: var(--text-muted, #94a3b8);
+    padding: 0 0.1rem;
+    user-select: none;
+}
+
+.doc-analysis-empty {
+    font-size: 0.8rem;
+    color: var(--text-muted, #94a3b8);
+    font-style: italic;
+}
+
+/* Stacked lanes (file detail uses richer overrides in file-details-inspector.css) */
+.doc-analysis-summary--stacked .doc-analysis-lanes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+
+.doc-analysis-summary--stacked .doc-analysis-lane {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+    gap: 0.35rem 0.5rem;
+    padding: 0.4rem 0.45rem;
+    border-radius: 0.4rem;
+    border: 1px solid var(--border-color, #e2e8f0);
+    background: #fff;
+}
+
+.doc-analysis-summary--stacked .doc-analysis-lane__icon {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 0.05rem;
+    color: var(--text-muted, #64748b);
+}
+
+.doc-analysis-summary--stacked .doc-analysis-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-bottom: 0.15rem;
+}
+
+.doc-analysis-summary--stacked .doc-analysis-sep {
+    display: none;
+}
+
+/* Document status (modal + detail): pills + full classification lanes */
+.doc-document-status {
+    padding: 0.65rem 0.75rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.doc-document-status .doc-status-header {
+    margin-bottom: 0.55rem;
+}
+
+.doc-document-status .doc-status-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+}
+
+.doc-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: #334155;
+    max-width: 100%;
+    line-height: 1.25;
+}
+
+.doc-status-pill .bi {
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.doc-status-pill--success {
+    border-color: #bbf7d0;
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.doc-status-pill--success .bi {
+    color: #059669;
+}
+
+.doc-status-pill--danger {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.doc-status-pill--danger .bi {
+    color: #dc2626;
+}
+
+.doc-document-status .doc-analysis-lane--analyst {
+    border-color: #ddd6fe;
+    background: #faf5ff;
+}
+
+.doc-document-status .doc-analysis-lane--analyst .doc-analysis-lane__icon {
+    color: #7c3aed;
+}
+
+.doc-document-status .doc-analysis-lane--smart {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+}
+
+.doc-document-status .doc-analysis-lane--title {
+    border-color: #e2e8f0;
+    background: #fff;
+}
+
+.doc-status-text {
+    font-size: 0.8125rem;
+    color: #0f172a;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.doc-status-fetch-note {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    color: var(--danger, #b91c1c);
+}
+
+#fileModal .file-document-status-panel .doc-document-status {
+    max-height: none;
+}
+
+#fileModal .file-modal-panel--status:not(.is-collapsed) .file-document-status-panel {
+    max-height: min(42vh, 22rem);
+}
+
+/* Selection analysis dialog */
+.doc-analysis-dialog[hidden] {
+    display: none !important;
+}
+
+.doc-analysis-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 1090;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.doc-analysis-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.doc-analysis-dialog-panel {
+    position: relative;
+    z-index: 1;
+    width: min(36rem, 100%);
+    max-height: min(80vh, 40rem);
+    overflow: auto;
+    background: var(--card-bg, #fff);
+    border-radius: 0.65rem;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.28);
+    padding: 1rem 1.1rem 1.15rem;
+}
+
+.doc-analysis-dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.doc-analysis-dialog-header h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.doc-analysis-dialog-close {
+    border: 0;
+    background: transparent;
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-muted, #64748b);
+}
+
+@media (max-width: 640px) {
+    .doc-analysis-row {
+        grid-template-columns: 1fr;
+        gap: 0.2rem;
+    }
+
+    .doc-analysis-dialog {
+        padding: 0.5rem;
+        align-items: stretch;
+    }
+
+    .doc-analysis-dialog-panel {
+        width: 100%;
+        max-height: min(92dvh, 92vh);
+    }
+}
+
+@media (max-height: 560px) {
+    .doc-analysis-dialog-panel {
+        max-height: min(96dvh, 96vh);
+    }
+}

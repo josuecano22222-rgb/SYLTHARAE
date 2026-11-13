@@ -1,0 +1,225 @@
+# enwiki title<TAB>feature_type - the input list for tools/gazetteer/wikidata_query.rq.
+# feature_type is a curated classification (city|country|region), not a Wikidata value.
+Nairobi	city
+Mombasa	city
+Lagos	city
+Abuja	city
+Cairo	city
+Johannesburg	city
+Cape Town	city
+Durban	city
+Dar es Salaam	city
+Addis Ababa	city
+Casablanca	city
+Accra	city
+Tunis	city
+Algiers	city
+Kampala	city
+Kigali	city
+Dubai	city
+Abu Dhabi	city
+Doha	city
+Riyadh	city
+Jeddah	city
+Tel Aviv	city
+Istanbul	city
+Beirut	city
+Tokyo	city
+Osaka	city
+Yokohama	city
+Shanghai	city
+Beijing	city
+Shenzhen	city
+Guangzhou	city
+Hong Kong	region
+Singapore	country
+Seoul	city
+Busan	city
+Mumbai	city
+New Delhi	city
+Bengaluru	city
+Chennai	city
+Kolkata	city
+Bangkok	city
+Jakarta	city
+Kuala Lumpur	city
+Manila	city
+Ho Chi Minh City	city
+Hanoi	city
+Karachi	city
+Colombo	city
+Dhaka	city
+Taipei	city
+London	city
+Manchester	city
+Paris	city
+Marseille	city
+Berlin	city
+Hamburg	city
+Frankfurt	city
+Munich	city
+Rotterdam	city
+Amsterdam	city
+Antwerp	city
+Brussels	city
+Madrid	city
+Barcelona	city
+Valencia	city
+Lisbon	city
+Rome	city
+Milan	city
+Genoa	city
+Athens	city
+Piraeus	city
+Zurich	city
+Geneva	city
+Vienna	city
+Warsaw	city
+Gdańsk	city
+Prague	city
+Copenhagen	city
+Stockholm	city
+Gothenburg	city
+Oslo	city
+Helsinki	city
+Dublin	city
+Moscow	city
+Saint Petersburg	city
+New York City	city
+Los Angeles	city
+Chicago	city
+Houston	city
+Miami	city
+Boston	city
+Seattle	city
+San Francisco	city
+Oakland, California	city
+Long Beach, California	city
+Savannah, Georgia	city
+Charleston, South Carolina	city
+Norfolk, Virginia	city
+Newark, New Jersey	city
+Atlanta	city
+Dallas	city
+Denver	city
+Toronto	city
+Vancouver	city
+Montreal	city
+Mexico City	city
+Panama City	city
+São Paulo	city
+Rio de Janeiro	city
+Santos, São Paulo	city
+Buenos Aires	city
+Santiago	city
+Bogotá	city
+Lima	city
+Sydney	city
+Melbourne	city
+Brisbane	city
+Perth	city
+Auckland	city
+Jerusalem	city
+Haifa	city
+Gaza City	city
+Ramallah	city
+Nablus	city
+Hebron	city
+Amman	city
+Damascus	city
+Aleppo	city
+Baghdad	city
+Basra	city
+Mosul	city
+Erbil	city
+Kuwait City	city
+Manama	city
+Muscat	city
+Sanaa	city
+Aden	city
+Mecca	city
+Medina	city
+Tehran	city
+Isfahan	city
+Mashhad	city
+Shiraz	city
+Tabriz	city
+Qom	city
+Ahvaz	city
+Kabul	city
+Herat	city
+Ankara	city
+Alexandria	city
+Tripoli, Libya	city
+Tripoli, Lebanon	city
+Benghazi	city
+Khartoum	city
+Sidon	city
+Tyre, Lebanon	city
+Eilat	city
+Beersheba	city
+Nazareth	city
+Zagreb	city
+Split, Croatia	city
+Rijeka	city
+Osijek	city
+Zadar	city
+Dubrovnik	city
+Pula	city
+Šibenik	city
+Varaždin	city
+Sarajevo	city
+Mostar	city
+Belgrade	city
+Ljubljana	city
+Budapest	city
+Podgorica	city
+Skopje	city
+Venice	city
+Trieste	city
+Alexandria, Virginia	city
+Valencia, Venezuela	city
+Perth, Scotland	city
+Hyderabad	city
+Córdoba, Spain	city
+Córdoba, Argentina	city
+Egypt	country
+Israel	country
+Palestine	country
+Lebanon	country
+Syria	country
+Jordan	country
+Iraq	country
+Iran	country
+Saudi Arabia	country
+Yemen	country
+Oman	country
+United Arab Emirates	country
+Qatar	country
+Bahrain	country
+Kuwait	country
+Turkey	country
+Libya	country
+Tunisia	country
+Algeria	country
+Morocco	country
+Sudan	country
+Afghanistan	country
+Croatia	country
+Bosnia and Herzegovina	country
+Serbia	country
+Slovenia	country
+Montenegro	country
+Hungary	country
+Italy	country
+Germany	country
+France	country
+United Kingdom	country
+United States	country
+Russia	country
+China	country
+Ukraine	country
+Georgia (country)	country
+Georgia (U.S. state)	region
+Gaza Strip	region
+West Bank	region
