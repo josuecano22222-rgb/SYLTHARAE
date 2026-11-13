@@ -12,6 +12,7 @@ IntegratedFileReader``) with:
 
 No argparse / input() / print / exit codes — that belongs to adapters.
 """
+import logging
 import os
 import threading
 from dataclasses import dataclass, field
@@ -26,6 +27,27 @@ from core.path_safety import (
 from services.ingesting.options import IngestionOptions, IngestionRequest  # noqa: F401
 
 from core.errors import ClientSafeError
+
+logger = logging.getLogger(__name__)
+
+
+def _file_list_anchor(paths: List[str]) -> str:
+    """A stable root folder for a batch of files.
+
+    A file-list ingestion has no single root folder, but ``CheckpointManager``
+    needs one: it validates a resumed checkpoint against the folder it was
+    written for. The longest common ancestor of the batch is stable for the
+    same selection of files, which is exactly the case a retry represents.
+    """
+    resolved = [str(Path(p).resolve()) for p in paths if p]
+    if not resolved:
+        return str(Path.cwd())
+    try:
+        return os.path.commonpath([os.path.dirname(p) for p in resolved])
+    except ValueError:
+        # Mixed drives (Windows) or mixed absolute/relative input: the batch
+        # cannot have one real ancestor, so anchor on the first file's folder.
+        return os.path.dirname(resolved[0]) or str(Path.cwd())
 
 
 class IngestionValidationError(ClientSafeError, ValueError):
@@ -487,7 +509,8 @@ class IngestionService:
         import hashlib
 
         policy = request.options.checkpoint if request.options else "auto"
-        if policy == "off" or not request.path:
+        file_paths = [str(p) for p in (request.file_paths or [])]
+        if policy == "off" or (not request.path and not file_paths):
             return None
         try:
             from core.app_paths import get_checkpoints_dir
@@ -496,7 +519,19 @@ class IngestionService:
         except Exception:
             ckpt_dir = Path("data/checkpoints")
         ckpt_dir.mkdir(parents=True, exist_ok=True)
-        digest = hashlib.sha256(str(Path(request.path).resolve()).encode()).hexdigest()[:16]
+
+        if request.path:
+            digest = hashlib.sha256(
+                str(Path(request.path).resolve()).encode()
+            ).hexdigest()[:16]
+        else:
+            # A batch of files has no root folder to hash, so its identity is
+            # the work set itself. The same selection - which is what a retry
+            # of an interrupted batch submits - therefore reaches the same
+            # checkpoint and resumes instead of restarting. The list is sorted
+            # so re-ordering the same files does not invalidate the checkpoint.
+            resolved = sorted(str(Path(p).resolve()) for p in file_paths)
+            digest = hashlib.sha256("\n".join(resolved).encode()).hexdigest()[:16]
         path = ckpt_dir / f"checkpoint_{digest}_{request.source}_{request.side}.json"
         if policy == "fresh":
             # A fresh run must forget everything: the snapshot, its append-only
@@ -519,16 +554,87 @@ class IngestionService:
 
     def _run_file_list(self, reader, request: IngestionRequest) -> List[Dict[str, Any]]:
         """Process an explicit file list through the engine workers."""
+        # Built with the engine's own metadata helper, on purpose. The
+        # checkpoint identifies a file by the fields it produces (path,
+        # 'modified', size, mtime); a hand-rolled dict with different fields
+        # hashes to a different identifier at check time than at mark time,
+        # and every file would look new again on the retry.
         files = []
         for p in request.file_paths:
             fp = Path(p)
-            files.append({
-                "path": str(fp),
-                "name": fp.name,
-                "extension": fp.suffix.lower(),
-                "size_bytes": fp.stat().st_size if fp.exists() else 0,
-                "type": "FILE",
-            })
+            try:
+                from core.file_utils import get_standardized_metadata
+
+                # compute_hash=False: hashing happens once, in the store stage
+                # (same reason ``iter_tree`` passes False for folder runs).
+                info = get_standardized_metadata(str(fp), compute_hash=False)
+            except Exception:
+                info = None
+            if not info:
+                # Keep one record per submitted path so the work total, and
+                # therefore the progress bar, stays honest.
+                info = {
+                    "path": str(fp),
+                    "name": fp.name,
+                    "extension": fp.suffix.lower(),
+                    "size_bytes": fp.stat().st_size if fp.exists() else 0,
+                    "type": "FILE",
+                }
+            files.append(info)
+
+        # ------------------------------------------------------------------
+        # Resume support for batches.
+        #
+        # Checkpoint setup used to live only in ``process_folder``, which a
+        # file-list run never enters, so an interrupted batch had no checkpoint
+        # at all and every retry redid it from the first file. The checkpoint
+        # file is derived from the work set in ``_checkpoint_file``; attaching
+        # the manager here makes ``process_single_file`` mark each stored file
+        # and lets the skip below consult it.
+        #
+        # Scope: this checkpoints the batch's own files. ``process_single_file``
+        # deliberately clears the per-container checkpoint base on every call
+        # (a single file must not inherit a previous run's base), so the members
+        # *inside* an archive in a batch do not get their own member
+        # checkpoint. That costs little: the container itself is marked once it
+        # is stored, so a retry skips the container and never re-extracts it.
+        # ------------------------------------------------------------------
+        checkpoint_manager = None
+        checkpoint_file = getattr(reader, "checkpoint_file", None)
+        if checkpoint_file:
+            try:
+                from core.checkpoint_manager import CheckpointManager
+
+                checkpoint_manager = CheckpointManager(
+                    checkpoint_file=checkpoint_file,
+                    folder_path=_file_list_anchor([f["path"] for f in files]),
+                    storage_source=request.source,
+                    storage_side=request.side,
+                    auto_save_interval=50,
+                )
+                reader.checkpoint_manager = checkpoint_manager
+                logger.info("Checkpoint manager initialized: %s", checkpoint_file)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to initialize checkpoint manager: %s. "
+                    "Continuing without resume support.", exc,
+                )
+                checkpoint_manager = None
+
+        skipped_count = 0
+        if checkpoint_manager is not None:
+            remaining = []
+            for file_info in files:
+                if checkpoint_manager.is_processed(file_info):
+                    skipped_count += 1
+                else:
+                    remaining.append(file_info)
+            files = remaining
+            if skipped_count:
+                logger.info(
+                    "Resuming: skipping %d already processed file(s), %d remaining",
+                    skipped_count, len(files),
+                )
 
         # PROGRESS: register the whole list up front. This used to write
         # ``_processing_stats["total"]`` *after* the loop finished, so every
@@ -536,6 +642,12 @@ class IngestionService:
         ledger = getattr(reader, "progress_ledger", None)
         if ledger is not None:
             ledger.add_discovered(len(files), key=f"list::{id(request)}", initial=True)
+            if skipped_count:
+                # Already-terminal work: counted in the denominator but never
+                # handed to a worker, so the bar can still reach a real 100%.
+                from pipeline.progress_ledger import OUTCOME_SKIPPED
+
+                ledger.record(OUTCOME_SKIPPED, skipped_count)
         reader._set_current(phase="Processing files")
         reader._notify_progress()
 
@@ -543,14 +655,23 @@ class IngestionService:
         # Single worker per file keeps per-file results identical to the
         # engine's own semantics; concurrency comes from the engine's batch
         # path for folder jobs and from job-level concurrency for lists.
-        for file_info in files:
-            if reader._control_requested():
-                break
-            reader._set_current(file_path=file_info["path"])
-            res = reader.process_single_file(file_info["path"])
-            if res:
-                results.append(res)
-            reader._notify_progress()
+        try:
+            for file_info in files:
+                if reader._control_requested():
+                    break
+                reader._set_current(file_path=file_info["path"])
+                res = reader.process_single_file(file_info["path"])
+                if res:
+                    results.append(res)
+                reader._notify_progress()
+        finally:
+            if checkpoint_manager is not None:
+                # Persist what this run completed - including when it was
+                # cancelled or paused - so the next retry does not redo it.
+                try:
+                    checkpoint_manager.finalize()
+                except Exception as exc:
+                    logger.warning("Checkpoint finalize failed (non-critical): %s", exc)
 
         # Anything not reached (cancel/pause) is terminal work, not pending.
         # abandon() rather than record(): these paths are already counted in the
