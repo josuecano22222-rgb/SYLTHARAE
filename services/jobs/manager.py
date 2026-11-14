@@ -727,9 +727,34 @@ class JobManager:
                     logger.debug("issue registry persist failed", exc_info=True)
                 issue_registry.clear_dirty()
 
-        return IngestionService().run(
-            request, progress_cb=wrapped, issue_registry=issue_registry
-        )
+        # Control flags, wired the way the "ingestion" job type wires them.
+        # Without these a batch_import ran with cancel_cb and pause_cb unset,
+        # so the control sentinel polled nothing and no engine was registered
+        # for a direct signal: a batch import could be neither cancelled nor
+        # paused, and the operator's only way out was to restart the server.
+        def control_flag(column):
+            def _check():
+                try:
+                    current = mgr.repo.get(job_id)
+                    return bool(current and current.get(column))
+                except Exception:
+                    return False
+            return _check
+
+        def engine_cb(reader):
+            mgr.register_engine(job_id, reader)
+
+        try:
+            return IngestionService().run(
+                request,
+                progress_cb=wrapped,
+                cancel_cb=control_flag("cancellation_requested"),
+                pause_cb=control_flag("pause_requested"),
+                engine_cb=engine_cb,
+                issue_registry=issue_registry,
+            )
+        finally:
+            mgr.unregister_engine(job_id)
 
     # ------------------------------------------------------------------
     # Control operations (spec sections 11/12/21)
