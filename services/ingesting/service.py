@@ -521,16 +521,22 @@ class IngestionService:
         ckpt_dir.mkdir(parents=True, exist_ok=True)
 
         if request.path:
-            digest = hashlib.sha256(
-                str(Path(request.path).resolve()).encode()
-            ).hexdigest()[:16]
+            # safe_resolve() rather than .resolve(): a path that cannot be
+            # resolved (Windows MAX_PATH, a vanished mount) must still produce
+            # a stable identity, and every side of the checkpoint must use the
+            # same fallback or the hashes diverge.
+            from core.checkpoint_manager import safe_resolve
+
+            digest = hashlib.sha256(safe_resolve(request.path).encode()).hexdigest()[:16]
         else:
             # A batch of files has no root folder to hash, so its identity is
             # the work set itself. The same selection - which is what a retry
             # of an interrupted batch submits - therefore reaches the same
             # checkpoint and resumes instead of restarting. The list is sorted
             # so re-ordering the same files does not invalidate the checkpoint.
-            resolved = sorted(str(Path(p).resolve()) for p in file_paths)
+            from core.checkpoint_manager import safe_resolve
+
+            resolved = sorted(safe_resolve(p) for p in file_paths)
             digest = hashlib.sha256("\n".join(resolved).encode()).hexdigest()[:16]
         path = ckpt_dir / f"checkpoint_{digest}_{request.source}_{request.side}.json"
         if policy == "fresh":
@@ -639,15 +645,28 @@ class IngestionService:
         # PROGRESS: register the whole list up front. This used to write
         # ``_processing_stats["total"]`` *after* the loop finished, so every
         # snapshot taken during the run had total=0 and rendered as 0%.
+        #
+        # Each file is registered under the key process_single_file() will use
+        # for it (``single::<path>``). add_discovered() reconciles by key, so
+        # the engine's own registration of that file collapses into this one
+        # (delta 0) instead of adding a second unit. Registering the batch
+        # under its own key double-counted every file-list run: the ledger held
+        # N (batch) + N (per file), so files_total was roughly twice the real
+        # count and completed work overshot the denominator.
         ledger = getattr(reader, "progress_ledger", None)
         if ledger is not None:
-            ledger.add_discovered(len(files), key=f"list::{id(request)}", initial=True)
+            for file_info in files:
+                ledger.add_discovered(1, key=f"single::{file_info['path']}")
             if skipped_count:
                 # Already-terminal work: counted in the denominator but never
                 # handed to a worker, so the bar can still reach a real 100%.
                 from pipeline.progress_ledger import OUTCOME_SKIPPED
 
                 ledger.record(OUTCOME_SKIPPED, skipped_count)
+            # Mark the top-level workload now that the whole batch is known.
+            # A zero-count registration only records the *initial* size, so it
+            # does not add to the total.
+            ledger.add_discovered(0, key=f"list::{id(request)}", initial=True)
         reader._set_current(phase="Processing files")
         reader._notify_progress()
 

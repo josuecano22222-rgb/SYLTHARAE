@@ -246,12 +246,12 @@ def test_batch_resumes_after_hard_kill(checkpoints_in_tmp, tmp_path):
 
 
 def test_batch_resume_progress_accounting_is_honest(checkpoints_in_tmp, tmp_path):
-    """A resumed batch settles every unit, so the bar can still reach 100%.
+    """A resumed batch settles every unit and reports the real file count.
 
-    Note: ``files_total`` is *not* asserted here. ``_run_file_list`` registers
-    the batch up front and ``process_single_file`` registers each file again,
-    which inflates the denominator on every file-list run - a pre-existing
-    issue, independent of checkpointing, and not what this test is about.
+    ``_run_file_list`` registers the batch up front and each
+    ``process_single_file`` registers its own file; before the fix those were
+    counted separately, so ``files_total`` came out at roughly twice the real
+    number of files.
     """
     from pipeline.progress_ledger import OUTCOME_SKIPPED
     from services.ingesting.service import IngestionService
@@ -274,8 +274,11 @@ def test_batch_resume_progress_accounting_is_honest(checkpoints_in_tmp, tmp_path
     assert reader2.processed == total - first_run
 
     snapshot = reader2.progress_ledger.snapshot()
+    # Every submitted file is counted exactly once - not once as part of the
+    # batch and once again per file.
+    assert snapshot["total_files"] == total
     # The skipped files were recorded as terminal work, not left pending.
-    assert reader2.progress_ledger.counts[OUTCOME_SKIPPED] >= first_run
+    assert reader2.progress_ledger.counts[OUTCOME_SKIPPED] == first_run
     # Nothing is stranded, so the run can report an honest 100%.
     assert snapshot["files_pending"] == 0
     assert snapshot["percent"] == 100
