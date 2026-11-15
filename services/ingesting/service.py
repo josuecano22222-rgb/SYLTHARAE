@@ -372,6 +372,17 @@ class IngestionService:
                     pass
             reader.progress_callback = self._wrap_progress(progress_cb)
 
+            # One line per run saying where the checkpoint lives and what the
+            # policy is. The CheckpointManager logs what it found when it is
+            # created; this names the file even when the policy is 'off', so a
+            # run with no resume support is identifiable from the log.
+            logger.info(
+                "Checkpoint policy=%s file=%s (job source=%s side=%s)",
+                request.options.checkpoint if request.options else "auto",
+                getattr(reader, "checkpoint_file", None) or "<none>",
+                request.source, request.side,
+            )
+
             # PROGRESS: publish immediately, before any file is touched. The UI
             # otherwise has nothing to render until the first unit settles, and
             # for a single container that can be the entire job.
@@ -417,6 +428,12 @@ class IngestionService:
             result.cancelled = cancelled
             result.paused = paused
             result.stats.update(self._collect_stats(reader, result.results))
+            # Record what the checkpoint engine found, so the job row can show
+            # "resumed N" (or why it did not) instead of leaving an operator to
+            # infer it from a progress bar that starts at zero.
+            resume_report = getattr(reader, "checkpoint_resume_report", None)
+            if resume_report:
+                result.stats["resume_info"] = resume_report
             if issue_registry is not None:
                 issue_registry.merge_into_result(result)
             self._append_stats_issue_summary(result)
@@ -548,6 +565,12 @@ class IngestionService:
                 try:
                     if stale.exists():
                         stale.unlink()
+                        # Deleting resumable progress is worth a warning: it is
+                        # deliberate, but it is also the one policy that makes
+                        # a retry re-do finished work.
+                        logger.warning(
+                            "Checkpoint policy 'fresh': discarded %s", stale,
+                        )
                 except OSError:
                     pass
             try:

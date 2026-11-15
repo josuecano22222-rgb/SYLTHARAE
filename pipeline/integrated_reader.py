@@ -2810,6 +2810,20 @@ class IntegratedFileReader:
         
         return stats
     
+    @property
+    def checkpoint_resume_report(self) -> Optional[Dict[str, Any]]:
+        """What the checkpoint engine found when this run started.
+
+        Mirrors ``CheckpointManager.resume_report`` so the job system can
+        record it without reaching into the checkpoint layer. Populated once
+        the manager exists, which for a folder run is during
+        ``process_folder``; ``None`` when checkpointing is off or failed to
+        initialise.
+        """
+        manager = getattr(self, "checkpoint_manager", None)
+        report = getattr(manager, "resume_report", None) if manager is not None else None
+        return dict(report) if report else None
+
     def get_storage_statistics(self) -> Dict[str, Any]:
         """Get storage statistics from storage pipeline"""
         if self.storage_pipeline:

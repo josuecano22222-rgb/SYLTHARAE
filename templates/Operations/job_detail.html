@@ -37,6 +37,10 @@
             <dt class="col-sm-3">{{ _('User') }}</dt><dd class="col-sm-9" id="jUser">—</dd>
             <dt class="col-sm-3">{{ _('Started') }}</dt><dd class="col-sm-9" id="jStart">—</dd>
             <dt class="col-sm-3">{{ _('Completed') }}</dt><dd class="col-sm-9" id="jEnd">—</dd>
+            {# Resume: whether this run continued from a checkpoint, and if not,
+               why. The progress bar starts at zero either way, so without this
+               an operator cannot tell a resume from a restart. #}
+            <dt class="col-sm-3">{{ _('Resume') }}</dt><dd class="col-sm-9 text-break" id="jResume">—</dd>
           </dl>
         </div>
       </div>

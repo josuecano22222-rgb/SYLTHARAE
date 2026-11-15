@@ -97,6 +97,29 @@ var JOB_DETAIL_PAGE_DATA = JSON.parse(document.getElementById('job-detail-page-d
     document.getElementById('jResult').textContent =
       j.result_summary ? JSON.stringify(j.result_summary, null, 1) : '—';
 
+    // RESUME: say plainly whether this run continued from a checkpoint.
+    // A resumed job still starts its bar at zero, so without this line an
+    // operator cannot tell "resumed 8,000 of 10,000" from "started over".
+    const resumeEl = document.getElementById('jResume');
+    if (resumeEl) {
+      const ri = st.resume_info;
+      if (!ri) {
+        resumeEl.textContent = '—';
+      } else if (ri.status === 'resumed' && ri.resumed_files) {
+        resumeEl.textContent =
+          `Resumed: ${ri.resumed_files} already processed` +
+          (ri.snapshot_present ? ` (snapshot ${ri.snapshot_entries})` : '') +
+          (ri.journal_present ? ` (journal ${ri.journal_entries})` : '');
+      } else if (ri.status === 'rejected') {
+        resumeEl.innerHTML =
+          `<span class="text-warning">Started fresh — checkpoint not used: ` +
+          `${escapeHtml(ri.reason || 'unknown reason')}</span>`;
+      } else {
+        resumeEl.textContent =
+          `Started fresh (${ri.reason || 'no previous checkpoint'})`;
+      }
+    }
+
     // errors & warnings (detail GET includes full lists; /errors stays authoritative)
     const normalizeLines = (list) => (list || []).map((line) => String(line == null ? '' : line));
     errorsCache = normalizeLines(j.errors);
