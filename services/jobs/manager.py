@@ -818,6 +818,24 @@ class JobManager:
             time.sleep(0.2)
         return self.repo.get(job_id)
 
+    @staticmethod
+    def _retry_source(job: Dict[str, Any]) -> str:
+        """The ``source`` column to carry into a retried/resumed job.
+
+        That column is display-first and means different things per job type:
+        an ingestion stores the *folder path* (more useful to an operator than
+        the taxonomy name, which lives in ``options``), while a batch import
+        stores the *entity name*. Retry and resume therefore copy it across
+        unchanged rather than re-deriving it - re-deriving from
+        ``options["source"]`` would silently change what the jobs list and the
+        job detail page show for every ingestion.
+
+        It is not an identifier: the checkpoint path and the ingestion request
+        both take source and side from ``options``, so resume correctness
+        never depends on this column.
+        """
+        return job.get("source") or ""
+
     def resume(self, job_id: str, created_by: Optional[str] = None) -> Dict[str, Any]:
         job = self._require(job_id)
         if job["status"] != job_state.PAUSED:
@@ -826,7 +844,7 @@ class JobManager:
         # A fresh execution with the same checkpoint policy continues where
         # the pause stopped (checkpoint skips processed files; dedup guards).
         return self.create_job(
-            job["job_type"], job.get("source") or "", options,
+            job["job_type"], self._retry_source(job), options,
             created_by=created_by or job.get("created_by"),
         )
 
@@ -841,7 +859,7 @@ class JobManager:
                                  job_state.COMPLETED_WITH_WARNINGS):
             raise ValueError("Only FAILED, CANCELLED or COMPLETED_WITH_WARNINGS jobs can be retried")
         return self.create_job(
-            job["job_type"], job.get("source") or "",
+            job["job_type"], self._retry_source(job),
             dict(job.get("options") or {}),
             created_by=created_by or job.get("created_by"),
         )
