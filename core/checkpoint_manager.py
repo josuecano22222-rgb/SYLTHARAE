@@ -268,7 +268,12 @@ class CheckpointManager:
         return f"{JOURNAL_HEADER}|{folder}|{self.storage_source}|{self.storage_side}"
 
     def _append_journal_locked(self, file_id: str) -> None:
-        """Append one identifier to the journal (caller holds ``self._lock``)."""
+        """Append one identifier to the journal (caller holds ``self._lock``).
+
+        Raises on I/O failure instead of returning quietly: the identifier
+        never reached disk, so the file is not checkpointed and will be
+        reprocessed next run. Callers must count that.
+        """
         try:
             if self._journal_handle is None:
                 self.checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
@@ -291,8 +296,13 @@ class CheckpointManager:
             self._journal_pending = 0
             self._journal_last_flush = time.time()
         except Exception as exc:
-            logger.warning(f"Checkpoint journal write failed (non-critical): {exc}")
             self._journal_handle = None
+            # Re-raise rather than swallow. Logging the failure here and
+            # continuing left mark_failures at zero for the whole run, so a
+            # run that lost every single mark looked identical to a healthy
+            # one and the next run redid everything. mark_processed() counts
+            # the failure and reports the first one at WARNING.
+            raise
 
     def _close_journal_locked(self) -> None:
         """Flush and close the journal handle (caller holds ``self._lock``)."""
@@ -773,7 +783,11 @@ class CheckpointManager:
                 'processed_count': self._processed_count,
                 'processed_files': len(self._processed_files),
                 'checkpoint_file': str(self.checkpoint_file),
-                'last_save_count': self._last_save_count
+                'last_save_count': self._last_save_count,
+                # Files that were processed but whose mark never reached disk.
+                # They will be reprocessed on the next run, so the job summary
+                # has to say so rather than reporting a clean run.
+                'mark_failures': self.mark_failures,
             }
     
     def clear_checkpoint(self) -> None:

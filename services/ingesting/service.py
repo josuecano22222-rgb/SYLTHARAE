@@ -535,7 +535,22 @@ class IngestionService:
             ckpt_dir = get_checkpoints_dir()
         except Exception:
             ckpt_dir = Path("data/checkpoints")
-        ckpt_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            ckpt_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            # A missing or unwritable checkpoints directory used to raise out
+            # of _make_reader and abort setup, with nothing said about the
+            # consequence: this run has no checkpoint, so an interrupted job
+            # restarts from the beginning. That is indistinguishable, from
+            # the operator's seat, from a resume bug.
+            logger.warning(
+                "Checkpoint directory %s is unusable (%s); resuming is DISABLED "
+                "for this run and every file will be reprocessed if it is "
+                "interrupted.",
+                ckpt_dir,
+                exc,
+            )
+            return None
 
         if request.path:
             # safe_resolve() rather than .resolve(): a path that cannot be
