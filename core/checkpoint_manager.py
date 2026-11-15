@@ -43,6 +43,78 @@ def safe_resolve(path: Any) -> str:
             return str(path)
 
 
+def _fsync_dir_windows(directory: Path, ctypes_module=None) -> bool:
+    """Flush a directory's metadata on Windows. Returns True on success.
+
+    ``os.open(path, os.O_RDONLY)`` fails on a directory on Windows, so the
+    POSIX branch of :func:`_fsync_dir` is a silent no-op there and the
+    journal's *name* is never made durable - its contents were fsync'd, but
+    the directory entry can still be lost, and then the run restarts from
+    zero. The stdlib exposes no way to open a directory handle, so this uses
+    ctypes with ``FILE_FLAG_BACKUP_SEMANTICS``.
+
+    ``ctypes_module`` is injectable so this can be tested off Windows; it
+    defaults to the real :mod:`ctypes`.
+
+    Not verifiable here: whether this actually survives a power cut depends on
+    the disk, its write cache and the driver, none of which can be exercised
+    from a Linux sandbox. What is verifiable, and is tested, is that the
+    right calls are made in the right order with the right flags and that
+    every failure path returns False instead of raising.
+    """
+    try:
+        if ctypes_module is None:
+            import ctypes as ctypes_module
+        wintypes = ctypes_module.wintypes
+    except Exception:
+        return False
+
+    GENERIC_READ = 0x80000000
+    FILE_SHARE_READ = 0x00000001
+    FILE_SHARE_WRITE = 0x00000002
+    OPEN_EXISTING = 3
+    #: Without this flag CreateFileW refuses to open a directory.
+    FILE_FLAG_BACKUP_SEMANTICS = 0x02000000
+    INVALID_HANDLE_VALUE = ctypes_module.c_void_p(-1).value
+
+    try:
+        kernel32 = ctypes_module.WinDLL("kernel32", use_last_error=True)
+
+        create_file = kernel32.CreateFileW
+        create_file.argtypes = [
+            wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+            wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE,
+        ]
+        create_file.restype = wintypes.HANDLE
+
+        flush = kernel32.FlushFileBuffers
+        flush.argtypes = [wintypes.HANDLE]
+        flush.restype = wintypes.BOOL
+
+        close = kernel32.CloseHandle
+        close.argtypes = [wintypes.HANDLE]
+        close.restype = wintypes.BOOL
+
+        handle = create_file(
+            str(directory),
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            None,
+            OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS,
+            None,
+        )
+        if not handle or handle == INVALID_HANDLE_VALUE:
+            return False
+        try:
+            return bool(flush(handle))
+        finally:
+            close(handle)
+    except Exception:
+        # A durability nicety must never break ingestion.
+        return False
+
+
 def _fsync_dir(directory: Path) -> None:
     """Make the directory entry for a checkpoint file durable.
 
@@ -55,6 +127,12 @@ def _fsync_dir(directory: Path) -> None:
     ``FILE_FLAG_BACKUP_SEMANTICS``); where it is not possible this is a no-op
     rather than a failure, because it is an extra guarantee, not the only one.
     """
+    if os.name == "nt":
+        if _fsync_dir_windows(directory):
+            return
+        # Fall through: the POSIX attempt below also fails on Windows, so the
+        # journal still relies on the per-mark fsync of its contents.
+
     try:
         fd = os.open(str(directory), os.O_RDONLY)
     except OSError:
