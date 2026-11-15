@@ -18,6 +18,12 @@ byId['jBar'].style = {};
 const calls = [];
 const pending = [];
 let intervalFn = null;
+// The page calls clearInterval() as a bare global when a job reaches a
+// terminal state. The sandbox only supplied setInterval, so reaching that
+// code threw "clearInterval is not defined" and the harness died before it
+// could assert anything. Cleared ids are recorded so a poll that is never
+// stopped is distinguishable from one that is.
+const clearedIntervals = [];
 
 function fetchFn(url) {
   calls.push(url);
@@ -36,6 +42,7 @@ const context = vm.createContext({
   window: {},
   fetch: fetchFn,
   setInterval(fn) { intervalFn = fn; return 1; },
+  clearInterval(id) { clearedIntervals.push(id); },
   alert() {},
   console,
   Math, JSON, Number, String, Object, Array, Promise,
