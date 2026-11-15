@@ -66,6 +66,12 @@ pre-existing and unchanged by this work.
 **Folder ingestion restarting from the beginning after Retry — cause not
 found.** This is the original report and it is still open.
 
+It is now much narrower than it was. The corpus is local, and checkpoint files
+are confirmed to be written, so the surviving possibilities are: the
+checkpoint is found and used and the *reporting* makes it look like a restart;
+or it is found and rejected for a reason the log states; or the digest differs
+between the two runs. One log line separates all three.
+
 Tested with runtime tests, so these are not the cause:
 
 | Hypothesis | Verdict | Proof |
@@ -80,6 +86,8 @@ Tested with runtime tests, so these are not the cause:
 | Checkpoint engine broken | No — verified end-to-end with a stubbed store at 1/4/8 workers, hard kill, and across mid-run compaction. | earlier investigation |
 | The checkpoint is discarded on load | **No — every discarding branch was tested.** All report `rejected` with a reason, and a truncated final journal line (the normal hard-kill result) still resumes. | `test_checkpoint_rejection_branches.py` |
 | A container is re-extracted | **No.** A retry over a completed checkpoint stores nothing and returns no results. | `test_container_resume.py` |
+| The corpus is on a network path, so the identity differs between runs | **No, for this installation.** The operator confirms the corpus is a local path (`C:\…`). Mapped-drive vs UNC is therefore not in play here. | operator answer, 2026-11-13 |
+| No checkpoint is ever written to disk | **No, for this installation.** The operator confirms `checkpoint_*.json` / `*.journal` files do appear in the checkpoints directory during a run. So the engine is persisting; the question is what happens to those files on Retry. | operator answer, 2026-11-13 |
 
 Two defects that *could* have caused it were found and fixed while testing
 (row 13 above): a run could lose every checkpoint mark while its own
@@ -101,7 +109,7 @@ whether the checkpoint was seen, and why it was not used.**
 | a | Multiprocessing path (`_process_with_pool`) ships the worker to separate processes; each holds a copy of the checkpoint manager, and concurrent appends to one journal can interleave. | **Deferred — proven unreachable.** No call site, config key, CLI flag or env var can enable it. Two guard tests fail if one ever appears. Fixing it properly means marking in the parent from worker results. |
 | b | Windows directory fsync was a no-op (`os.open` on a directory fails), so a journal's *name* was not made durable even though its contents were. | **Fixed.** `_fsync_dir_windows` opens a directory handle with `FILE_FLAG_BACKUP_SEMANTICS` and calls `FlushFileBuffers`. **Residual risk, stated plainly:** whether this survives a real power cut depends on the disk, its write cache and its driver, none of which can be exercised from a Linux sandbox. The call sequence and every failure path are tested with an injected ctypes; the durability itself is not. |
 | c | Archive members inside a *file-list* batch get no member checkpoint, because `process_single_file` clears the checkpoint base on every top-level call. | **Documented, not changed.** The clearing exists so a single file cannot inherit a previous run's base. The container-level skip covers the common case, and is now tested. |
-| d | The identifier includes a local-time ISO date; across a DST boundary a file modified near midnight can get a new identity and be reprocessed. | **Reproduced, not fixed.** Measured: one file with mtime 2026-06-15 00:30 UTC reports `modified=2026-06-15` under `TZ=UTC` and `2026-06-14` under `TZ=Etc/GMT+12`, and the identifier changes with it. Affects individual files, never a whole corpus. Fixing it means replacing the local date with `mtime_ns` in the identifier — a change to identity semantics that invalidates existing checkpoints, so it is put to the user rather than made unilaterally. |
+| d | The identifier includes a local-time ISO date; across a DST boundary a file modified near midnight can get a new identity and be reprocessed. | **Reproduced; accepted by decision.** Measured: one file with mtime 2026-06-15 00:30 UTC reports `modified=2026-06-15` under `TZ=UTC` and `2026-06-14` under `TZ=Etc/GMT+12`, and the identifier changes with it. Affects individual files, never a whole corpus. The tradeoff was put to the operator (fix = replace the local date with `mtime_ns`, invalidating every existing checkpoint) and the decision on 2026-11-13 was to **keep the local date**. No change. |
 | e | The `jobs.source` column holds a folder path for ingestions and an entity name for imports. | **Documented, not changed** — it is display-facing and changing it would alter existing screens. |
 | f | A truncated final journal line is still parsed as a short identifier, so one spurious entry can appear after a hard kill. | **Harmless, asserted rather than hidden.** Real identifiers are 64-bit hashes, so a truncated prefix is a small number that cannot collide with one and cannot wrongly skip a file. `test_truncated_final_journal_line_still_keeps_earlier_entries` asserts the real entries survive. |
 
@@ -112,26 +120,32 @@ whether the checkpoint was seen, and why it was not used.**
 Answering these turns the above into a real roadmap. Ranked by how much they
 unblock.
 
+**Answered on 2026-11-13** (marked A2/A3 below):
+
+- **A2 — the checkpoint directory IS written to.** The operator confirms
+  `checkpoint_*.json` / `*.journal` files appear during a run. The engine is
+  persisting, so "the checkpoint was never written" is ruled out for this
+  installation.
+- **A3 — the corpus is a LOCAL path** (`C:\…`). Mapped-drive vs UNC is not
+  in play, so that theory is closed for this installation. It remains a latent
+  risk for anyone running over a share.
+
+**Still open:**
+
 1. **What does the log say on a failing Retry?** One line beginning
    `Checkpoint ` — is it `resumed`, `fresh`, or `rejected`, and what reason?
-   This alone settles whether the checkpoint is being found.
-2. **Is the checkpoint directory actually being written to?** On Windows,
-   `%LOCALAPPDATA%\file-analysis\checkpoints`. Do `checkpoint_*.json` /
-   `*.journal` files appear during a run? Is `APP_DATA_DIR` set (to an
-   absolute path)?
-3. **Is the corpus local or on a network share / mapped drive?** A mapped
-   drive (`Z:\…`) and its UNC form (`\\server\share\…`) would produce
-   different checkpoint identities. **This was NOT demonstrated** — it cannot
-   be reproduced from Linux, and it is listed as an open question, not as a
-   leading theory. It is testable on the user's machine with
-   `scripts/checkpoint_inspect.py --list`.
-4. **How was the corpus path entered the first time and on Retry?** Both forms
-   must produce the same digest. Path *case* (`C:\Data` vs `c:\data`) is the
-   specific variant to check: the digest uses the path as given while the file
-   identifier lowercases it, and Windows `Path.resolve()` is expected to
-   normalise case for existing paths — unverified.
-5. **How large is the corpus, and how far does a run get before it dies?**
-6. **What are the product goals?** There is no written statement of what
+   This alone settles whether the checkpoint is being found, and it is now the
+   only thing standing between this and a diagnosis. The operator can supply
+   it; the text has not yet been received.
+2. **How was the corpus path entered the first time and on Retry?** Both forms
+   must produce the same digest. The corpus is local, so the variant that
+   matters is path *case* (`C:\Data` vs `c:\data`): the digest uses the path
+   as given while the file identifier lowercases it, and Windows
+   `Path.resolve()` is expected to normalise case for existing paths —
+   unverified. Settled by comparing the digest in
+   `checkpoint_inspect.py --list` across both runs.
+3. **How large is the corpus, and how far does a run get before it dies?**
+4. **What are the product goals?** There is no written statement of what
    SYLTHARAE is for, who uses it, or what "done" means for the platform.
    Everything in section 1 is inferred from code.
 
@@ -140,12 +154,13 @@ unblock.
 ## 5. Suggested next steps
 
 - Close the folder-retry case using the diagnostics now shipped. **Blocked on
-  question 1**: without one log line from a failing Retry, the remaining
-  hypotheses cannot be separated.
-- Decide on the identifier change (defect d): replacing the local-time date
-  with `mtime_ns` makes identity timezone-independent but invalidates every
-  existing checkpoint.
+  open question 1**: one log line from a failing Retry. Everything else has
+  been either tested away or answered.
+- If that line says `resumed`, the engine is working and the remaining defect
+  is in reporting — the fix is in the UI/log totals, not the checkpoint.
+  If it says `rejected`, the reason in the line names the cause. If it says
+  `fresh`, the digest differs between runs and open question 2 settles why.
 - Confirm the Windows directory flush (b) against a real power cut, if that
   guarantee is wanted.
-- Write down the product goals (6); everything else is prioritised against
+- Write down the product goals (4); everything else is prioritised against
   them.
