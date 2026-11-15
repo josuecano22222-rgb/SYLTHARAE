@@ -88,6 +88,46 @@ Two consequences worth knowing:
   folder* plus size, because their mtime is set at extraction time and changes
   on every run.
 
+### How stable is that identity?
+
+Measured, not inferred (`tests/unit/test_checkpoint_identifier_stability.py`).
+
+**Stable** — all reach the same checkpoint file:
+
+| Difference between run 1 and retry | Result |
+|---|---|
+| trailing separator (`C:\\data` vs `C:\\data\\`) | same checkpoint |
+| `..` segments (`C:\\other\\..\\data`) | same checkpoint |
+| a symlink / junction to the corpus | same checkpoint |
+
+**Unstable** — proven by test:
+
+`modified` comes from `datetime.fromtimestamp()` with no timezone, so it is a
+*local-time* date. One file with mtime `2026-06-15 00:30 UTC` reports:
+
+```
+TZ=UTC                modified=2026-06-15
+TZ=Pacific/Kiritimati modified=2026-06-15
+TZ=Etc/GMT+12         modified=2026-06-14     <- same instant, different day
+```
+
+The identifier embeds that date, so it moves with the timezone. This is the
+DST risk made concrete: a run and its retry see different identities for files
+whose mtime sits near local midnight. It affects individual files, never a
+whole corpus.
+
+**Deliberate:** a changed mtime is a new identity, so a file rewritten or
+touched by antivirus, or rounded by a network share, is reprocessed. That is
+correct — the content may differ — but it is worth knowing.
+
+**Not reproducible here, recorded as an open question:** path *case*
+(`C:\\Data` vs `c:\\data`). The checkpoint digest uses the path as given,
+while the file identifier lower-cases it. On a case-sensitive filesystem the
+two directories are genuinely different corpora, so differing digests are
+correct there and prove nothing about Windows, where `Path.resolve()`
+normalises case for existing paths and both spellings are expected to collapse
+to one digest. Unverified — check with `checkpoint_inspect.py --list`.
+
 ---
 
 ## 5. What Retry and Resume actually do
@@ -192,10 +232,12 @@ resume — using the service's own derivation, so it cannot disagree with it.
 
 | # | Gap | Status |
 |---|---|---|
-| 1 | **Multiprocessing.** `_process_with_pool` ships the file worker to separate processes, so each worker holds a *copy* of the checkpoint manager. Marks made there are not reliably reflected in the parent, and concurrent appends to one journal can interleave. | Not reachable from the web/job path: `_make_reader` never sets `use_multiprocessing`, so it is always threading. A latent defect for anyone constructing the engine directly. **Not fixed.** |
-| 2 | **Windows directory fsync.** `os.fsync` on a file does not flush the directory entry naming it, so a journal created moments before power loss can vanish. `_fsync_dir()` fixes this where a directory can be opened (POSIX). On Windows `os.open` on a directory fails and the call is a no-op. NTFS journals metadata and is more forgiving here, but the guarantee is weaker than on POSIX. **Residual risk on Windows.** |
+| 1 | **Multiprocessing.** `_process_with_pool` ships the file worker to separate processes, so each worker holds a *copy* of the checkpoint manager. Marks made there are not reliably reflected in the parent, and concurrent appends to one journal can interleave. | **Proven unreachable, by test rather than by reading.** Readers built through the real `IngestionService._make_reader` never set `use_multiprocessing` at any worker count (0/1/2/8/16), and two guard tests — an AST scan of every `.py` file and a text scan of `.json`/`.bat`/`.env.example`/`.toml`/`.cfg` — fail if any call site or config key ever enables it. The AST guard was verified to bite by injecting a caller. A latent defect for anyone constructing the engine directly. **Not fixed** (see `ROADMAP.md` §3a). |
+| 2 | **Windows directory fsync.** `os.fsync` on a file does not flush the directory entry naming it, so a journal created moments before power loss can vanish — the contents were written but the name never reached the disk. | **Implemented.** `_fsync_dir_windows()` opens a directory handle with `FILE_FLAG_BACKUP_SEMANTICS` and calls `FlushFileBuffers` via ctypes, with every failure falling back instead of propagating. **Not verified against a real power cut** — that depends on the disk, its write cache and its driver, which cannot be exercised from a Linux sandbox. What *is* tested is the call sequence, the flags and every failure path, using an injected ctypes. **Residual risk: the durability itself is unverified.** |
 | 3 | **Archive members in a file-list batch.** `process_single_file` deliberately clears the per-container checkpoint base on every top-level call (so a single file cannot inherit a previous run's base). Members inside an archive in a *batch* therefore get no member checkpoint. The container itself is marked once stored, so a retry skips the container and never re-extracts it. **Documented, not changed** — the clearing exists for a reason. |
-| 4 | **Timezone / DST.** The identifier includes `modified`, a local-time ISO date. Across a DST boundary the date of a file modified near midnight can shift, giving it a new identity and causing a reprocess. Affects only such files, never the whole corpus. **Inferred, not reproduced.** |
+| 4 | **Timezone / DST.** The identifier includes `modified`, a local-time ISO date. Across a DST boundary the date of a file modified near midnight can shift, giving it a new identity and causing a reprocess. Affects only such files, never the whole corpus. **Reproduced, not fixed** — measured values above. Fixing it means replacing the local date with `mtime_ns`, which changes identity semantics and invalidates existing checkpoints, so it is a decision for the operator. |
+| 5 | **A truncated final journal line** (the normal result of a hard kill) is still parsed as a short identifier, so one spurious entry can appear. | **Harmless.** Real identifiers are 64-bit hashes, so a truncated prefix is a small number that cannot collide with one and cannot wrongly skip a file. Asserted explicitly in `test_truncated_final_journal_line_still_keeps_earlier_entries`. |
+| 6 | **A checkpoint that cannot be written was invisible.** Journal write failures returned normally, so `mark_failures` stayed at 0 and a run that lost every mark looked healthy; an unusable checkpoint directory aborted setup without saying that resuming was disabled. | **Fixed.** Journal failures now propagate to the warn-once counter, `get_statistics()` reports `mark_failures`, and an unusable directory logs that resuming is DISABLED. |
 
 ---
 
@@ -211,4 +253,4 @@ resume — using the service's own derivation, so it cannot disagree with it.
 | File-list runs: manager + skip + accounting | `services/ingesting/service.py` (`_run_file_list`) |
 | Retry / resume entry points | `services/jobs/manager.py` (`retry`, `resume`, `_run_builtin`) |
 | Diagnostic CLI | `scripts/checkpoint_inspect.py` |
-| Tests | `tests/unit/test_checkpoint_observability.py`, `test_batch_checkpoint_resume.py`, `test_folder_resume_accounting.py`, `test_batch_import_control_flags.py` |
+| Tests | `tests/unit/test_checkpoint_observability.py`, `test_batch_checkpoint_resume.py`, `test_folder_resume_accounting.py`, `test_batch_import_control_flags.py`, `test_multiprocessing_unreachable.py`, `test_checkpoint_identifier_stability.py`, `test_checkpoint_write_failures.py`, `test_checkpoint_rejection_branches.py`, `test_fsync_dir_windows.py`, `test_container_resume.py` |
