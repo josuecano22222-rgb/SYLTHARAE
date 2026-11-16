@@ -21,6 +21,133 @@ logger = logging.getLogger(__name__)
 JOURNAL_HEADER = "#inforaxis-journal-v1"
 
 
+def safe_resolve(path: Any) -> str:
+    """``Path.resolve()`` that degrades to an absolute path instead of raising.
+
+    ``resolve()`` walks the filesystem and can fail where ``abspath()`` does
+    not - notably on Windows for paths beyond ``MAX_PATH``, and for a mount
+    that disappeared mid-run. It is called while building the checkpoint
+    identity, so letting it raise did not fail the run loudly: it disabled
+    checkpointing for the entire corpus, and the next Retry started over.
+
+    Every caller must use this so the identity stays comparable: a fallback on
+    one side and a resolved path on the other would hash differently and make
+    every file look new.
+    """
+    try:
+        return str(Path(path).resolve())
+    except (OSError, ValueError):
+        try:
+            return str(Path(os.path.abspath(str(path))))
+        except (OSError, ValueError, TypeError):
+            return str(path)
+
+
+def _fsync_dir_windows(directory: Path, ctypes_module=None) -> bool:
+    """Flush a directory's metadata on Windows. Returns True on success.
+
+    ``os.open(path, os.O_RDONLY)`` fails on a directory on Windows, so the
+    POSIX branch of :func:`_fsync_dir` is a silent no-op there and the
+    journal's *name* is never made durable - its contents were fsync'd, but
+    the directory entry can still be lost, and then the run restarts from
+    zero. The stdlib exposes no way to open a directory handle, so this uses
+    ctypes with ``FILE_FLAG_BACKUP_SEMANTICS``.
+
+    ``ctypes_module`` is injectable so this can be tested off Windows; it
+    defaults to the real :mod:`ctypes`.
+
+    Not verifiable here: whether this actually survives a power cut depends on
+    the disk, its write cache and the driver, none of which can be exercised
+    from a Linux sandbox. What is verifiable, and is tested, is that the
+    right calls are made in the right order with the right flags and that
+    every failure path returns False instead of raising.
+    """
+    try:
+        if ctypes_module is None:
+            import ctypes as ctypes_module
+        wintypes = ctypes_module.wintypes
+    except Exception:
+        return False
+
+    GENERIC_READ = 0x80000000
+    FILE_SHARE_READ = 0x00000001
+    FILE_SHARE_WRITE = 0x00000002
+    OPEN_EXISTING = 3
+    #: Without this flag CreateFileW refuses to open a directory.
+    FILE_FLAG_BACKUP_SEMANTICS = 0x02000000
+    INVALID_HANDLE_VALUE = ctypes_module.c_void_p(-1).value
+
+    try:
+        kernel32 = ctypes_module.WinDLL("kernel32", use_last_error=True)
+
+        create_file = kernel32.CreateFileW
+        create_file.argtypes = [
+            wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+            wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE,
+        ]
+        create_file.restype = wintypes.HANDLE
+
+        flush = kernel32.FlushFileBuffers
+        flush.argtypes = [wintypes.HANDLE]
+        flush.restype = wintypes.BOOL
+
+        close = kernel32.CloseHandle
+        close.argtypes = [wintypes.HANDLE]
+        close.restype = wintypes.BOOL
+
+        handle = create_file(
+            str(directory),
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            None,
+            OPEN_EXISTING,
+            FILE_FLAG_BACKUP_SEMANTICS,
+            None,
+        )
+        if not handle or handle == INVALID_HANDLE_VALUE:
+            return False
+        try:
+            return bool(flush(handle))
+        finally:
+            close(handle)
+    except Exception:
+        # A durability nicety must never break ingestion.
+        return False
+
+
+def _fsync_dir(directory: Path) -> None:
+    """Make the directory entry for a checkpoint file durable.
+
+    ``os.fsync`` on a file makes that file's data and metadata durable, but not
+    the directory entry pointing at it. Without this, a journal created moments
+    before a power loss can vanish entirely - the contents were written, but the
+    name never reached the disk - and the run restarts from zero.
+
+    Opening a directory for reading is not portable (Windows needs
+    ``FILE_FLAG_BACKUP_SEMANTICS``); where it is not possible this is a no-op
+    rather than a failure, because it is an extra guarantee, not the only one.
+    """
+    if os.name == "nt":
+        if _fsync_dir_windows(directory):
+            return
+        # Fall through: the POSIX attempt below also fails on Windows, so the
+        # journal still relies on the per-mark fsync of its contents.
+
+    try:
+        fd = os.open(str(directory), os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+
+
 class CheckpointManager:
     """
     Manages checkpoint state for file processing operations.
@@ -49,7 +176,7 @@ class CheckpointManager:
             auto_save_interval: Number of files processed before auto-saving checkpoint
         """
         self.checkpoint_file = Path(checkpoint_file)
-        self.folder_path = Path(folder_path).resolve()
+        self.folder_path = Path(safe_resolve(folder_path))
         self.storage_source = storage_source
         self.storage_side = storage_side
         self.auto_save_interval = auto_save_interval
@@ -91,9 +218,21 @@ class CheckpointManager:
         self._save_event = threading.Event()
         self._shutdown = False
         
+        #: Consecutive mark failures. A mark that raises is logged once and
+        #: then counted: at DEBUG it was invisible, and a run could lose every
+        #: checkpoint entry while looking completely healthy.
+        self.mark_failures = 0
+        self._mark_warned = False
+
+        #: What this run found on disk, for the startup log line, the job
+        #: record and the CLI diagnostic. A resume that silently found nothing
+        #: is indistinguishable, from the outside, from a resume that never
+        #: existed - which is why this is recorded rather than inferred.
+        self.resume_report: Dict[str, Any] = {}
+
         # Load existing checkpoint if available
         self._load_checkpoint()
-        
+
         # Start background save thread for non-blocking saves (only if enabled)
         # OPTIMIZATION: Use lazy initialization to avoid creating thread if not needed
         self._save_thread = None
@@ -207,7 +346,12 @@ class CheckpointManager:
         return f"{JOURNAL_HEADER}|{folder}|{self.storage_source}|{self.storage_side}"
 
     def _append_journal_locked(self, file_id: str) -> None:
-        """Append one identifier to the journal (caller holds ``self._lock``)."""
+        """Append one identifier to the journal (caller holds ``self._lock``).
+
+        Raises on I/O failure instead of returning quietly: the identifier
+        never reached disk, so the file is not checkpointed and will be
+        reprocessed next run. Callers must count that.
+        """
         try:
             if self._journal_handle is None:
                 self.checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
@@ -215,6 +359,10 @@ class CheckpointManager:
                 self._journal_handle = open(self.journal_file, 'a', encoding='utf-8')
                 if is_new:
                     self._journal_handle.write(self._journal_header() + "\n")
+                    self._journal_handle.flush()
+                    # The file's name must survive too, or a power cut right
+                    # here loses the whole journal and the run starts over.
+                    _fsync_dir(self.journal_file.parent)
             self._journal_handle.write(f"{file_id:x}\n")
             # Make every mark durable before returning. A file is only marked
             # after its result is stored, so a process kill or power loss must
@@ -226,8 +374,13 @@ class CheckpointManager:
             self._journal_pending = 0
             self._journal_last_flush = time.time()
         except Exception as exc:
-            logger.warning(f"Checkpoint journal write failed (non-critical): {exc}")
             self._journal_handle = None
+            # Re-raise rather than swallow. Logging the failure here and
+            # continuing left mark_failures at zero for the whole run, so a
+            # run that lost every single mark looked identical to a healthy
+            # one and the next run redid everything. mark_processed() counts
+            # the failure and reports the first one at WARNING.
+            raise
 
     def _close_journal_locked(self) -> None:
         """Flush and close the journal handle (caller holds ``self._lock``)."""
@@ -239,6 +392,38 @@ class CheckpointManager:
                 pass
             self._journal_handle = None
             self._journal_pending = 0
+
+    def _journal_state(self) -> Dict[str, Any]:
+        """Describe the journal without consuming it.
+
+        Returns presence, identifier count and whether the header matches, so a
+        resume can *say* why a journal was ignored instead of silently skipping
+        the work it recorded.
+        """
+        state: Dict[str, Any] = {
+            "present": False, "entries": 0, "header": None, "reason": None,
+        }
+        if not self.journal_file.exists():
+            return state
+        state["present"] = True
+        expected = self._journal_header()
+        try:
+            with open(self.journal_file, 'r', encoding='utf-8') as fh:
+                for line in fh:
+                    value = line.strip()
+                    if not value:
+                        continue
+                    if value.startswith(JOURNAL_HEADER):
+                        state["header"] = value
+                        if value != expected:
+                            state["reason"] = (
+                                "journal belongs to a different folder/source/side"
+                            )
+                        continue
+                    state["entries"] += 1
+        except OSError as exc:
+            state["reason"] = f"journal could not be read ({exc})"
+        return state
 
     def _replay_journal(self) -> int:
         """Load identifiers appended since the snapshot; returns the new count.
@@ -303,7 +488,12 @@ class CheckpointManager:
         temp_file = self.checkpoint_file.with_suffix('.tmp')
         with open(temp_file, 'w', encoding='utf-8') as f:
             json.dump(data, f, separators=(',', ':'), ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
         temp_file.replace(self.checkpoint_file)
+        # Make the rename durable: the snapshot is the resume point, so a crash
+        # that loses it costs the whole run.
+        _fsync_dir(self.checkpoint_file.parent)
         # Drop the journal only after the snapshot that contains it is in place.
         try:
             if self.journal_file.exists():
@@ -314,22 +504,75 @@ class CheckpointManager:
         self._last_save_count = processed_count
         logger.debug(f"Checkpoint snapshot written: {processed_count} files processed")
 
+    def _finish_report(self, status: str, reason: Optional[str],
+                       snapshot_present: bool, snapshot_entries: int,
+                       journal: Dict[str, Any]) -> None:
+        """Record and log what this run found, in one line.
+
+        Everything that can make a resume fail silently - a mismatched
+        header, an unreadable snapshot, a journal written for another folder -
+        leaves a trace here, so "it started from the beginning" is never a
+        mystery about *whether* the checkpoint was seen, only *why* it was not
+        used.
+        """
+        self.resume_report = {
+            "status": status,
+            "reason": reason,
+            "checkpoint_file": str(self.checkpoint_file),
+            "journal_file": str(self.journal_file),
+            "snapshot_present": bool(snapshot_present),
+            "snapshot_entries": int(snapshot_entries),
+            "journal_present": bool(journal.get("present")),
+            "journal_entries": int(journal.get("entries", 0)),
+            "resumed_files": self._processed_count,
+            "folder": str(self.folder_path),
+            "source": self.storage_source,
+            "side": self.storage_side,
+        }
+        message = (
+            f"Checkpoint {status}: {self._processed_count} file(s) will be "
+            f"skipped | snapshot={self.resume_report['snapshot_present']}"
+            f"({self.resume_report['snapshot_entries']}) "
+            f"journal={self.resume_report['journal_present']}"
+            f"({self.resume_report['journal_entries']}) "
+            f"file={self.checkpoint_file}"
+        )
+        if reason:
+            message = f"{message} | {reason}"
+        if status == "resumed" and self._processed_count:
+            logger.info(message)
+        elif status == "fresh":
+            logger.info(message)
+        else:
+            # A checkpoint that exists but was not used is worth a warning:
+            # it means work will be repeated.
+            logger.warning(message)
+
     def _load_checkpoint(self) -> None:
         """Load checkpoint state from file if it exists.
 
         A missing snapshot is *not* a missing checkpoint: the journal may hold
         everything processed so far (see :meth:`_replay_journal`).
         """
-        if not self.checkpoint_file.exists():
-            if self.journal_file.exists():
+        journal = self._journal_state()
+        snapshot_present = self.checkpoint_file.exists()
+
+        if not snapshot_present:
+            if journal["present"] and not journal["reason"]:
                 self._processed_count = self._replay_journal()
                 self._last_save_count = self._processed_count
-                logger.info(
-                    f"No snapshot at {self.checkpoint_file}; resumed "
-                    f"{self._processed_count} files from the journal"
+                self._finish_report(
+                    "resumed", None, snapshot_present, 0, journal,
                 )
             else:
-                logger.info(f"No existing checkpoint found at {self.checkpoint_file}")
+                reason = journal["reason"] or "no checkpoint or journal found"
+                # A journal that exists but cannot be used is a *rejection*,
+                # not a fresh start: there is recorded work and it is about to
+                # be repeated, which is what an operator needs warned about.
+                status = "rejected" if journal["present"] else "fresh"
+                self._finish_report(
+                    status, reason, snapshot_present, 0, journal,
+                )
             return
         
         try:
@@ -346,28 +589,36 @@ class CheckpointManager:
             checkpoint_folder_normalized = checkpoint_folder.replace('\\', '/').lower()
             current_folder_normalized = str(self.folder_path).replace('\\', '/').lower()
             
+            snapshot_entries = len(data.get('processed_files', []) or [])
+
             if checkpoint_folder_normalized != current_folder_normalized:
-                logger.warning(
-                    f"Checkpoint folder mismatch: checkpoint={checkpoint_folder_normalized}, "
-                    f"current={current_folder_normalized}. Ignoring checkpoint."
+                self._finish_report(
+                    "rejected",
+                    f"checkpoint folder mismatch (checkpoint="
+                    f"{checkpoint_folder_normalized}, current={current_folder_normalized})",
+                    snapshot_present, snapshot_entries, journal,
                 )
                 return
-            
+
             # Check storage settings match (if specified)
             if self.storage_source and checkpoint_source != self.storage_source:
-                logger.warning(
-                    f"Checkpoint source mismatch: checkpoint={checkpoint_source}, "
-                    f"current={self.storage_source}. Ignoring checkpoint."
+                self._finish_report(
+                    "rejected",
+                    f"checkpoint source mismatch (checkpoint={checkpoint_source}, "
+                    f"current={self.storage_source})",
+                    snapshot_present, snapshot_entries, journal,
                 )
                 return
-            
+
             if self.storage_side and checkpoint_side != self.storage_side:
-                logger.warning(
-                    f"Checkpoint side mismatch: checkpoint={checkpoint_side}, "
-                    f"current={self.storage_side}. Ignoring checkpoint."
+                self._finish_report(
+                    "rejected",
+                    f"checkpoint side mismatch (checkpoint={checkpoint_side}, "
+                    f"current={self.storage_side})",
+                    snapshot_present, snapshot_entries, journal,
                 )
                 return
-            
+
             # Load processed files
             processed_files = data.get('processed_files', [])
             self._processed_files = {
@@ -377,24 +628,30 @@ class CheckpointManager:
             }
             self._processed_count = data.get('processed_count', len(processed_files))
             self._last_save_count = self._processed_count
-            
-            logger.info(
-                f"Loaded checkpoint: {len(self._processed_files)} files already processed "
-                f"(from {data.get('last_updated', 'unknown')})"
-            )
 
             # Replay the journal written since the snapshot.  A journal that
             # cannot be read is not fatal: the snapshot alone is still a
             # consistent (if slightly older) resume point.
             self._processed_count = self._replay_journal()
             self._last_save_count = self._processed_count
-            
+            self._finish_report(
+                "resumed", None, snapshot_present, snapshot_entries, journal,
+            )
+
         except json.JSONDecodeError as e:
             logger.error(f"Invalid checkpoint file format: {e}. Starting fresh.")
             self._processed_files = set()
+            self._finish_report(
+                "rejected", f"invalid checkpoint file ({e})",
+                snapshot_present, 0, journal,
+            )
         except Exception as e:
             logger.error(f"Error loading checkpoint: {e}. Starting fresh.")
             self._processed_files = set()
+            self._finish_report(
+                "rejected", f"checkpoint could not be loaded ({e})",
+                snapshot_present, 0, journal,
+            )
     
     def _save_checkpoint(self, blocking: bool = False) -> None:
         """
@@ -497,9 +754,30 @@ class CheckpointManager:
         Args:
             file_info: File metadata dictionary
         """
+        # A mark that raises must not stop ingestion, but it must not be
+        # silent either: enough failed marks and the next run redoes
+        # everything, which is exactly the failure this class exists to
+        # prevent. Reported once, then counted.
+        try:
+            self._mark_processed(file_info)
+        except Exception as exc:
+            self.mark_failures += 1
+            if not self._mark_warned:
+                self._mark_warned = True
+                logger.warning(
+                    "Checkpoint mark failed; progress will not be resumable "
+                    "for affected files (%s). First failure: %s",
+                    self.checkpoint_file, exc,
+                )
+            else:
+                logger.debug("Checkpoint mark failed again (%d total): %s",
+                             self.mark_failures, exc)
+
+    def _mark_processed(self, file_info: Dict[str, Any]) -> None:
+        """The body of :meth:`mark_processed`, without the safety net."""
         # Calculate identifier outside lock (faster)
         file_id = self._get_file_identifier(file_info)
-        
+
         should_save = False
         with self._lock:
             if file_id not in self._processed_files:
@@ -583,7 +861,11 @@ class CheckpointManager:
                 'processed_count': self._processed_count,
                 'processed_files': len(self._processed_files),
                 'checkpoint_file': str(self.checkpoint_file),
-                'last_save_count': self._last_save_count
+                'last_save_count': self._last_save_count,
+                # Files that were processed but whose mark never reached disk.
+                # They will be reprocessed on the next run, so the job summary
+                # has to say so rather than reporting a clean run.
+                'mark_failures': self.mark_failures,
             }
     
     def clear_checkpoint(self) -> None:

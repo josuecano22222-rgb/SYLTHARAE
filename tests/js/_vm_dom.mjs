@@ -13,6 +13,11 @@ export function makeDom() {
   function el(tag = 'div') {
     const e = {
       nodeType: 1, tagName: tag.toUpperCase(), children: [], listeners: {}, attrs: {},
+      // The job detail page stops polling once its status cell is detached
+      // (!statusCell.isConnected), which is how it survives soft navigation.
+      // Without this property every element looks detached, so the very first
+      // tick cancelled the poll and the harness saw a page that never polls.
+      isConnected: true,
       className: '', value: '', checked: false, disabled: false, dataset: {},
       classList: {
         _set: new Set(),
