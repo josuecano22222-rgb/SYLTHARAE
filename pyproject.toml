@@ -9,7 +9,7 @@ description = "SYLTHARAE and indexing system with PostgreSQL-backed full-text se
 readme = "README.md"
 requires-python = ">=3.10"
 license = "AGPL-3.0-or-later"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "SYLTHARAE Team" }]
 keywords = ["file-analysis", "full-text-search", "postgresql", "flask"]
 
