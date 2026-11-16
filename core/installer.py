@@ -390,6 +390,30 @@ def ensure_database_and_schema(
     })
 
 
+#: The gazetteer seeding implementation, handed over by the composition root.
+#:
+#: ``core`` must not import ``services`` — that layering rule is pinned by
+#: ``tests/unit/test_architecture_claims.py``, which counts the exceptions by
+#: name. This module used to break it with a function-local
+#: ``from services.geo import gazetteer``, which the rule's AST scan sees just
+#: as clearly as a top-level import. The work is real domain logic, so it now
+#: lives in ``services/geo/gazetteer_seed.py`` and the installer receives it.
+#:
+#: It is unset by default so that an installer used as a library fails loudly
+#: rather than silently skipping the seed; both entry points register it.
+_gazetteer_seeder = None
+
+
+def set_gazetteer_seeder(seeder) -> None:
+    """Register the gazetteer seeding implementation.
+
+    Called once by each entry point that runs an installation — ``install.py``
+    and the setup route — which are the layers allowed to import ``services``.
+    """
+    global _gazetteer_seeder
+    _gazetteer_seeder = seeder
+
+
 def ensure_gazetteer_seed(
     host: str, port: int, user: str, password: str, database: str,
 ) -> Dict[str, Any]:
@@ -401,22 +425,18 @@ def ensure_gazetteer_seed(
     fresh install stored every document with "no gazetteer is loaded" and zero
     place signals. :func:`services.geo.gazetteer.sync_seed` only writes rows that
     differ and never retires by absence, so this is safe to call repeatedly.
-    """
-    from database.bootstrap import connect_application_db
-    from services.geo import gazetteer as gz
 
-    conn = connect_application_db({
-        "host": host, "port": port, "user": user,
-        "password": password, "database": database,
-    })
-    try:
-        seed = gz.load_seed_file()
-        with conn.cursor() as cur:
-            result = gz.sync_seed(cur, seed, loaded_by="installer")
-        conn.commit()
-        return result
-    finally:
-        conn.close()
+    Raises rather than returning quietly when no seeder was registered: a
+    silently unseeded gazetteer looks, months later, like a detector that never
+    worked, with nothing in the install log to explain it.
+    """
+    if _gazetteer_seeder is None:
+        raise RuntimeError(
+            "no gazetteer seeder is registered; call "
+            "core.installer.set_gazetteer_seeder("
+            "services.geo.gazetteer_seed.ensure_seed) before installing"
+        )
+    return _gazetteer_seeder(host, port, user, password, database)
 
 
 # ────────────────────────────────────────────────────────────────────

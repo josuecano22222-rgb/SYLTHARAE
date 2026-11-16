@@ -322,6 +322,11 @@ def run_installation():
 
     try:
         from core.installer import run_installation as _run
+        from core.installer import set_gazetteer_seeder as _set_seeder
+        from services.geo.gazetteer_seed import ensure_seed as _ensure_seed
+
+        # core must not import services, so the installer is handed the seeder.
+        _set_seeder(_ensure_seed)
         data = request.get_json(silent=True)
         if not isinstance(data, dict):
             return jsonify({"ok": False, "error": _("Request body must be a JSON object.")}), 400

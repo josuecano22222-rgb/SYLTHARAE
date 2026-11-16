@@ -922,8 +922,28 @@ class IntegratedFileReader:
         # any container. Passing ``parent`` here made the folder look like a
         # container with work still to do, and the end-of-run wait then ran to
         # its stall limit on every resumed run.
+        #
+        # Which of the two calls is correct depends on whether this work is
+        # already in the denominator, and that differs by run:
+        #
+        # * Top level: a checkpointed file was filtered out of the inventory
+        #   before anything registered it, so it is genuinely new work to
+        #   account for - ``record`` adds it and settles it in one step.
+        # * Nested (inside a container): the container published its children
+        #   into the denominator when it was opened, so these files are
+        #   *already counted*. ``record`` would add them a second time and
+        #   leave ``pending`` permanently non-zero; the end-of-run sweep then
+        #   found that residue and, with nothing cancelled, recorded it as
+        #   failed - so a resumed run reported files it had in fact stored
+        #   successfully as "could not be processed". ``abandon`` settles
+        #   without inflating, and naming the container releases the work the
+        #   container was still holding open for them.
         if skipped_count:
-            self.progress_ledger.record(OUTCOME_SKIPPED, skipped_count)
+            if nested_run:
+                self.progress_ledger.abandon(
+                    skipped_count, OUTCOME_SKIPPED, container=self._container_path)
+            else:
+                self.progress_ledger.record(OUTCOME_SKIPPED, skipped_count)
 
         if not total_files:
             if self.checkpoint_manager and not nested_run:
