@@ -1,0 +1,78 @@
+[Unit]
+Description=SYLTHARAE information intelligence platform
+Documentation=https://github.com/josuecano22222-rgb/SYLTHARAE
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+# ---------------------------------------------------------------------------
+# Files written at runtime, inside the install directory.
+#
+# The unit grants ReadWritePaths for /opt/syltharae because the application
+# writes into its own install tree, not only into APP_DATA_DIR. These are the
+# paths it writes, and each is derived from the code's own constants so this
+# list cannot drift from what the application actually does:
+#
+#   data/search_history.json    Api/services/search_history.py HISTORY_FILE
+#   core/.app_instance.lock     core/path_utils.setup_path()  (single-instance lock)
+#   data/settings.json          settings/settings_manager.py  first store location
+#   data/settings_backups       settings/settings_manager.py  backups beside it
+#
+# Saved searches are NOT listed: they live in PostgreSQL (m0016). The legacy
+# file is read once during an upgrade and never written.
+#
+# Ingested bytes, logs, caches and checkpoints are written under APP_DATA_DIR,
+# which is /var/lib/syltharae below - not into the install directory.
+# ---------------------------------------------------------------------------
+
+[Service]
+Type=simple
+User=syltharae
+Group=syltharae
+WorkingDirectory=/opt/syltharae
+
+# One process, by design: the application keeps bounded in-process worker
+# threads and its own ledger. It is not a multi-process WSGI deployment, and
+# running more than one instance would let two writers hold the same
+# checkpoint journal. Scale by sizing the host, not by adding replicas.
+ExecStart=/opt/syltharae/venv/bin/python run_web.py
+
+# run_web.py exits 2 when apps/web/deployment.py refuses to start (invalid or
+# dangerous settings). Prevent restart in that case: a restart loop would only
+# repeat the refusal and hide the reason in the journal.
+Restart=on-failure
+RestartPreventExitStatus=2
+RestartSec=5
+
+# The application parses .env itself, so there is exactly one configuration
+# parser. An EnvironmentFile would be a second one, with different quoting.
+Environment=FLASK_ENV=production
+Environment=WSGI_SERVER=waitress
+Environment=AUTO_INSTALL=0
+Environment=APP_DATA_DIR=/var/lib/syltharae
+
+# --- hardening -------------------------------------------------------------
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+CapabilityBoundingSet=
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Write access is limited to the data directory and the install tree.
+ReadWritePaths=/var/lib/syltharae /opt/syltharae
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=syltharae
+
+[Install]
+WantedBy=multi-user.target
