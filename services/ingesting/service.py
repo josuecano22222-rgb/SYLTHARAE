@@ -512,9 +512,26 @@ class IngestionService:
             kwargs["max_workers"] = workers
         if opts.enable_monitoring is not None:
             kwargs["enable_monitoring"] = bool(opts.enable_monitoring)
+        # Whether the factory can take a ``checkpoint_file``.
+        #
+        # Asking only for the *name* was wrong, and silently disabled resume
+        # for every ingestion started through the job manager: the default
+        # factory is declared ``def _default_reader_factory(**kwargs)`` and
+        # forwards straight into ``IntegratedFileReader``, which does accept
+        # ``checkpoint_file`` - but ``inspect.signature`` reports a
+        # ``**kwargs`` parameter as one VAR_KEYWORD entry named "kwargs", so
+        # the name "checkpoint_file" was never found. No checkpoint file was
+        # ever passed, no CheckpointManager was ever built, and an
+        # interrupted folder ingestion had nothing to resume from.
+        #
+        # A ``**kwargs`` parameter therefore counts as accepting it.
         try:
             sig = inspect.signature(factory)
-            if "checkpoint_file" in sig.parameters:
+            parameters = sig.parameters
+            accepts = "checkpoint_file" in parameters or any(
+                p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()
+            )
+            if accepts:
                 kwargs["checkpoint_file"] = self._checkpoint_file(request)
         except (TypeError, ValueError):
             pass

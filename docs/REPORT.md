@@ -183,6 +183,82 @@ Five Arabic and one Hebrew entry were aligned this way.
 
 ---
 
+### 2.7 Folder ingestions were never checkpointed (the reported resume bug)
+
+**Symptom.** "If the system crashes, shuts down, or if operations are
+interrupted while processing a batch of files, clicking 'Retry' causes the
+process to start from the beginning rather than resuming from the last
+completed checkpoint."
+
+**Root cause.** `IngestionService._make_reader` decided whether to hand the
+reader a checkpoint file by asking for a parameter of that *name*:
+
+```python
+sig = inspect.signature(factory)
+if "checkpoint_file" in sig.parameters:
+    kwargs["checkpoint_file"] = self._checkpoint_file(request)
+```
+
+The service's own default factory is declared
+`def _default_reader_factory(**kwargs)` and forwards straight into
+`IntegratedFileReader`, which does accept `checkpoint_file`. But
+`inspect.signature` reports a `**kwargs` parameter as a single `VAR_KEYWORD`
+entry *named `kwargs`*, so the name `"checkpoint_file"` was never found and the
+branch never ran.
+
+**Consequence.** No ingestion started through the job manager ever received a
+checkpoint file. `IntegratedFileReader.checkpoint_file` was `None`, no
+`CheckpointManager` was built, and nothing was written to the checkpoints
+directory — so an interrupted folder run had no checkpoint to resume from:
+
+* discovery reported `skipped=0` on every restart, queueing the whole folder
+  again;
+* containers (archives, mailboxes) are deliberately exempt from the database
+  fallback in `_skip_committed`, so they were re-extracted in full;
+* the operator saw progress restart at 0 % with no "Resuming: N files already
+  processed" line, which is indistinguishable from starting over.
+
+A run of plain files still *appeared* to resume, which is what made this hard
+to see: an unrelated durability guard, `_skip_committed`, hashes each file and
+looks it up in the database. It only masks the problem — it re-reads and
+re-hashes every file before skipping it, and it cannot cover containers at all.
+
+**Fix.** A `**kwargs` parameter now counts as accepting `checkpoint_file`:
+
+```python
+accepts = "checkpoint_file" in parameters or any(
+    p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()
+)
+```
+
+A narrow factory that genuinely does not accept it is still not handed one, so
+no `TypeError` is introduced.
+
+**Proof.** Measured on a folder of four files and three archives (16 logical
+files), killed after the seventh store, then retried:
+
+| | before | after |
+|---|---|---|
+| checkpoint files written | none | 4 |
+| discovery on retry | `files=7 skipped=0` | `files=3 skipped=4` |
+| archives re-extracted | all 3 | 1 (only the incomplete one) |
+
+**Why the existing tests missed it.** `test_resume_real_database.py` constructs
+`IntegratedFileReader` directly and passes `checkpoint_file=` itself, so it
+exercised the reader but never the service. The new
+`tests/integration/resume_job_worker.py` drives the real operator path:
+`JobManager.create_job` → crash → `JobManager.retry`.
+
+**Proven fail-before / pass-after.** With the change reverted, the new unit
+tests fail with `assert None` (the factory received no `checkpoint_file`) and
+the integration tests fail with *"it wrote `[]`"* and
+`assert 0 > 0` (discovery recognised nothing as already processed). With the
+change: `5 passed` for the unit module and `3 passed` for the integration
+module. The third integration test — every file stored exactly once — passes
+both before and after, which is the point: deduplication always prevented
+duplicate rows, so it could never have caught this, and resume was being
+mistaken for correctness.
+
 ## 3. Architectural decisions
 
 - **Preserve, don't rewrite.** Nothing was re-architected. The layer violation
@@ -266,10 +342,11 @@ fallback was used instead); and the live-browser smoke suite.
    presence changes what `generate_reference.py` and the experience docgen
    emit. Install from `requirements.txt` and regenerate documents after any
    dependency change.
-7. **The original resume investigation is still open.** The specific
-   `Checkpoint …` log line from a failing retry was never supplied, so the
-   user's reported case remains unreproduced. The accounting bug fixed in §2.1
-   is a real defect in that area but is **not** confirmed to be the cause.
+7. **Resolved after delivery: folder ingestions were never checkpointed.**
+   The investigation recorded as open above is now closed — see §2.4. The
+   defect was not in the checkpoint manager, the retry path or the job
+   options, but in one line of `IngestionService._make_reader`, which never
+   passed a checkpoint file to the reader.
 
 ## 7. Run and deploy
 
