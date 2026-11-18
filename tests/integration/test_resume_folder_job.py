@@ -108,7 +108,7 @@ def folder(tmp_path):
     return root
 
 
-def _run(mode, folder, cfg, data_dir, job_id=None, kill_after=None):
+def _run(mode, folder, cfg, data_dir, job_id=None, kill_after=None, workers=1):
     env = dict(os.environ)
     env.update({
         "DB_HOST": cfg["host"], "DB_PORT": str(cfg["port"]),
@@ -123,6 +123,7 @@ def _run(mode, folder, cfg, data_dir, job_id=None, kill_after=None):
     env.pop("KILL_AFTER_STORE", None)
     if kill_after:
         env["KILL_AFTER_STORE"] = str(kill_after)
+    env["WORKERS"] = str(workers)
 
     args = [sys.executable, str(WORKER), mode, str(folder)]
     if job_id:
@@ -207,3 +208,63 @@ def test_retry_after_a_crash_stores_every_file_exactly_once(database, folder, tm
                 "m31.txt", "m32.txt", "m33.txt"}
     assert set(rows) == expected, f"missing={expected - set(rows)} extra={set(rows) - expected}"
     assert len(rows) == len(expected), f"duplicate rows: {len(rows)} != {len(expected)}"
+
+
+def test_a_finished_run_is_not_repeated_when_the_job_fails_afterwards(database, folder, tmp_path):
+    """Every file is stored, then the job is forced back to FAILED.
+
+    This is the "died while writing the summary" shape, and it is the sharpest
+    test of what a checkpoint buys: the archives were fully extracted by the
+    first run, so the retry must find all of them done. Before the fix this run
+    re-extracted every archive, because only the database fallback existed and
+    it deliberately refuses containers.
+    """
+    data_dir = tmp_path / "appdata"
+    first = _run("create", folder, database, data_dir)
+    assert first.returncode == 0, first.stderr[-2000:]
+    stored_before = len(_rows(database))
+    assert stored_before == 16, stored_before
+
+    job_id = _field(first, "JOB_ID")
+    conn = psycopg2.connect(dbname=database["database"], host=database["host"],
+                            port=database["port"], user=database["user"],
+                            password=database["password"])
+    conn.autocommit = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute("UPDATE jobs SET status='FAILED' WHERE job_id=%s", (job_id,))
+    finally:
+        conn.close()
+
+    retry = _run("retry", folder, database, data_dir, job_id=job_id)
+    assert retry.returncode == 0, retry.stderr[-2000:]
+    assert _field(retry, "STATUS") == "COMPLETED"
+    assert int(_field(retry, "STORE_CALLS")) == 0, (
+        "the retry stored work that was already committed; the checkpoint did "
+        "not record the finished archives")
+    assert len(_rows(database)) == stored_before
+
+
+def test_a_concurrent_run_resumes_without_duplicates(database, folder, tmp_path):
+    """A crash with several workers in flight must still resume cleanly."""
+    data_dir = tmp_path / "appdata"
+    first = _run("create", folder, database, data_dir, kill_after=7, workers=4)
+    assert first.returncode != 0
+    before = len(_rows(database))
+    assert before > 0
+
+    retry = _run("retry", folder, database, data_dir,
+                 job_id=_field(first, "JOB_ID"), workers=4)
+    assert retry.returncode == 0, retry.stderr[-2000:]
+    assert _field(retry, "STATUS") == "COMPLETED"
+
+    # Concurrent workers must still leave a checkpoint behind: without one the
+    # containers are re-extracted, and the database fallback cannot hide that
+    # because it refuses containers by design.
+    checkpoints = json.loads(_field(retry, "CHECKPOINT_FILES"))
+    assert any(f.endswith("_resume-test_resume-test.json") for f in checkpoints), checkpoints
+    assert any(".members/" in f for f in checkpoints), (
+        f"no per-container checkpoint from the concurrent run: {checkpoints!r}")
+
+    rows = _rows(database)
+    assert len(rows) == len(set(rows)) == 16, f"{len(rows)} rows, {len(set(rows))} distinct"

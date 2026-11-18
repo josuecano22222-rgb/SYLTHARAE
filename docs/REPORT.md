@@ -288,19 +288,65 @@ mistaken for correctness.
 
 ## 5. Tests actually performed
 
-Run with `python -m pytest`, PostgreSQL provided by `pgserver`.
+Run with `python -m pytest`, each suite in its own process (a single `pytest`
+over the whole repository is killed by the OOM killer at ~47%), PostgreSQL
+16.2 from `pgserver`, `REQUIRE_POSTGRES=1` so a missing database fails the run
+instead of skipping into green.
 
-| Suite | Before | After |
+| Suite | Items | Result |
 |---|---|---|
-| `tests/unit` | 153 failed / 53 errors | **0 / 0** |
-| `tests/security` | 1 failed | **0 / 0** |
-| `tests/integration` | 6 failed | **0 / 0** |
-| `tests/browser` + `tests/e2e` | — | **0 / 0** (skipped: no browser) |
+| `tests/unit` | 3 882 | 3 852 passed, 3 failed, 27 skipped |
+| `tests/security` | 384 | **384 passed** |
+| `tests/integration` | 1 492 | **1 488 passed, 3 skipped, 1 xfailed** |
+| `tests/e2e` | 23 | **23 passed** |
+| `tests/js` (run under Node 22) | 22 runnable | 20 pass, 2 fail by design (below) |
+| `tests/browser` | 6 | all skip cleanly — no Chromium binary |
+| `verify_readiness.py` | 31 checks | **READY**, 1 non-critical warning |
+| live server (`run_web.py`) | 513 routes | boots, `GET /setup` 200, unauthenticated `/api/*` 401 |
 
-Specific verifications, not just suite totals:
+The three unit failures are packaging checks, not behaviour: `pymupdf-layout`
+publishes no licence metadata, so the AGPL-compatibility checker cannot clear
+it, and one declared package is absent from this sandbox. Running the same ten
+files with the resume fix reverted produces a **byte-identical** failure set
+(`diff` empty), so none of them is caused by this work.
 
-- **Fail-before / pass-after** proven for the resume fix by reverting the
-  change: `assert 3 == 0`.
+The two JS harnesses that exit non-zero standalone are expected: one requires a
+component path argument that its pytest wrapper supplies, and
+`reports_page_smoke.mjs` targets the reports page that §6 records as never
+built (its pytest wrapper is `xfail(strict=True)`).
+
+Skipped integration tests, all environmental or opt-in: `nginx`/`openssl` not
+installed, a 100k-node fixture behind `CATEGORY_SCALE_100K=1`, and one Places
+test that self-declares Part 2 incomplete. The scale fixture was run explicitly
+and passes, including the **101 110-node** tree walk.
+
+### 5.1 Folder resume, condition by condition
+
+Each row is the real operator path (`JobManager.create_job` → `SIGKILL`-equivalent
+crash → `JobManager.retry`) against a real database, not a unit stub.
+
+| Condition | Observed |
+|---|---|
+| 4 files + 3 zips, killed after 7 stores | 4 checkpoints written; retry `files=3 skipped=4`; only the *incomplete* archive re-extracted |
+| 300 files + 4 zips, killed at 42 rows via the CLI | `Resuming: 42 already processed, 262 remaining`; 324 rows, 0 duplicates |
+| two successive crashes, then finish | final run stored 7, skipped 6; 14 rows, 0 duplicates |
+| all work done, job forced to `FAILED` | retry stored **0**; 16 rows unchanged |
+| finished archive + crash inside the next | retry stored 3 — exactly the remainder; no re-extraction |
+| 4 concurrent workers, killed mid-flight | 27/27 rows, 0 duplicates, snapshot **and** per-container checkpoints present |
+| nested archive (zip inside zip) | both levels checkpointed (`members/` file for each) |
+| deep nesting (`level1/level2`) | `skipped=2`, 5 rows, nothing lost |
+| folder of unreadable/empty files | `COMPLETED_WITH_WARNINGS`, retry consistent |
+| single archive as the target | killed after 3, retry stored 4 → 7 rows total |
+| empty folder | `COMPLETED`, no checkpoint (nothing to record) |
+| same filename in two subfolders | 2 distinct rows, no collision |
+| `COMPLETED` job offered to `retry` | refused — the guard still holds |
+
+Fail-before / pass-after was re-proven for the two new tests: with
+`services/ingesting/service.py` reverted, **4 of the 5** job-path tests fail; with
+the fix, 5 integration + 5 unit tests pass.
+
+Other verifications, not just suite totals:
+
 - The installer was run against a live PostgreSQL: database created, 5
   migrations applied, with the injected gazetteer seeder.
 - Translations were checked by loading the compiled `.mo` and confirming the
@@ -309,9 +355,9 @@ Specific verifications, not just suite totals:
 - The nginx/systemd contract tests, the CSP test (documented policy vs. served
   header), and the deploy-config assertions all pass.
 
-**Not tested, and not claimed to be:** browser and end-to-end suites (no
-browser in this environment); Tesseract (no system binary — the `rapidocr`
-fallback was used instead); and the live-browser smoke suite.
+**Not tested, and not claimed to be:** the browser suites (no Chromium binary
+is obtainable here), Tesseract (no system binary — the `rapidocr` fallback was
+used instead), and multi-process WSGI deployment.
 
 ## 6. Remaining limitations
 

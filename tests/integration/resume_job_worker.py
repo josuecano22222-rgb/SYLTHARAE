@@ -92,7 +92,10 @@ def main() -> int:
         "source": "resume-test",
         "side": "resume-test",
         "recursive": True,
-        "processing": {"max_workers": 1, "checkpoint": "auto"},
+        # One worker by default so a store count maps to a file; a concurrent
+        # run is opt-in so the crash can land while several files are in flight.
+        "processing": {"max_workers": int(os.environ.get("WORKERS", "1") or 1),
+                       "checkpoint": "auto"},
     }
 
     if mode == "create":
