@@ -174,6 +174,7 @@ except Exception as e:
 # Configure SECRET_KEY for CSRF protection and session management
 # Priority: 1) Environment variable, 2) Persistent file, 3) Generate new and save
 import secrets
+import uuid
 _secret_key_file = Path(project_root) / '.flask_secret_key'
 
 def get_or_create_secret_key():
@@ -641,13 +642,63 @@ def favicon():
 
 # ==================== ERROR HANDLERS ====================
 
+def _wants_json_error() -> bool:
+    """Does this request expect JSON rather than a page?
+
+    AUDIT-ENV-02: every ``fetch()`` in the application does
+    ``await response.json()`` and the framework handlers below answered HTML
+    for API paths - measured: an authenticated ``GET /api/does-not-exist`` with
+    ``Accept: application/json`` returned the 404 *page* (text/html), so the
+    caller got a JSON parse error instead of the reason, and showed a generic
+    "an error occurred". The rate-limit handler was fixed for the same reason;
+    this closes the rest of the framework-level answers.
+    """
+    if request.path.startswith('/api/'):
+        return True
+    if request.is_json:
+        return True
+    return request.accept_mimetypes.best == 'application/json'
+
+
+def _json_error(code: str, message: str, status: int):
+    """One error envelope: ``{success, error:{code,message,request_id}}``.
+
+    The object carries the detail; ``message`` and ``code`` are repeated at the
+    top level because roughly forty endpoints in this application return a
+    string ``error`` and their clients read it. Serving both keys during the
+    migration means neither client shape breaks on the way to one contract.
+    """
+    request_id = uuid.uuid4().hex[:12]
+    return jsonify({
+        "success": False,
+        "error": {"code": code, "message": message, "request_id": request_id},
+        "code": code,
+        "message": message,
+        "request_id": request_id,
+    }), status
+
+
 @app.errorhandler(404)
 def not_found(error):
+    if _wants_json_error():
+        return _json_error("not_found",
+                           "The requested resource does not exist.", 404)
     return render_template('404.html'), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(error):
+    if _wants_json_error():
+        return _json_error("method_not_allowed",
+                           "That method is not allowed on this resource.", 405)
+    return render_template('404.html'), 405
 
 
 @app.errorhandler(500)
 def internal_error(error):
+    if _wants_json_error():
+        return _json_error("internal_error",
+                           "The server could not complete the request.", 500)
     return render_template('500.html'), 500
 
 
@@ -656,13 +707,27 @@ from flask import request, jsonify
 
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
-    """Handle CSRF errors - return JSON for JSON requests, HTML otherwise"""
-    if request.is_json or request.content_type == 'application/json' or 'application/json' in (request.headers.get('Content-Type') or ''):
-        return jsonify({'error': 'CSRF token is missing or invalid'}), 400
-    # For non-JSON requests, Flask-WTF will handle it automatically
-    return render_template('500.html', error=str(e)), 400
+    """A form that arrived without a valid CSRF token is a 400, not a 500.
 
-RATE_LIMITED_MESSAGE = 'Too many attempts. Wait a minute and try again.'
+    AUDIT-CSRF-01: this used to answer ``400`` carrying ``500.html`` - the
+    "Internal Server Error / we're working to fix it" page. Measured on a
+    sign-in form posted after the token expired: HTTP 400 with a body saying
+    ``500 - Internal Server Error`` and no mention of CSRF, so the user is told
+    the server is broken when the only problem is a stale page. JSON callers
+    now get the same envelope as every other API error.
+    """
+    from flask_babel import gettext
+    message = gettext('Your session expired or this form was not submitted '
+                      'from this site. Reload the page and try again.')
+    if (request.is_json or request.path.startswith('/api/')
+            or 'application/json' in (request.headers.get('Content-Type') or '')
+            or request.accept_mimetypes.best == 'application/json'):
+        return jsonify({"success": False, "error": {
+            "code": "csrf_failed",
+            "message": message,
+            "request_id": uuid.uuid4().hex[:12],
+        }}), 400
+    return render_template('400.html', message=message), 400
 
 
 @app.errorhandler(429)
@@ -676,7 +741,10 @@ def handle_rate_limited(error):
     flask-limiter's own after-request hook.
     """
     from flask_babel import gettext
-    message = gettext(RATE_LIMITED_MESSAGE)
+    # AUDIT-I18N-01: the literal has to be here for pybabel to extract it; the
+    # message was a module constant passed to gettext(), so it was invisible to
+    # the extractor and every locale served English.
+    message = gettext('Too many attempts. Wait a minute and try again.')
     if (request.is_json or request.path.startswith('/api/')
             or request.accept_mimetypes.best == 'application/json'):
         return jsonify({'error': message, 'code': 'rate_limited'}), 429

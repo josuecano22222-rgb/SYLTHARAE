@@ -11,8 +11,6 @@
 """
 
 import logging
-import re
-import uuid
 
 from flask import jsonify, request
 
@@ -21,6 +19,7 @@ from core.geo.names import LANGUAGE_SCRIPT, LANGUAGES, match_key, script_of
 from core.security import ROLE_ADMIN
 from core.security.flask_ext import current_user, login_required
 from core.security.rate_limit import INTERACTIVE_READ_LIMIT, limiter
+from Api.utils.envelope import render_error as _error
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +29,6 @@ LOAD_SORT = {"id": "id", "seed_version": "seed_version", "loaded_at": "loaded_at
 
 # Place types are now main categories (country, city, region)
 FEATURE_TYPES = ("city", "country", "region")
-
-
-def _error(code, message, status):
-    return jsonify({"success": False, "error": {
-        "code": code, "message": message, "request_id": uuid.uuid4().hex[:12]}}), status
 
 
 def _int(name, default, lo, hi):

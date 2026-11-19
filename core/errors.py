@@ -161,6 +161,11 @@ def client_error(
             body[success_key] = False
         body["error"] = exc.description or public_message
         body["code"] = (exc.name or "error").lower().replace(" ", "_")
+        # AUDIT-ENV-02: the object-envelope endpoints answer with
+        # ``error: {code, message, request_id}``; repeating the sentence and the
+        # code at the top level here means a client that reads either shape
+        # works against either endpoint until one contract remains.
+        body["message"] = body["error"]
         response = jsonify(body)
         response.status_code = exc.code
         return response, exc.code
@@ -177,6 +182,10 @@ def client_error(
     # the fixed sentence withholds.
     if code:
         body["code"] = code
+    # Same compatibility promise as above: the human-readable sentence is
+    # available as ``message`` as well as ``error``.
+    body["message"] = public_message
+    body["request_id"] = correlation_id
     return jsonify(body), status
 
 

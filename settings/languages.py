@@ -8,7 +8,7 @@ page and the API layer always agree.
 Adding a language here (plus a complete translation catalog under
 ``translations/<code>/LC_MESSAGES/``) is all that is required to expose it.
 
-Supported languages: Arabic, English, Hebrew, Persian.
+Supported languages: Arabic, Croatian, English, Hebrew, Persian.
 """
 
 from collections import OrderedDict
@@ -19,6 +19,13 @@ SUPPORTED_LANGUAGES = OrderedDict([
     ('ar', 'العربية'),   # Arabic (RTL)
     ('he', 'עברית'),     # Hebrew (RTL)
     ('fa', 'فارسی'),     # Persian (RTL)
+    # AUDIT-I18N-03: translations/hr/LC_MESSAGES held 3301 translated strings
+    # and a correct three-form plural rule while Croatian was missing here, so
+    # the catalog could never be reached: the switcher, the Settings page, the
+    # API validation and the setup wizard all derive their options from this
+    # registry. Either the catalog ships or it does not - a locale nobody can
+    # select is wasted translation work.
+    ('hr', 'Hrvatski'),  # Croatian
 ])
 
 #: Languages written right-to-left (used for dir=rtl handling)

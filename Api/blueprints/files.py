@@ -1077,7 +1077,9 @@ def file_detail(file_id):
             total_chars = 0
     except Exception as e:
         logger.error(f"Error loading content for file_id={file_id}: {e}", exc_info=True)
-        flash(f"Error loading content: {str(e)}", "error")
+        # AUDIT-LEAK-01: the exception text (SQL, column names, file paths)
+        # belongs in the log, not in a banner the user can screenshot.
+        flash(_("Could not load the content. Try again, and check the logs if it persists."), "error")
         content = ''
         total_pages = 0
         total_chars = 0
@@ -2689,7 +2691,9 @@ def file_full_content(file_id):
         return response
     except Exception as e:
         logger.error(f"Error loading full content: {e}", exc_info=True)
-        flash(f"Error loading content: {str(e)}", "error")
+        # AUDIT-LEAK-01: the exception text (SQL, column names, file paths)
+        # belongs in the log, not in a banner the user can screenshot.
+        flash(_("Could not load the content. Try again, and check the logs if it persists."), "error")
         return redirect(url_for('files.files_list'))
 
 

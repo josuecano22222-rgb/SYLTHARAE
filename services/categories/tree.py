@@ -99,86 +99,13 @@ SELECT t.id, t.parent_id, t.name, t.depth, t.id_path, t.name_path, t.sort_key,
   LEFT JOIN rolls r  ON r.id = t.id
 """
 
-_SEARCH_SQL = """
-WITH RECURSIVE tree AS (
-    SELECT c.id, c.parent_id, w.word AS name, 1 AS depth,
-           ARRAY[c.id] AS id_path, lpad(c.id::text, 12, '0') AS sort_key
-      FROM categorys c JOIN words w ON w.id = c.word_id
-     WHERE c.parent_id IS NULL
-    UNION ALL
-    SELECT c.id, c.parent_id, w.word, p.depth + 1,
-           p.id_path || c.id,
-           p.sort_key || '.' || lpad(c.id::text, 12, '0')
-      FROM categorys c
-      JOIN words w ON w.id = c.word_id
-      JOIN tree p ON c.parent_id = p.id
-), matched AS (
-    SELECT t.id, t.id_path FROM tree t WHERE t.name ILIKE %s
-), keep AS (
-    SELECT id FROM matched
-    UNION
-    SELECT unnest(id_path) FROM matched
-)
-SELECT t.id, t.parent_id, t.name, t.depth, t.id_path, t.name_path, t.sort_key,
-       COALESCE(k.child_count, 0) AS child_count,
-       COALESCE(tm.own_terms, 0) AS own_terms,
-       COALESCE(r.descendant_count, 0) AS descendant_count,
-       COALESCE(r.total_terms, 0) AS total_terms,
-       (t.id IN (SELECT id FROM matched)) AS is_match
-  FROM tree t
-  LEFT JOIN kids k ON k.parent_id = t.id
-  LEFT JOIN terms tm ON tm.id = t.id
-  LEFT JOIN rolls r ON r.id = t.id
- WHERE t.id IN (SELECT id FROM keep)
-"""
-
-_SEARCH_CTES = """
-WITH RECURSIVE tree AS (
-    SELECT c.id, c.parent_id, w.word AS name, 1 AS depth,
-           ARRAY[c.id] AS id_path, ARRAY[w.word] AS name_path,
-           lpad(c.id::text, 12, '0') AS sort_key
-      FROM categorys c JOIN words w ON w.id = c.word_id
-     WHERE c.parent_id IS NULL
-    UNION ALL
-    SELECT c.id, c.parent_id, w.word, p.depth + 1,
-           p.id_path || c.id, p.name_path || w.word,
-           p.sort_key || '.' || lpad(c.id::text, 12, '0')
-      FROM categorys c
-      JOIN words w ON w.id = c.word_id
-      JOIN tree p ON c.parent_id = p.id
-), terms AS (
-    SELECT wc.category_id AS id, count(*) AS own_terms
-      FROM words_categorys wc GROUP BY wc.category_id
-), kids AS (
-    SELECT parent_id, count(*) AS child_count FROM tree
-     WHERE parent_id IS NOT NULL GROUP BY parent_id
-), closure AS (
-    SELECT id AS ancestor_id, id AS descendant_id FROM tree
-    UNION ALL
-    SELECT cl.ancestor_id, t.id FROM closure cl JOIN tree t ON t.parent_id = cl.descendant_id
-), rolls AS (
-    SELECT cl.ancestor_id AS id,
-           count(*) FILTER (WHERE cl.descendant_id <> cl.ancestor_id) AS descendant_count,
-           COALESCE(sum(tm.own_terms), 0) AS total_terms
-      FROM closure cl LEFT JOIN terms tm ON tm.id = cl.descendant_id
-     GROUP BY cl.ancestor_id
-), matched AS (
-    SELECT t.id, t.id_path FROM tree t WHERE t.name ILIKE %s
-), keep AS (
-    SELECT id FROM matched UNION SELECT unnest(id_path) FROM matched
-)
-SELECT t.id, t.parent_id, t.name, t.depth, t.id_path, t.name_path, t.sort_key,
-       COALESCE(k.child_count, 0) AS child_count,
-       COALESCE(tm.own_terms, 0) AS own_terms,
-       COALESCE(r.descendant_count, 0) AS descendant_count,
-       COALESCE(r.total_terms, 0) AS total_terms,
-       (t.id IN (SELECT id FROM matched)) AS is_match
-  FROM tree t
-  LEFT JOIN kids k ON k.parent_id = t.id
-  LEFT JOIN terms tm ON tm.id = t.id
-  LEFT JOIN rolls r ON r.id = t.id
- WHERE t.id IN (SELECT id FROM keep)
-"""
+#: AUDIT-DEAD-01: two search queries lived here, used by no code path.
+#: ``_SEARCH_SQL`` selected ``t.name_path`` from a CTE that never built it
+#: and joined ``kids``/``terms``/``rolls`` which it never defined - it could
+#: not have run - and ``_SEARCH_CTES`` was a fuller copy of the same idea.
+#: Search goes through ``_search_rows`` (match ids, then their ancestor
+#: chain), which is bounded and never builds the closure. Removed instead of
+#: repaired: dead SQL that looks runnable is a trap for the next reader.
 
 
 class CategoryTreeError(Exception):

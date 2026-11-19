@@ -18,17 +18,14 @@ export and is not itself audited per request; nothing here writes.
 
 from __future__ import annotations
 
-import uuid
 
 from flask import jsonify, request
 
 from core.security.flask_ext import admin_required
 from core.security.rate_limit import INTERACTIVE_READ_LIMIT, limiter
+from Api.utils.envelope import render_error as _error
 
 
-def _error(code, message, status):
-    return jsonify({"success": False, "error": {
-        "code": code, "message": message, "request_id": uuid.uuid4().hex[:12]}}), status
 
 
 def register_audit_routes(app):

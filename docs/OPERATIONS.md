@@ -108,6 +108,78 @@ python scripts/checkpoint_inspect.py <job_id>
 
 ## Backup and restore
 
-Back up the database with `pg_dump` and `APP_DATA_DIR` together; they are
-consistent only as a pair, because the database holds references to artifacts
-on disk. Retention policies delete both sides when they expire.
+The database and the files it points at are consistent only as a pair: every
+row in `paths` names an artifact on disk, and retention deletes both sides when
+they expire. A restore of one without the other produces an installation whose
+pages render and whose file operations fail.
+
+### What to back up
+
+| Item | Path | Why |
+|---|---|---|
+| PostgreSQL database | `DB_NAME` | accounts, vocabulary, paths, audit trail, job history |
+| Application data | `APP_DATA_DIR` (default `/var/lib/syltharae`) | uploads, job artifacts, checkpoints, the SECRET_KEY file, `.system_initialized` |
+| Translation memory | `$APP_DATA_DIR/translation/translation_memory.db` | analyst corrections; SQLite, not in PostgreSQL |
+| Map registry | `map_data/registry.db` under the install directory | installed map packages; SQLite, not in PostgreSQL |
+| Configuration | `.env` (or `config.json`), plus `map_data/catalog.json` | database credentials, paths, limits |
+
+`GET /api/export/database` (the "database backup" export in the UI) is **not**
+a disaster-recovery backup: it exports the evidence tables only and
+deliberately omits `users`, `sessions`, `audit_log`, `jobs` and
+`schema_migrations` so that credential material never lands in a downloadable
+file and an export cannot be restored over a live system. Use `pg_dump` for
+recovery.
+
+### Taking a backup
+
+Stop the service first, or accept that the dump and the data directory are a
+few seconds apart:
+
+```bash
+systemctl stop syltharae
+pg_dump -Fc -d "$DB_NAME" -f /backup/syltharae-$(date +%F).dump
+tar -czf /backup/appdata-$(date +%F).tar.gz "$APP_DATA_DIR" map_data/registry.db map_data/catalog.json .env
+systemctl start syltharae
+```
+
+`-Fc` (custom format) restores with `pg_restore`, can be inspected with
+`pg_restore -l`, and compresses.
+
+### Restoring
+
+```bash
+systemctl stop syltharae
+createdb -O "$DB_USER" "$DB_NAME"
+pg_restore -d "$DB_NAME" /backup/syltharae-2026-11-13.dump
+tar -xzf /backup/appdata-2026-11-13.tar.gz -C /
+systemctl start syltharae
+```
+
+Then verify, in this order:
+
+1. `journalctl -u syltharae -n 50` — expect
+   `[OK] Database schema is up to date (version …)`. Pending migrations are
+   applied at start-up, so a dump from an older release is upgraded in place.
+2. `curl -fsS localhost:5000/health` — 200.
+3. Sign in. A restore into a fresh `APP_DATA_DIR` has no `.system_initialized`
+   marker; the application asks PostgreSQL instead and re-creates the marker
+   (`[OK] Re-created the initialization marker`). It does not open the setup
+   wizard over a restored installation.
+4. Open a document from **Files**. If it fails, the data directory and the
+   dump do not belong together.
+
+### Lost initialization marker
+
+`.system_initialized` is a cache of the database's answer, not the authority.
+If it disappears — an ephemeral container filesystem, a restore that only
+carried the dump, a changed `APP_DATA_DIR` — the next start re-creates it when
+the critical tables are present. If the file is present but the database was
+replaced by an empty one, the setup wizard is offered (there are no accounts to
+lock out).
+
+### Restore drill
+
+Perform this once per release on a staging host: dump, restore into a
+freshly-created empty database and a fresh `APP_DATA_DIR`, start the service,
+sign in, open a document. The drill is what proves the backup exists in a form
+that can be restored — a dump nobody has restored is an assumption.

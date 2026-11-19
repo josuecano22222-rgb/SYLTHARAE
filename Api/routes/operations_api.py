@@ -44,6 +44,7 @@ from services.sources import (
     SourceSideError, create_side_svc, create_source_svc,
     list_sides_svc, list_sources_svc, search_sides_svc, search_sources_svc,
 )
+from Api.utils.envelope import render_error as _error
 
 logger = logging.getLogger(__name__)
 
@@ -54,19 +55,6 @@ def _manager() -> JobManager:
     return JobManager.get_instance()
 
 
-def _error(code: str, message: str, status: int, details=None):
-    """Structured error envelope (spec section 23)."""
-    body = {
-        "success": False,
-        "error": {
-            "code": code,
-            "message": message,
-            "request_id": uuid.uuid4().hex[:12],
-        },
-    }
-    if details is not None:
-        body["error"]["details"] = details
-    return jsonify(body), status
 
 
 #: Errnos that mean "the disk cannot take this right now", not "we have a bug".

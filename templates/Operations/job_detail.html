@@ -93,6 +93,10 @@
 {% block extra_js %}
 <script type="application/json" id="job-detail-page-data">{{ {
     "notFound": _('NOT FOUND'),
+    "cancelJob": _('Cancel job'),
+    "keepRunning": _('Keep running'),
+    "jobCancelled": _('Job cancelled.'),
+    "actionFailed": _('The action could not be completed.'),
     "jobId": job_id,
     "csrfToken": csrf_token()
 }|tojson }}</script>

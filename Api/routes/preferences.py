@@ -19,20 +19,17 @@ settings page drives this API with fields and buttons.
 from __future__ import annotations
 
 import logging
-import uuid
 
 from flask import jsonify, request
 
 from core.interfaces.navigation import build_navigation
 from core.security.flask_ext import current_user, login_required
 from core.security.rate_limit import INTERACTIVE_READ_LIMIT, limiter
+from Api.utils.envelope import render_error as _error
 
 logger = logging.getLogger(__name__)
 
 
-def _error(code, message, status):
-    return jsonify({"success": False, "error": {
-        "code": code, "message": message, "request_id": uuid.uuid4().hex[:12]}}), status
 
 
 def _actor():

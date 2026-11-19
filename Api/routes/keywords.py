@@ -113,7 +113,9 @@ def register_keywords_routes(app):
                                    sort_order=sort_order,
                                    delete_keyword_url=url_for('delete_keyword_api', keyword_id=0).replace('/0', ''))
         except Exception as e:
-            flash(f"Error loading keywords: {e}", "error")
+            # AUDIT-LEAK-01: log the detail, tell the user what happened.
+            logger.exception("Could not load keywords")
+            flash("Could not load keywords. Try again, and check the logs if it persists.", "error")
             return render_template('Keyword/keywords_list.html', keywords=[], page=1, per_page=20, total_pages=1, total_keywords=0, search='', sort_by='usage_count', sort_order='desc', delete_keyword_url='/keyword/')
     
 

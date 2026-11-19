@@ -356,6 +356,17 @@ function closeCategoryModal() {
 }
 
 /**
+ * The message inside an API error, whichever shape the endpoint uses.
+ */
+function errorMessage(payload, status) {
+    if (!payload) return 'HTTP ' + status;
+    const error = payload.error;
+    if (typeof error === 'string' && error) return error;
+    if (error && typeof error === 'object') return error.message || error.code || ('HTTP ' + status);
+    return payload.message || ('HTTP ' + status);
+}
+
+/**
  * POST JSON and turn the server's refusal into the message shown to the user.
  *
  * The hierarchy API answers a refused operation with ``{error, code}`` (409 for
@@ -374,7 +385,10 @@ async function postJson(url, body, csrfToken) {
     let payload = null;
     try { payload = await response.json(); } catch (error) { payload = null; }
     if (!response.ok) {
-        throw new Error((payload && payload.error) || ('HTTP ' + response.status));
+        // AUDIT-ENV-01: the API answers refusals in two shapes - a bare string
+        // and the richer {code, message, request_id} object. Passing the object
+        // to Error() stringified it, and the toast read "[object Object]".
+        throw new Error(errorMessage(payload, response.status));
     }
     return payload;
 }
