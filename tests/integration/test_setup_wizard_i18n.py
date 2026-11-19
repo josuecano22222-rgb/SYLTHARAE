@@ -262,6 +262,7 @@ def test_the_language_endpoint_is_closed_once_the_system_is_initialized(
     import Api.routes.setup as setup_module
 
     monkeypatch.setattr(setup_module, "_is_initialized", lambda: True)
+    monkeypatch.setattr(setup_module, "_has_users", lambda: True)
     client = app.test_client()
     resp = client.post("/api/setup/language", json={"language": "ar"})
     assert resp.status_code >= 400

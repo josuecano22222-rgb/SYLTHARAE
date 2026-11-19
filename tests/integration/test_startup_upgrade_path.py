@@ -223,8 +223,14 @@ def test_startup_without_marker_or_config_upgrades_an_installed_database(
             assert cur.fetchone() is not None
     finally:
         conn.close()
-    assert not (tmp_path / ".system_initialized").exists(), \
-        "no config.json: the marker is still not written (unchanged behaviour)"
+    # AUDIT-C1: the missing marker used to be left missing - and since the
+    # request gate trusted only the marker, this installed database was served
+    # the installation wizard. The database now answers the question, and
+    # start-up re-creates the marker it found absent. (``initialize_system``
+    # still refuses to write one without config.json; the healing path is
+    # separate and *requires* proof from PostgreSQL.)
+    assert (tmp_path / ".system_initialized").exists(), \
+        "the installed database was not healed: the next start would look uninstalled"
 
 
 def test_startup_without_marker_never_creates_an_uninstalled_database(

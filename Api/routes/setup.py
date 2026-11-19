@@ -57,53 +57,163 @@ def _integer_field(data, key, label, default, minimum, maximum):
     return result
 
 
-def _is_initialized():
+#: How long a verified "the database is installed" answer is trusted before it
+#: is re-checked. The check runs on every request (the setup hook), so this
+#: keeps a marker-less deployment from paying a round trip per page while still
+#: noticing a database that is dropped out from under a running process.
+_INITIALIZATION_TTL_SECONDS = 5.0
+_initialization_cache: dict = {"state": None, "checked_at": 0.0}
 
-    """Authoritative initialization-state check.
 
-    The system is considered initialized when the filesystem marker exists
-    AND the critical tables exist in the application database.  The
-    filesystem marker is the fast-path; the table check is authoritative.
+def reset_initialization_cache() -> None:
+    """Forget the cached initialization answer (tests, installer, settings)."""
+    _initialization_cache["state"] = None
+    _initialization_cache["checked_at"] = 0.0
 
-    Returns True if initialized, False if not, False on any error
-    (fail-safe: an errored check should not block legitimate setup).
+
+def _database_initialization_state():
+    """Ask PostgreSQL whether the application schema is installed.
+
+    Returns ``(initialized, has_users)`` where ``initialized`` means the four
+    critical tables exist, or ``None`` when the database cannot be reached.
+    ``has_users`` is ``True`` when it cannot be determined.
+
+    The database - not a file on a disk that may be ephemeral - is the
+    authority on whether this installation exists. A restore into a fresh
+    container, or a data directory that was not persisted, used to make the
+    application believe it had never been installed: every page redirected to
+    ``/setup`` and signing in was impossible even though every account, file
+    and audit row was still there. The probe lives in
+    ``core.initialization.installed_state`` because start-up marker healing
+    needs the same answer.
     """
-    # Fast-path: filesystem marker (written at end of successful install)
+    try:
+        from core.initialization import installed_state
+
+        state = installed_state()
+    except Exception as exc:  # database unreachable or not configured yet
+        logger.debug("Initialization probe could not reach the database: %s", exc)
+        return None
+    if state.get("installed") is None:
+        logger.debug("Initialization probe could not reach the database: %s",
+                     state.get("reason"))
+        return None
+    has_users = state.get("has_users")
+    return (bool(state["installed"]), True if has_users is None else bool(has_users))
+
+
+def _marker_present() -> bool:
     try:
         from core.initialization import is_system_initialized
-        if not is_system_initialized():
-            return False
-        # Marker exists, but verify DB is actually ready too
+
+        return bool(is_system_initialized())
     except Exception:
         return False
 
-    # Authoritative check: do the critical tables exist?
+
+def _heal_marker() -> None:
+    """Re-create the filesystem marker when the database proves it is missing.
+
+    The marker is only an optimisation and a fallback; losing it must not
+    change what the system thinks it is. Healing it keeps the fast path warm
+    and keeps ``install.py`` and the wizard agreeing with the running app.
+    """
+    if _marker_present():
+        return
     try:
-        import psycopg2
-        from database import get_db_config
-        cfg = get_db_config()
-        conn = psycopg2.connect(
-            dbname=cfg.get("database", "analysis"),
-            user=cfg.get("user", "postgres"),
-            password=cfg.get("password", ""),
-            host=cfg.get("host", "localhost"),
-            port=cfg.get("port", 5432),
-            connect_timeout=5,
+        from core.initialization import mark_system_initialized
+
+        mark_system_initialized()
+        logger.warning(
+            "Initialization marker was missing but the database is installed; "
+            "re-created it (see docs/OPERATIONS.md, 'Lost initialization marker')"
         )
-        try:
-            cur = conn.cursor()
-            cur.execute(
-                "SELECT COUNT(*) FROM information_schema.tables "
-                "WHERE table_schema='public' "
-                "AND table_name IN ('words','paths','contents','users')")
-            count = cur.fetchone()[0]
-            cur.close()
-            return count >= 4
-        finally:
-            conn.close()
+    except Exception as exc:
+        logger.warning("Could not re-create the initialization marker: %s", exc)
+
+
+def initialization_state() -> dict:
+    """The single source of truth for "is this installation done?".
+
+    ``initialized``   - the application schema exists in the database.
+    ``has_users``     - at least one account exists.
+    ``setup_complete``- both: the wizard has nothing left to do.
+    ``source``        - ``database``, ``marker`` (database unreachable) or
+                        ``none``.
+    """
+    import time
+
+    cached = _initialization_cache["state"]
+    if cached is not None and (time.monotonic() - _initialization_cache["checked_at"]) < _INITIALIZATION_TTL_SECONDS:
+        return cached
+
+    probe = _database_initialization_state()
+    if probe is None:
+        # The database cannot be reached. The marker is the only evidence we
+        # have, and trusting it is what lets a partially recovered system reach
+        # its own diagnostics instead of the wizard.
+        marker = _marker_present()
+        state = {
+            "initialized": marker,
+            # The accounts table cannot be read, so whether anyone exists is
+            # unknown. Assume they do: an installed system must never reopen
+            # its installation endpoints because the database blinked.
+            "has_users": marker,
+            "setup_complete": marker,
+            "source": "marker" if marker else "none",
+        }
+    else:
+        initialized, has_users = probe
+        if initialized and has_users is None:
+            # The schema is there but the accounts probe failed. Fail closed:
+            # an installed system whose account table cannot be read must never
+            # reopen its installation endpoints to anonymous callers.
+            has_users = True
+        if initialized:
+            _heal_marker()
+        state = {
+            "initialized": initialized,
+            "has_users": has_users,
+            "setup_complete": initialized and has_users,
+            "source": "database" if initialized else "none",
+        }
+
+    _initialization_cache["state"] = state
+    _initialization_cache["checked_at"] = time.monotonic()
+    return state
+
+
+def _is_initialized() -> bool:
+    """Is the application schema installed?
+
+    The database answers this. The filesystem marker is a fast path and a
+    fallback for when the database is unreachable - never an authority of its
+    own, because it can be lost (ephemeral data directory, restored dump,
+    changed ``APP_DATA_DIR``) while every user, file and audit row survives.
+    """
+    return initialization_state()["initialized"]
+
+
+def _has_users() -> bool:
+    """Does at least one account exist?
+
+    Unknown means yes: the setup endpoints stay closed unless the database
+    positively reports that the accounts table is empty.
+    """
+    try:
+        state = initialization_state()
     except Exception:
-        # DB unreachable — if marker exists, trust it (partial recovery case)
         return True
+    if state.get("source") != "database":
+        return True
+    return bool(state.get("has_users"))
+
+
+def _setup_needed() -> bool:
+    """Does the wizard still have work to do (no schema, or no account yet)?"""
+    if not _is_initialized():
+        return True
+    return not _has_users()
 
 
 def _reject_if_initialized():
@@ -113,7 +223,7 @@ def _reject_if_initialized():
     system is NOT initialized (i.e., installation is allowed).
     """
     try:
-        if _is_initialized():
+        if not _setup_needed():
             return jsonify({
                 "ok": False,
                 "error": _("System is already initialized. Re-installation is not permitted through this endpoint.")
@@ -141,7 +251,7 @@ def _require_setup_window_or_admin():
 
     Returns ``None`` when the request may proceed, otherwise a response.
     """
-    if not _is_initialized():
+    if _setup_needed():
         return None
     from flask import g
 
@@ -248,7 +358,7 @@ def _wizard_language_options():
 
 @setup_bp.route("/setup", methods=["GET"])
 def setup_page():
-    if _is_initialized():
+    if not _setup_needed():
         return redirect(url_for("index"))
     return render_template(
         "Setup/install_wizard.html",
@@ -402,6 +512,10 @@ def run_installation():
 
         # remote_addr is already proxy-corrected (TRUSTED_PROXY_COUNT).
         result = _run(config, client_ip=request.remote_addr or "")
+        # Installation may have created the schema (or left it half-created);
+        # the next request must ask the database instead of reusing the answer
+        # cached before the wizard ran.
+        reset_initialization_cache()
         result["redirect"] = url_for("index")
         status = 200 if result.get("ok") else 500
         return jsonify(result), status
@@ -562,9 +676,19 @@ def register_setup_routes(app):
             return None
         try:
             if _is_initialized():
+                # The schema is installed. If no account exists yet the wizard
+                # still has to create the first administrator - send *pages*
+                # there, but never hijack sign-in or the API on an installed
+                # system: that is how losing the filesystem marker locked
+                # every existing user out of a working installation.
+                if _setup_needed() and not (
+                    request.path.startswith("/api/")
+                    or request.path.startswith("/auth/")
+                ):
+                    return redirect(url_for("setup.setup_page"))
                 return None
         except Exception:
-            pass
+            logger.exception("Initialization check failed during setup gate")
         if request.path != "/setup":
             return redirect(url_for("setup.setup_page"))
         return None

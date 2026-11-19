@@ -1,0 +1,2 @@
+file,line,finding,statement,status
+services/categories/tree.py,102,Unknown column: name_path," WITH RECURSIVE tree AS ( SELECT c.id, c.parent_id, w.word AS name, 1 AS depth, ARRAY[c.id] AS id_path, lpad(c.id::text, 12, '0') AS sort_key FROM categorys c JOIN words w ON w.id ",UNTOUCHED

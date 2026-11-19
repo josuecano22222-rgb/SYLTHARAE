@@ -348,6 +348,89 @@ def _probe_installed_schema(cfg: Dict[str, Any]):
         conn.close()
 
 
+def _probe_accounts_exist(cfg: Dict[str, Any]) -> Optional[bool]:
+    """Whether the ``users`` table holds at least one account.
+
+    ``None`` when the question cannot be answered (connection lost, table
+    unreadable). Callers must treat ``None`` as "accounts exist": an installed
+    system must never reopen its installation endpoints because the database
+    blinked.
+    """
+    import psycopg2
+
+    try:
+        conn = psycopg2.connect(host=cfg["host"], port=cfg["port"], user=cfg["user"],
+                                password=cfg["password"], dbname=cfg["database"],
+                                connect_timeout=5)
+    except Exception:
+        return None
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT EXISTS (SELECT 1 FROM users)")
+            return bool(cur.fetchone()[0])
+    except Exception:
+        conn.rollback()
+        return None
+    finally:
+        conn.close()
+
+
+def installed_state(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    """Authoritative installation state, asked of PostgreSQL.
+
+    Returns ``{"reachable", "installed", "has_users", "reason"}``. ``installed``
+    and ``has_users`` are ``True``/``False`` when known and ``None`` when the
+    database could not be asked. The request gate in ``Api/routes/setup.py``,
+    the wizard and the start-up healing below all read this, so there is one
+    definition of "this system is installed" for the whole application.
+
+    The database is the authority; ``.system_initialized`` is a cache of this
+    answer that can be lost (ephemeral data directory, restored dump, changed
+    ``APP_DATA_DIR``) while every account and row survives.
+    """
+    if cfg is None:
+        try:
+            cfg = _schema_db_config()
+        except Exception as exc:
+            return {"reachable": False, "installed": None, "has_users": None,
+                    "reason": f"no database configuration: {exc}"}
+    present, reason = _probe_installed_schema(cfg)
+    if present is None:
+        return {"reachable": False, "installed": None, "has_users": None,
+                "reason": reason}
+    if not present:
+        return {"reachable": True, "installed": False, "has_users": False,
+                "reason": None}
+    return {"reachable": True, "installed": True,
+            "has_users": _probe_accounts_exist(cfg), "reason": None}
+
+
+def heal_initialization_marker() -> bool:
+    """Re-create a lost ``.system_initialized`` marker for an installed system.
+
+    Writes the marker only when PostgreSQL positively reports the critical
+    tables, and only when the marker is missing: healing can never downgrade an
+    installation, and a database that is merely unreachable is left alone.
+    Returns ``True`` when a marker was written.
+    """
+    try:
+        if is_system_initialized():
+            return False
+        state = installed_state()
+        if state.get("installed") is not True:
+            return False
+        mark_system_initialized()
+        logger.warning("Initialization marker was missing while the database is "
+                       "installed; re-created %s", marker_path())
+        _startup_print("[OK] Re-created the initialization marker - the database "
+                       "is installed (see docs/OPERATIONS.md, "
+                       "'Lost initialization marker')")
+        return True
+    except Exception as exc:  # never block start-up over a cache file
+        logger.warning("Could not check/re-create the initialization marker: %s", exc)
+        return False
+
+
 def upgrade_database_schema():
     """Apply pending schema migrations to the configured database.
 
@@ -498,3 +581,9 @@ def ensure_system_initialized():
         # migrations must be applied either way.
         upgrade_database_schema()
 
+    # The marker is a cache of the database's answer, not an authority. A
+    # restore into a fresh container - or an installation configured from .env
+    # only, which never writes one - leaves the schema installed without the
+    # file. Without this the next process start would again treat a working
+    # installation as brand new.
+    heal_initialization_marker()
