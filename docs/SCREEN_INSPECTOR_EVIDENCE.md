@@ -53,7 +53,7 @@ document with what it writes.
 | Classes the project owns | 165 |
 | Classes that are third-party | 259 |
 | Classes belonging to nobody | 0 |
-| Bindings the scan found | 13 |
+| Bindings the scan found | 14 |
 
 ### How far each action's binding reaches
 

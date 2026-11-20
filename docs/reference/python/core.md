@@ -912,6 +912,8 @@ System Initialization Module
 - `initialize_paths(config: Dict[str, Any])` - Initialize directory paths from config
 - `initialize_database_config(config: Dict[str, Any], skip_connection_test: bool = True)` - Apply the database configuration from config.json.
 - `installed_schema_present(cfg: Dict[str, Any]) -> Optional[bool]` - Whether the application database exists and holds the critical tables.
+- `installed_state(cfg: Optional[Dict[str, Any]] = None) -> Dict[str, Any]` - Authoritative installation state, asked of PostgreSQL.
+- `heal_initialization_marker() -> bool` - Re-create a lost ``.system_initialized`` marker for an installed system.
 - `upgrade_database_schema()` - Apply pending schema migrations to the configured database.
 - `upgrade_installed_schema()` - Apply pending migrations when the application database is installed.
 - `initialize_system(first_startup: bool = False)` - Initialize the entire system

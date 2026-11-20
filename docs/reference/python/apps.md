@@ -269,8 +269,9 @@ PostgreSQL Flask Web Application - MODERNIZED
 - `add_security_headers(response)` <sub>app.after_request</sub> - Content-Security-Policy and related browser protections.
 - `favicon()` <sub>app.route('/favicon.ico')</sub> - Serve favicon to prevent 404 errors
 - `not_found(error)` <sub>app.errorhandler(404)</sub>
+- `method_not_allowed(error)` <sub>app.errorhandler(405)</sub>
 - `internal_error(error)` <sub>app.errorhandler(500)</sub>
-- `handle_csrf_error(e)` <sub>app.errorhandler(CSRFError)</sub> - Handle CSRF errors - return JSON for JSON requests, HTML otherwise
+- `handle_csrf_error(e)` <sub>app.errorhandler(CSRFError)</sub> - A form that arrived without a valid CSRF token is a 400, not a 500.
 - `handle_rate_limited(error)` <sub>app.errorhandler(429)</sub> - A rate limit was exceeded (flask-limiter).
 - `get_csrf_token()` <sub>app.route('/api/csrf-token', methods=['GET'])</sub> - Get CSRF token for AJAX requests
 - `shutdown_handler()` - Graceful shutdown handler

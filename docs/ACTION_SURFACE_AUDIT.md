@@ -107,7 +107,7 @@ A control a reader can press without the operation existing is exactly the defec
 | declared, not built; a page still prepares it | 1 |
 | presented by declaration; no control names it | 28 |
 
-The scan found 13 bindings in 5 files: 0 in markup attributes, 8 named as values (a macro argument or a page script), and 5 in the files the screens declare as their binding sources. The attribute count is the one that falls as this layer lands: an action drawn from prepared data needs no id typed into a template.
+The scan found 14 bindings in 6 files: 0 in markup attributes, 9 named as values (a macro argument or a page script), and 5 in the files the screens declare as their binding sources. The attribute count is the one that falls as this layer lands: an action drawn from prepared data needs no id typed into a template.
 
 Every one of those bindings is then resolved against the application's own URL map (`core.experience.bindings.check`), so a control pointing at a route nobody serves is a test failure rather than a 404 a reader finds. That check is what retired the Reprocess link.
 

@@ -79,10 +79,10 @@ Counted from the catalogs the build ships - the Babel catalogs under `translatio
 
 | Language | Catalog entries | Source strings | Translated | Fallback | Missing | Coverage | Of which translated |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `ar` | 3667 | 3467 | 3378 | 21 | 68 | 98.0% | 97.4% |
-| `fa` | 3398 | 3467 | 3109 | 21 | 337 | 90.3% | 89.7% |
-| `he` | 3398 | 3467 | 3107 | 23 | 337 | 90.3% | 89.6% |
-| `hr` | 3301 | 3467 | 3270 | 31 | 166 | 95.2% | 94.3% |
+| `ar` | 4460 | 3713 | 3619 | 18 | 76 | 98.0% | 97.5% |
+| `fa` | 4236 | 3713 | 3357 | 19 | 337 | 90.9% | 90.4% |
+| `he` | 4236 | 3713 | 3355 | 21 | 337 | 90.9% | 90.4% |
+| `hr` | 4021 | 3713 | 3605 | 26 | 82 | 97.8% | 97.1% |
 
 ### Coverage per screen
 
@@ -90,41 +90,41 @@ The strings a screen's contract asks for, and how many of them a language actual
 
 | Interface | Keys | ar | fa | he | hr |
 | --- | --- | --- | --- | --- | --- |
-| `dashboard` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `file_library` | 32 | 87.5% (0 by key) | 75.0% (0 by key) | 75.0% (0 by key) | 87.5% (0 by key) |
-| `search` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `sources` | 19 | 94.7% (0 by key) | 94.7% (0 by key) | 94.7% (0 by key) | 94.7% (0 by key) |
-| `sides` | 16 | 93.8% (0 by key) | 93.8% (0 by key) | 93.8% (0 by key) | 93.8% (0 by key) |
-| `keywords` | 21 | 71.4% (0 by key) | 71.4% (0 by key) | 71.4% (0 by key) | 71.4% (0 by key) |
-| `words` | 19 | 78.9% (0 by key) | 78.9% (0 by key) | 78.9% (0 by key) | 78.9% (0 by key) |
-| `categories` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `email_words` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `lexis_cosmos` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `analyst_categorization` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `notifications` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `signal_horizon` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `monitoring` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `input_ingestion` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `import_center` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `archives` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `path_analysis` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
+| `dashboard` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `file_library` | 32 | 90.6% (0 by key) | 78.1% (0 by key) | 78.1% (0 by key) | 90.6% (0 by key) |
+| `search` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `sources` | 19 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `sides` | 16 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `keywords` | 21 | 76.2% (0 by key) | 76.2% (0 by key) | 76.2% (0 by key) | 76.2% (0 by key) |
+| `words` | 19 | 84.2% (0 by key) | 84.2% (0 by key) | 84.2% (0 by key) | 84.2% (0 by key) |
+| `categories` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `email_words` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `lexis_cosmos` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `analyst_categorization` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `notifications` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `signal_horizon` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `monitoring` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `input_ingestion` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `import_center` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `archives` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `path_analysis` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
 | `map_viewer` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
-| `batch_analysis` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `classification` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `comprehensive_dashboard` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `reports` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `reports_dashboard` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `retention` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `schedules` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `charts_dashboard` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `detection` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `jobs` | 7 | 71.4% (0 by key) | 71.4% (0 by key) | 71.4% (0 by key) | 71.4% (0 by key) |
-| `import_export_console` | 3 | 66.7% (0 by key) | 66.7% (0 by key) | 66.7% (0 by key) | 66.7% (0 by key) |
-| `users` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `audit_log` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `settings` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `translation_manager` | 5 | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) | 80.0% (0 by key) |
-| `concurrency_monitor` | 3 | 0.0% (0 by key) | 0.0% (0 by key) | 0.0% (0 by key) | 0.0% (0 by key) |
+| `batch_analysis` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `classification` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `comprehensive_dashboard` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `reports` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `reports_dashboard` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `retention` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `schedules` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `charts_dashboard` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `detection` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `jobs` | 7 | 85.7% (0 by key) | 85.7% (0 by key) | 85.7% (0 by key) | 85.7% (0 by key) |
+| `import_export_console` | 3 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `users` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `audit_log` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `settings` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `translation_manager` | 5 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
+| `concurrency_monitor` | 3 | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) | 100.0% (0 by key) |
 
 ### Screens nobody has described yet
 
@@ -136,5 +136,5 @@ These have a contract derived from the registry, so they work: they have an iden
 
 Every contract passes the declarative checks: no SQL, no imports, no calls, no authorisation decisions, destructive actions carry a confirmation, bulk actions require a selection, and no key holds two different source strings.
 
-_Generated from 35 contracts, 3467 source strings and 5 catalogs._
+_Generated from 35 contracts, 3713 source strings and 5 catalogs._
 <!-- END GENERATED EXPERIENCE CONTRACT -->
