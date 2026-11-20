@@ -186,15 +186,60 @@ class ManagedProcess:
                 )
 
 
+
+#: How long ``multiprocessing.Manager()`` may take before the caller is told it
+#: did not start. The call blocks until the manager process answers; on a host
+#: where the manager cannot start at all (a container without ``/dev/shm``, an
+#: exhausted semaphore or file-descriptor budget, a fork the seccomp profile
+#: refuses) it blocks *forever*, and it is reached lazily from a GET handler
+#: (/concurrency/api/metrics), so the request - and the worker running it -
+#: hangs with no error to report. A bounded start turns that into a reported
+#: degradation.
+MANAGER_START_TIMEOUT_SECONDS = 5.0
+
+
+def start_manager_with_timeout(timeout: float = MANAGER_START_TIMEOUT_SECONDS):
+    """Start a multiprocessing manager, or fail within ``timeout`` seconds.
+
+    ``mp.Manager()`` is not interruptible from the calling thread, so the start
+    happens in a daemon thread: if it has not finished in time, the caller gets
+    an exception it can report instead of a request that never returns. A start
+    that succeeds later leaves an unreferenced manager process behind, which is
+    the price of not being able to cancel it; the manager is a daemon's child and
+    exits with the interpreter.
+    """
+    import threading
+
+    outcome = {}
+
+    def _boot():
+        try:
+            outcome["manager"] = mp.Manager()
+        except BaseException as exc:  # noqa: BLE001 - reported verbatim below
+            outcome["error"] = exc
+
+    starter = threading.Thread(target=_boot, name="manager-boot", daemon=True)
+    starter.start()
+    starter.join(timeout)
+    if "manager" in outcome:
+        return outcome["manager"]
+    error = outcome.get("error")
+    if error is not None:
+        raise RuntimeError(
+            f"the multiprocessing manager could not be started: {error}") from error
+    raise TimeoutError(
+        f"the multiprocessing manager did not start within {timeout:g}s")
+
 class ProcessManager:
     """Manages multiple processes with full lifecycle control"""
     
-    def __init__(self):
+    def __init__(self, manager_start_timeout: float = MANAGER_START_TIMEOUT_SECONDS):
         self.processes: Dict[str, ManagedProcess] = {}
         self.next_id = 0
         self.monitor_process = None
         self.monitor_active = mp.Value('i', 0)
-        self.manager = mp.Manager()
+        #: Raises TimeoutError/RuntimeError instead of blocking the caller.
+        self.manager = start_manager_with_timeout(manager_start_timeout)
         self.shared_dict = self.manager.dict()
     
     # 1) LAUNCHING

@@ -248,7 +248,13 @@ def _html_routes(app):
         if "GET" not in rule.methods or rule.arguments:
             continue
         path = rule.rule
-        if path.startswith(("/api/", "/static", "/health", "/metrics")) or "export" in path:
+        # Machine endpoints are not pages: /concurrency/api/metrics is a
+        # blueprint under a non-/api prefix, and asking it for HTML also made
+        # this test boot the concurrency hub (a multiprocessing manager) inside
+        # a request - the whole suite hung there, twice.
+        if "/api/" in path or path.startswith(("/api/", "/static", "/health", "/metrics")):
+            continue
+        if "export" in path:
             continue
         if path.endswith((".json", ".js", ".css", ".ico", ".txt", ".xml", ".csv")):
             continue
