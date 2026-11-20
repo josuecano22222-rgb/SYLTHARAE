@@ -1,0 +1,223 @@
+# Audit round 2 — what was measured, what was fixed, what is left
+
+This is the record of the second hardening round on this branch. It exists so
+the next reader does not have to reconstruct it from the commit log: every claim
+below names the file that changed and the test that now pins it.
+
+The method was the same as the first round's: a failure is triaged by reading
+its assertion, not its exception class, and a green test is not evidence unless
+it would have been red before the change.
+
+---
+
+## 1. Defects found and fixed
+
+### 1.1 Exception text reaching the user (two more handlers)
+
+`Api/blueprints/files.py` flashed `error=str(e)` when the file list could not be
+loaded, and `Api/routes/notifications.py` returned the exception text as the
+JSON `message` of a failed notification scan. A psycopg2 error names tables,
+columns and sometimes the statement; a path error names the operator's
+filesystem layout.
+
+Both now answer with a fixed sentence and log the detail, matching the five
+flash leaks fixed in the previous round. `tests/unit/test_error_text_disclosure.py`
+was rewritten to the narrow rule it actually needs — inside a broad
+`except Exception`/`except BaseException`/bare `except`, the arguments of
+`jsonify`/`render_template`/`flash`/`make_response` may not interpolate
+`str(e)`, `str(exc)`, `str(error)`, `{e}`, `{exc}` or `{error}`. The first
+version of that rule matched whole handlers and produced ~97 false positives;
+specific exception handlers (`except ValueError`) stay exempt by design.
+
+### 1.2 The compiled catalogs were older than the sources
+
+`translations/*/LC_MESSAGES/messages.mo` did not match the `.po` files they are
+built from, so pages fell back to English where a translation existed. The `.mo`
+files are now compiled from the shipped `.po` files.
+
+**What not to do, learned the hard way.** The first attempt was to re-extract
+and re-merge the catalogs. That deleted the narrative sentences: the
+`Plural(...)`/`TemplateSet(...)` objects in `core/analytics/kinds.py` hold the
+sentences as *data*, so Babel — which reads string literals in translation
+calls — cannot see them, and `pybabel update` moved them to obsolete, where the
+obsolete strip removed them. 42 narrative-plural tests failed and the Arabic,
+Hebrew, Persian and Croatian narrative text fell back to English. Regenerating a
+catalog discards exactly the translations the extractor cannot reproduce; the
+catalogs are the asset, the pot is the index.
+
+### 1.3 Message extraction scanned the wrong trees
+
+`babel.cfg` walked the entire checkout. It harvested a stale `build/lib` copy of
+the templates, assertion strings from `tests/`, and the 67 MB third-party corpus
+in `test-doc/` — which is how a catalog ends up with hundreds of entries no code
+path can look up.
+
+The fix had two halves. `build/`, `dist/`, `tests/`, `test-doc/`,
+`node_modules`, `.venv` and `audit_report/` are excluded by name; and the
+patterns stay root-relative (`**.py`), because a path-prefixed pattern silently
+matches nothing when extraction is pointed at a single package — which is what
+`tests/unit/test_catalog_extraction.py` does, and it caught the first version of
+the fix.
+
+### 1.4 Two interface strings the catalogs never received
+
+`templates/Operations/jobs.html` renders "The job list could not be loaded." and
+"Retrying…" through `_()`. Neither was in the pot or any catalog, so the jobs
+page had two English strings in every language. Both are now in the pot and
+translated in Arabic, Hebrew, Persian, Croatian and English.
+
+### 1.5 `/health` answered with a redirect while the wizard was open
+
+This one was found by a test that had been failing for a different-looking
+reason. `tests/integration/test_gazetteer_readiness.py` read `None` from
+`/health`'s JSON and failed on `payload["checks"]`. The body was HTML: with a
+migrated database and no account yet, the setup gate sent **every** path to
+`/setup`, including the liveness probe.
+
+A redirect is not an answer to a health check. The caller is a reverse proxy, a
+supervisor or an operator watching a first start — precisely the window the
+redirect was designed for. `/health`, `/healthz`, `/readyz` and `/livez` are now
+exempt and report their own JSON in both windows.
+
+### 1.6 A signed-in browser could be bounced to the installer
+
+The zero-account redirect is right for an anonymous visitor and wrong for a
+request that carries a validated session: the accounts probe can answer "empty"
+wrongly (a delete racing the read, a replica catching up, a connection to the
+wrong database), and the installer a signed-in operator is sent to then refuses
+to reinstall. A session cookie now outranks the probe.
+
+It surfaced as a suite-order failure — nineteen pages rendered fine earlier in
+the run, then only `/setup` answered 200 — which is the same class of incident a
+real operator would meet, only slower.
+
+### 1.7 A manager that cannot start hung the request that needed it
+
+`/concurrency/api/metrics` builds `hub.process_mgr` and `hub.pool_mgr` lazily
+inside the request, and both constructors called `multiprocessing.Manager()`.
+That call blocks until the manager process answers, and there are hosts where it
+never does: no writable `/dev/shm`, an exhausted semaphore or file-descriptor
+budget, a refused fork — or the ordinary case, a **fork from a process that
+already runs threads**, where the child inherits the locked state of every lock
+the parent held and waits on one nobody will release. The hub starts a
+ThreadManager as soon as a page is opened, so the last case is not exotic.
+
+The failure mode is a worker that never returns and an error nobody sees. It was
+found because a full unit run stopped making progress at 49% with three
+processes asleep in `Server.serve_forever`, inside a test that was only asking
+pages for their HTML.
+
+The start is now bounded (`concurrency/manager_start.py`, daemon thread + join,
+5 s) and raises `TimeoutError`/`RuntimeError`; the route's per-manager
+`try/except` turns that into a `{"status": "error"}` report with a correlation
+reference instead of an exception text. The page test also stopped asking
+machine endpoints for HTML: `/concurrency/api/metrics` sits under a blueprint
+with a non-`/api` prefix, which is how a "pages render without inline script"
+test ended up booting a multiprocessing manager.
+
+---
+
+## 2. Items that were investigated and deliberately not "fixed"
+
+### 2.1 The whole-catalog translation gap — 284 to 359 entries per locale
+
+`tests/integration/test_translation_coverage.py::test_no_catalog_entry_is_empty_or_fuzzy`
+fails for Arabic (309), Hebrew (284), Persian (284) and Croatian (359). The
+strings are real: "Screen Inspector", "Permission metadata", "The extracted text
+was exported.", the interface-registry and gazetteer copy added in earlier
+rounds.
+
+This is recorded in the repository's own ledger
+(`tools/audit/triage_failures.py`) as `NEEDS-DECISION`: *"needs a translator;
+filling them is a decision, not a code change."* This round agrees and did not
+machine-translate them. Unreviewed machine output would look like progress and
+would ship wrong words on administrative screens in four languages, where the
+English fallback at least tells the truth. The two *missing* interface strings
+(1.4) were a code defect and are fixed; these are a translation task with a
+known size.
+
+### 2.2 Croatian is maintained but not offered
+
+`translations/hr/` carries a 3301-entry catalog and the narrative and plural
+tests treat Croatian as a maintained locale, but `settings/languages.py` does
+not offer it and `Api/services/translation_management.py` explicitly refuses it
+as an editable locale (`tests/unit/test_translation_management_service.py`
+asserts `not validate_translation_locale('hr')`). That is an encoded product
+decision, not an oversight this round overrode; adding it to the offered list
+would contradict a test that states the opposite on purpose. It is left as an
+open product question with the evidence above.
+
+### 2.3 Migration atomicity (audit item MIG-01) — refuted
+
+The audit suggested that recording a migration version after the DDL commit
+could leave the schema and its record out of step. It cannot here:
+`run_migrations` performs `upgrade(conn)`, the `INSERT INTO schema_migrations`
+and a single `commit()` on one connection, and PostgreSQL DDL is transactional.
+A failure leaves neither the table nor the row, and a retry succeeds.
+`tests/integration/test_migration_atomicity.py` pins that behaviour, 2/2. The
+suggested "fix" would have introduced the bug.
+
+---
+
+## 3. Governance updated with the change
+
+* The migration freeze gate (`tests/unit/test_notification_volume_guards.py`)
+  records `m0006_index_hygiene` as the third reviewed exception, in the place
+  the gate says such a change belongs, with what it does and does not touch.
+* `tests/integration/test_m0004_downgrade_upgrade.py` and
+  `tests/integration/test_term_names_schema.py` no longer assert that `0005` is
+  the head; the term-names test now asserts ordering, which is what it meant.
+* `docs/reference/DATABASE_SCHEMA.md`, `docs/reference/` (Python API),
+  `docs/EXPERIENCE_CONTRACT.md`, `docs/ACTION_SURFACE_AUDIT.md` and
+  `docs/SCREEN_INSPECTOR_EVIDENCE.md` were regenerated from the current tree.
+
+---
+
+## 4. Test evidence
+
+| Suite | Result | Notes |
+|---|---|---|
+| `tests/unit` | 3931 collected, 2 failed | both `test_licensing`, environment only |
+| `tests/integration` | 1494 collected, 4 failed, 0 errors | all four are §2.1 |
+| `tests/security` | 384, 0 failed | |
+| `tests/e2e` | 23, 0 failed | |
+| `tests/js/*.mjs` | 22 harnesses pass | `reports_page_smoke.mjs` is a documented xfail; `action_lifecycle_smoke.mjs` needs the rendered-dialog argument its Python test supplies |
+| `verify_readiness.py` | 31 checks, 1 warn, 0 critical → READY | warn = dev server / no reverse proxy, by design in this environment |
+| `check_structure.py` | 0 missing page routes, 0 incomplete msgids | |
+| `check_frontend_wiring.py` | 59 render targets, 0 findings | |
+| `check_vocabularies.py` | 0 findings | |
+| live smoke | 16 pages 200, 5 APIs 200 JSON, `/api/nope` envelope | dev server on the migrated database |
+
+The two unit failures are `pymupdf-layout` and `pymupdf4llm` reporting empty
+licence metadata. Neither is a declared dependency of this project; they are
+present in the development image only, so the licensing checker sees two
+packages it cannot classify. `pytest-cov` was installed to clear a third
+environment-only failure (`test_install_cli_config`).
+
+### Test-infrastructure notes
+
+* `tests/unit/test_multiprocessing_unreachable.py` asserted a dispatch that
+  depends on the host's worker budget: `get_safe_worker_count(8)` answers 1 on a
+  4 GB machine, the reader took the sequential path, and the test failed for a
+  reason that says nothing about the multiprocessing pool. The count is pinned
+  now.
+* The suite is run in one process on a 3.9 GB host; it peaks near 3 GB. Running
+  it in file chunks breaks the fixture ordering the integration conftest relies
+  on (`prepare_web_app` must run before the first request), so the whole suite
+  is run as one, and never beside another suite.
+* pytest's final "N passed" line does not reach the captured log on this host
+  (it is written after the terminal reports), so counts here come from
+  `--junitxml`, not from the tail of a log.
+
+---
+
+## 5. Still open
+
+1. §2.1 — the translation gap, four locales, 1236 entries. Needs a translator.
+2. §2.2 — whether Croatian becomes an offered language.
+3. `tests/js/reports_page_smoke.mjs` targets a page module that does not exist
+   (`static/js/pages/reports-page.js`); the harness is an explicit xfail so a
+   future implementation reports XPASS rather than silence.
+4. The concurrency hub still starts a real multiprocessing manager on first use
+   of the dashboard. A bounded start makes the failure visible; making the
+   dashboard useful without one (thread-only metrics) is a design change.
