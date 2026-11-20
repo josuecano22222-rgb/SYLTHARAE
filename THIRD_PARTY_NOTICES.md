@@ -138,3 +138,18 @@ for review, not an assumption.
 * `static/icons/` - 1 file(s): the upstream licence must be confirmed and its text added by the maintainer.
 * `static/icons/fonts/` - 2 file(s): the upstream licence must be confirmed and its text added by the maintainer.
 * `static/js/` - 4 file(s): the upstream licence must be confirmed and its text added by the maintainer.
+
+## Test corpus (`test-doc/`)
+
+`test-doc/` holds 688 third-party sample documents (about 67 MB) used as
+fixtures by the extraction tests. It is data, not code: no module imports
+it, twenty-odd test modules read files from it by path, and it is excluded
+from the built wheel (`pyproject.toml`, `packages.find.exclude`).
+
+The repository carries no per-file licence statement for these documents,
+so their terms are unresolved rather than assumed permissive. They are not
+part of any distributed artifact and are not served by the application,
+which keeps the risk to the development process. Before redistributing the
+repository (a public fork, a published sdist) the corpus must either be
+replaced by material whose licence is known, or each file's origin must be
+recorded and its licence confirmed. See `test-doc/README.md`.

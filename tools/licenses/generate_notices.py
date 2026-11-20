@@ -140,7 +140,28 @@ def render() -> str:
                          "confirmed and its text added by the maintainer.")
     else:
         lines.append("None.")
-    lines.append("")
+
+    # Static section: the corpus is data, so it has no distribution metadata to
+    # read. AUDIT-LIC-01: 688 files (about 67 MB) were tracked in the repository
+    # with no provenance note anywhere, and they are third-party documents.
+    lines += [
+        "",
+        "## Test corpus (`test-doc/`)",
+        "",
+        "`test-doc/` holds 688 third-party sample documents (about 67 MB) used as",
+        "fixtures by the extraction tests. It is data, not code: no module imports",
+        "it, twenty-odd test modules read files from it by path, and it is excluded",
+        "from the built wheel (`pyproject.toml`, `packages.find.exclude`).",
+        "",
+        "The repository carries no per-file licence statement for these documents,",
+        "so their terms are unresolved rather than assumed permissive. They are not",
+        "part of any distributed artifact and are not served by the application,",
+        "which keeps the risk to the development process. Before redistributing the",
+        "repository (a public fork, a published sdist) the corpus must either be",
+        "replaced by material whose licence is known, or each file's origin must be",
+        "recorded and its licence confirmed. See `test-doc/README.md`.",
+        "",
+    ]
     return "\n".join(lines)
 
 

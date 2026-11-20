@@ -232,9 +232,9 @@ var JOB_DETAIL_PAGE_DATA = JSON.parse(document.getElementById('job-detail-page-d
     if (!r.ok || !d || !d.success) {
       const message = (d && d.error && (d.error.message || d.error)) ||
         JOB_DETAIL_PAGE_DATA.actionFailed;
-      if (window.Toast) Toast.error(message); else alert(message);
+      if (window.Toast) window.Toast.error(message); else alert(message);
     } else if (action === 'cancel' && window.Toast) {
-      Toast.success(JOB_DETAIL_PAGE_DATA.jobCancelled, {detail: JOB_ID});
+      window.Toast.success(JOB_DETAIL_PAGE_DATA.jobCancelled, {detail: JOB_ID});
     }
     refresh();
   };
