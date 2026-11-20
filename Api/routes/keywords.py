@@ -1510,9 +1510,13 @@ def register_keywords_routes(app):
             writer = csv.writer(output)
             writer.writerow(['ID', 'Keyword', 'Usage Count'])
             
+            from Api.services.document_intelligence import spreadsheet_safe_text
+
             for row in rows:
                 keyword_id = row[0]
-                keyword_text = keyword_text_map.get(keyword_id, '')
+                # A keyword is user data and lands in a spreadsheet: a keyword
+                # named '=HYPERLINK(...)' must arrive as text, not as a formula.
+                keyword_text = spreadsheet_safe_text(keyword_text_map.get(keyword_id, ''))
                 
                 # Get usage count
                 usage_result = execute_query(
