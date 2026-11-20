@@ -217,7 +217,7 @@ suggested "fix" would have introduced the bug.
 
 | Suite | Result | Notes |
 |---|---|---|
-| `tests/unit` | 3931 collected, 2 failed | both `test_licensing`, environment only |
+| `tests/unit` | 3957 collected, 2 failed, 0 errors | both `test_licensing`, environment only |
 | `tests/integration` | 1494 collected, 4 failed, 0 errors | all four are §2.1 |
 | `tests/security` | 411, 0 failed | 384 before this round's three security findings |
 | `tests/e2e` | 23, 0 failed | |
