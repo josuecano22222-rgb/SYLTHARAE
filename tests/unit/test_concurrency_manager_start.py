@@ -89,26 +89,30 @@ def test_the_process_manager_carries_the_timeout_into_the_start(monkeypatch):
     assert seen["timeout"] == 0.01
 
 
-def test_the_metrics_route_reports_a_dead_manager_instead_of_crashing(admin_client, monkeypatch):
+def test_the_metrics_route_reports_every_dead_manager_instead_of_crashing(
+        admin_client, monkeypatch):
     """The endpoint answers with a degraded report; it does not 500 or hang.
 
-    ``hub.process_mgr`` is what a GET reaches, so the failure a bounded start
-    raises has to become a JSON answer the dashboard can show. The route already
-    wraps each manager in its own try/except; this pins that the wrapper covers
-    the *construction* and not only the call after it.
+    Each of the four managers is built lazily inside the request, so each of
+    the four can be the one that never starts. They are all made to fail here:
+    the point is that a construction failure becomes a JSON answer the
+    dashboard can show, not an exception and not a request that never returns.
     """
     from concurrency import hub  # the shared ConcurrencyHub instance
 
     def refuse(self):
         raise TimeoutError("the multiprocessing manager did not start within 5s")
 
-    monkeypatch.setattr(type(hub), "process_mgr", property(refuse))
+    for name in ("thread_mgr", "process_mgr", "async_mgr", "pool_mgr"):
+        monkeypatch.setattr(type(hub), name, property(refuse))
+
     response = admin_client.get("/concurrency/api/metrics")
     assert response.status_code == 200, response.status_code
     payload = response.get_json()
     assert payload is not None, "the endpoint did not answer JSON"
     assert payload["success"] is True
-    assert payload["metrics"]["process_manager"]["status"] == "error"
-    # The operator gets a reference, not the exception text (the disclosure
-    # rule): the dashboard can report "error" and correlate it with the log.
-    assert payload["metrics"]["process_manager"]["error"]
+    for key in ("thread_manager", "process_manager", "async_manager", "pool_manager"):
+        assert payload["metrics"][key]["status"] == "error", key
+        # The operator gets a reference, not the exception text (the disclosure
+        # rule): the dashboard can report "error" and correlate it with the log.
+        assert payload["metrics"][key]["error"], key

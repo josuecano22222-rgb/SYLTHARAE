@@ -16,6 +16,11 @@ import psutil
 import sys
 from pathlib import Path
 
+from concurrency.manager_start import (
+    MANAGER_START_TIMEOUT_SECONDS,
+    start_manager_with_timeout,
+)
+
 # Set up path BEFORE importing core.path_utils to avoid import conflicts
 # This ensures we import from the correct location (core.path_utils, not managers.read.core.path_utils)
 try:
@@ -232,13 +237,15 @@ class ManagedPool:
 class MultiprocessingManager:
     """Manages multiple worker pools with task distribution"""
     
-    def __init__(self):
+    def __init__(self, manager_start_timeout: float = MANAGER_START_TIMEOUT_SECONDS):
         self.pools: Dict[str, ManagedPool] = {}
         self.next_pool_id = 0
         self.next_task_id = 0
         self.monitor_process = None
         self.monitor_active = mp.Value('i', 0)
-        self.manager = mp.Manager()
+        #: Bounded: a manager that cannot start must not hang the caller (the
+        #: concurrency dashboard builds this object inside a GET).
+        self.manager = start_manager_with_timeout(manager_start_timeout)
     
     # 1) LAUNCHING
     def create_pool(self, name: str, worker_count: int,
