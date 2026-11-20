@@ -649,9 +649,11 @@ def register_notification_routes(app):
         
         except Exception as e:
             logger.error(f"Error scanning for notifications: {e}", exc_info=True)
+            # AUDIT-LEAK-02: 'error' was client-safe and 'message' carried the
+            # raw exception next to it, so the safe half protected nothing.
             return jsonify({
-                'success': False, 
+                'success': False,
                 'error': client_safe_message(e, subsystem='Api.routes.notifications'),
-                'message': f'Error during scan: {str(e)}'
+                'message': 'The notification scan did not finish. Try again.'
             }), 500
 

@@ -793,7 +793,11 @@ def files_list():
                              sort_order='desc',
                              cursor_pagination=True,
                              nav_params={},
-                             error=str(e))
+                             # AUDIT-LEAK-02: the exception text went into the
+                             # page, where a failed SELECT shows its columns and
+                             # file paths to any reader. The log keeps it.
+                             error=_('The file list could not be loaded. '
+                                     'Try again, and check the log if it persists.'))
 
 
 def _file_type_statistics():
