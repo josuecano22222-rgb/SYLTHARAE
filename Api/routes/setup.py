@@ -673,6 +673,14 @@ def register_setup_routes(app):
             return None
         if request.path == "/api/csrf-token":
             return None
+        #: Liveness/readiness probes are answered by machines, not people, and
+        #: a redirect is not an answer: a reverse proxy or orchestrator reading
+        #: a 302 to the installer cannot tell "the process is up but nobody has
+        #: an account yet" from "the process is broken". /health reports the
+        #: database and settings checks itself and stays 200 while the wizard
+        #: is open - which is exactly when an operator is watching it.
+        if request.path in ("/health", "/healthz", "/readyz", "/livez"):
+            return None
         if request.endpoint in ("_internal_error", "not_found", "favicon"):
             return None
         try:

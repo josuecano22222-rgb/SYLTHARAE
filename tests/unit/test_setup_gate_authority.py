@@ -192,6 +192,7 @@ def _gate(app, marker, monkeypatch, installed, has_users, path="/auth/login",
     app.add_url_rule("/", endpoint="index", view_func=lambda: "home")
     app.add_url_rule("/auth/login", endpoint="login", view_func=lambda: "login page")
     app.add_url_rule("/api/words", endpoint="api_words", view_func=lambda: "{}")
+    app.add_url_rule("/health", endpoint="health_check", view_func=lambda: "{}")
     _database_says(monkeypatch, installed=installed, has_users=has_users)
     setup_routes.reset_initialization_cache()
     setup_routes.register_setup_routes(app)
@@ -262,6 +263,26 @@ def test_sign_in_is_never_hijacked_even_in_the_zero_account_state(marker, monkey
     response = _gate(app, marker, monkeypatch, installed=True, has_users=False,
                      path="/auth/login")
     assert response.status_code == 200
+
+
+def test_the_health_probe_survives_the_wizard_window(marker, monkeypatch):
+    """A redirect is not an answer to a liveness probe.
+
+    While the wizard is open every page belongs to the installer - but
+    ``/health`` is what a reverse proxy, a supervisor or an operator polls to
+    learn whether the process is alive, and answering ``302 -> /setup`` told
+    them nothing (the integration test that reads the gazetteer state got
+    ``None`` because the body was an HTML redirect). It now answers its own
+    JSON in both windows.
+    """
+    for installed in (False, True):
+        app = Flask(__name__)
+        app.config.update(TESTING=True, SECRET_KEY="x")
+        response = _gate(app, marker, monkeypatch, installed=installed,
+                         has_users=False, path="/health")
+        assert response.status_code == 200, (
+            f"installed={installed}: /health was redirected to "
+            f"{response.headers.get('Location')}")
 
 
 def test_a_fresh_install_is_sent_to_the_wizard(marker, monkeypatch):
