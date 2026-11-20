@@ -187,14 +187,19 @@ def test_the_diagnostics_are_public_only_in_the_setup_window(client, marker, mon
 # ── The global hook ────────────────────────────────────────────────────────
 
 
-def _gate(app, marker, monkeypatch, installed, has_users, path="/auth/login"):
+def _gate(app, marker, monkeypatch, installed, has_users, path="/auth/login",
+          signed_in=False):
     app.add_url_rule("/", endpoint="index", view_func=lambda: "home")
     app.add_url_rule("/auth/login", endpoint="login", view_func=lambda: "login page")
     app.add_url_rule("/api/words", endpoint="api_words", view_func=lambda: "{}")
     _database_says(monkeypatch, installed=installed, has_users=has_users)
     setup_routes.reset_initialization_cache()
     setup_routes.register_setup_routes(app)
-    return app.test_client().get(path, follow_redirects=False)
+    client = app.test_client()
+    if signed_in:
+        with client.session_transaction() as session_state:
+            session_state[setup_routes._SESSION_TOKEN_KEY] = "session-token"
+    return client.get(path, follow_redirects=False)
 
 
 def test_login_is_not_hijacked_when_the_marker_is_gone(client, marker, monkeypatch):
@@ -221,6 +226,26 @@ def test_pages_are_sent_to_the_wizard_when_no_account_exists(marker, monkeypatch
                      path="/")
     assert response.status_code == 302
     assert response.headers["Location"].endswith("/setup")
+
+
+def test_a_signed_in_user_is_never_bounced_to_the_wizard(marker, monkeypatch):
+    """A session cookie outranks an empty-looking accounts probe.
+
+    The zero-account redirect above is only right for an anonymous visitor.
+    A browser that is signed in has a session the store validated, so the
+    accounts table cannot really be empty - the probe was wrong (a replica
+    catching up, a delete racing the read, a connection to the wrong
+    database). Sending that browser to the wizard is the lockout this gate
+    exists to prevent, and it showed up as a suite-order failure: a page
+    that had rendered a moment earlier came back as a redirect to /setup.
+    """
+    app = Flask(__name__)
+    app.config.update(TESTING=True, SECRET_KEY="x")
+    response = _gate(app, marker, monkeypatch, installed=True, has_users=False,
+                     path="/", signed_in=True)
+    assert response.status_code == 200, (
+        "a signed-in request was redirected to "
+        f"{response.headers.get('Location')} because the accounts probe was empty")
 
 
 def test_sign_in_is_never_hijacked_even_in_the_zero_account_state(marker, monkeypatch):

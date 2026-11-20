@@ -15,6 +15,7 @@ Endpoints:
 
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, session
 from flask_babel import gettext as _
+from core.security.flask_ext import _SESSION_TOKEN_KEY
 import logging
 import threading
 
@@ -684,6 +685,15 @@ def register_setup_routes(app):
                 if _setup_needed() and not (
                     request.path.startswith("/api/")
                     or request.path.startswith("/auth/")
+                    # A session cookie means someone is signed in, so the
+                    # accounts table is not empty - whatever the probe just
+                    # said, the request must not be bounced to the wizard.
+                    # Without this, a page reloaded during a moment when the
+                    # accounts probe came back empty (a concurrent delete, a
+                    # replica catching up, the last admin being removed while
+                    # another browser is still signed in) sent a working user
+                    # to an installer that then refused to reinstall.
+                    or session.get(_SESSION_TOKEN_KEY)
                 ):
                     return redirect(url_for("setup.setup_page"))
                 return None
