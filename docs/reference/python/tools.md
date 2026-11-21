@@ -160,7 +160,7 @@ Structural checks: dead code, registry reality, i18n coverage, RTL.
 - `registry_reality(app)`
 - `i18n_coverage()` - msgids used by templates/JS but absent from a catalogue.
 - `catalogue_translation_gap()` - Untranslated/fuzzy catalogue entries, measured from the ``.po`` files.
-- `rtl_check()` - The RTL locales must produce a right-to-left document.
+- `rtl_check()` - The document direction must be *derived* from the language, not fixed.
 - `main(argv = None)`
 
 ### `tools/audit/check_vocabularies.py`
