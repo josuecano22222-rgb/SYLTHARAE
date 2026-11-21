@@ -14,12 +14,12 @@ the command line and the job use - so the answer here is the answer everywhere.
 from __future__ import annotations
 
 import logging
-import uuid
 
 from flask import jsonify, request
 
 from core.security.flask_ext import current_user, login_required, write_access_required
 from core.security.rate_limit import INTERACTIVE_READ_LIMIT, limiter
+from Api.utils.envelope import render_error as _error
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +46,6 @@ def _summarise(plan):
     return out
 
 
-def _error(code, message, status):
-    return jsonify({"success": False, "error": {
-        "code": code, "message": message, "request_id": uuid.uuid4().hex[:12]}}), status
 
 
 def _audit(action, detail=None):

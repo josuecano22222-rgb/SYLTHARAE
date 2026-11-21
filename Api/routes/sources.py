@@ -123,7 +123,9 @@ def register_sources_routes(app):
 
         except Exception as e:
             logger.error(f"Error in sources_list: {e}", exc_info=True)
-            flash(f'Error loading sources: {str(e)}', 'error')
+            # AUDIT-LEAK-01: the exception text (SQL, schema details) is for
+            # the log, not for a banner.
+            flash("Could not load sources. Try again, and check the logs if it persists.", "error")
             return render_template('Sources/sources_list.html',
                                  sources=[],
                                  search=search or '',

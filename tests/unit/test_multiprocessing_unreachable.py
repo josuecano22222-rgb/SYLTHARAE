@@ -59,8 +59,20 @@ def test_service_reader_never_uses_multiprocessing(tmp_path, monkeypatch):
 
 
 def test_run_batch_cannot_reach_the_pool(monkeypatch):
-    """With use_multiprocessing False, _run_batch must dispatch to threads."""
+    """With use_multiprocessing False, _run_batch must dispatch to threads.
+
+    The reader asks ``core.resource_coordinator`` for a safe worker count and
+    the coordinator answers from the *host* (one worker on a small box). This
+    test is about the dispatch, not about the host's memory budget, so the
+    count is pinned here: without the pin the reader came out at
+    ``max_workers == 1`` on a 4 GB machine, took the sequential path, and the
+    test failed for a reason that says nothing about the pool path.
+    """
+    from core import resource_coordinator
     from pipeline.integrated_reader import IntegratedFileReader
+
+    monkeypatch.setattr(resource_coordinator, "get_safe_worker_count",
+                        lambda requested: requested)
 
     reader = IntegratedFileReader(
         enable_storage=False, max_workers=8,

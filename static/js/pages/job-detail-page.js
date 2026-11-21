@@ -212,9 +212,30 @@ var JOB_DETAIL_PAGE_DATA = JSON.parse(document.getElementById('job-detail-page-d
   function escapeHtml(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
   window.act = async function (action) {
+    // AUDIT-UI-02: cancelling a running ingestion from this page posted
+    // immediately - no question, unlike the identical control on the jobs list,
+    // which asks through the shared ConfirmDialog. A mis-click killed a job that
+    // may have been hours into a folder. The dialog is the same one here.
+    if (action === 'cancel' && window.ConfirmDialog) {
+      const confirmed = await window.ConfirmDialog.request({
+        action: 'jobs.cancel',
+        scope: JOB_ID,
+        confirmLabel: JOB_DETAIL_PAGE_DATA.cancelJob,
+        cancelLabel: JOB_DETAIL_PAGE_DATA.keepRunning,
+        dangerous: true,
+      });
+      if (!confirmed) return;
+    }
     const r = await fetch(`/api/jobs/${JOB_ID}/${action}`, {method:'POST', headers: csrf});
-    const d = await r.json();
-    if (!d.success) alert((d.error && d.error.message) || `Cannot ${action} this job`);
+    let d = null;
+    try { d = await r.json(); } catch (_error) { d = null; }
+    if (!r.ok || !d || !d.success) {
+      const message = (d && d.error && (d.error.message || d.error)) ||
+        JOB_DETAIL_PAGE_DATA.actionFailed;
+      if (window.Toast) window.Toast.error(message); else alert(message);
+    } else if (action === 'cancel' && window.Toast) {
+      window.Toast.success(JOB_DETAIL_PAGE_DATA.jobCancelled, {detail: JOB_ID});
+    }
     refresh();
   };
 

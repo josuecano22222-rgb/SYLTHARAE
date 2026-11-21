@@ -9,7 +9,7 @@ description = "SYLTHARAE and indexing system with PostgreSQL-backed full-text se
 readme = "README.md"
 requires-python = ">=3.10"
 license = "AGPL-3.0-or-later"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 authors = [{ name = "SYLTHARAE Team" }]
 keywords = ["file-analysis", "full-text-search", "postgresql", "flask"]
 
@@ -72,11 +72,30 @@ file-analysis-web = "run_web:main"
 file-analysis-cli = "apps.cli.main:cli_main"
 
 [tool.setuptools]
-py-modules = ["run_web", "verify_readiness"]
+py-modules = ["run_web", "verify_readiness", "version"]
 
 [tool.setuptools.packages.find]
-include = ["Api*", "apps*", "concurrency*", "core*", "database*", "reader_file*", "settings*", "pipeline*", "services*", "Hdg_Err_Ex_Log*"]
-exclude = ["tests*", "templates*", "static*", "*.venv*"]
+# AUDIT-PKG-01: the web application is not importable without its assets.
+# apps/web/app.py resolves the project root as two directories above itself and
+# loads templates/, static/ and translations/ from there, so a wheel that ships
+# only .py files installs an application that cannot render a single page
+# (measured: "pip install" the built wheel, GET /auth/login -> 500
+# TemplateNotFound: auth/login.html). The trees below are shipped as namespace
+# packages so they land beside the code, exactly where project_root points.
+namespaces = true
+include = [
+    "Api*", "apps*", "concurrency*", "core*", "database*", "reader_file*",
+    "settings*", "pipeline*", "services*", "Hdg_Err_Ex_Log*",
+    "templates*", "static*", "translations*",
+]
+exclude = ["tests*", "*.venv*", "test-doc*"]
+
+[tool.setuptools.package-data]
+# Shipping the directory is not enough: without these patterns setuptools
+# includes no file inside it.
+templates = ["**/*.html", "**/*.jinja", "**/*.xml", "**/*.txt"]
+static = ["**/*"]
+translations = ["**/*.po", "**/*.mo", "**/*.pot"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

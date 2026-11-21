@@ -30,6 +30,21 @@ _LOCK = threading.Lock()
 _MODULE: Optional[ModuleType] = None
 
 
+def _installed_distribution_version() -> Optional[str]:
+    """The version from the installed package metadata, if there is one.
+
+    A wheel installs ``version.py`` too, but a partial deployment (a hand-copied
+    tree, an image that strips non-``.py`` files) can still be missing it, and
+    "what version is this?" must never be the reason a page answers 500.
+    """
+    try:
+        from importlib.metadata import PackageNotFoundError, version as dist_version
+
+        return dist_version("file-analysis")
+    except Exception:
+        return None
+
+
 def version_module() -> ModuleType:
     """The repository's ``version.py``, loaded by path (once per process)."""
     global _MODULE
@@ -39,6 +54,17 @@ def version_module() -> ModuleType:
         if _MODULE is not None:
             return _MODULE
         path = Path(get_project_root()) / "version.py"
+        if not path.is_file():
+            # AUDIT-PKG-01: the file is part of the distribution now, but a tree
+            # without it must degrade to the installed metadata, not fail every
+            # page that renders the release line.
+            fallback = _installed_distribution_version()
+            if not fallback:
+                raise ImportError(f"no application version: {path} is not a file")
+            module = ModuleType("syltharae_version")
+            module.get_version = lambda: f"SYLTHARAE {fallback}"  # type: ignore[attr-defined]
+            _MODULE = module
+            return module
         spec = importlib.util.spec_from_file_location("syltharae_version", path)
         if spec is None or spec.loader is None:      # pragma: no cover - defensive
             raise ImportError(f"cannot load the application version from {path}")

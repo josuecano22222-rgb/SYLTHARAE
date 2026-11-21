@@ -67,9 +67,10 @@ def populated_db(pg_db):
     try:
         with conn.cursor() as cur:
             # The migration under test is m0004; a fresh database is at the
-            # head of the chain, which is m0005 since the term_names migration
-            # was authorised. Bumping this string is the expected maintenance.
-            assert current_version(conn) == "0005"
+            # head of the chain, which is m0006 since the index-hygiene
+            # migration was authorised. Bumping this string is the expected
+            # maintenance.
+            assert current_version(conn) == "0006"
             parent = None
             for level in range(1, 6):
                 cur.execute("INSERT INTO words (word) VALUES (%s) RETURNING id",
@@ -227,7 +228,7 @@ def test_upgrade_restores_the_cycle_guard_and_changes_no_rows(populated_db):
 
     versions = [row[0] for row in _scalar_all(
         conn, "SELECT version FROM schema_migrations ORDER BY version")]
-    assert versions == ["0001", "0002", "0003", "0004", "0005"], versions
+    assert versions == ["0001", "0002", "0003", "0004", "0005", "0006"], versions
 
 
 def _scalar_all(conn, sql, params=()):

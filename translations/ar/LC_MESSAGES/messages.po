@@ -25111,3 +25111,11 @@ msgstr "العناصر التي لا تحتوي على ملفات معروضة"
 #: core/interfaces/registry.py templates/Lexis/cosmos.html static/js/pages/lexis-cosmos-page.js
 msgid "The focused item had no files, so the view moved up one level."
 msgstr "لم يكن للعنصر المركّز ملفات، لذا انتقل العرض مستوى واحدًا إلى الأعلى."
+#: templates/Operations/jobs.html:81
+msgid "The job list could not be loaded."
+msgstr "تعذّر تحميل قائمة المهام."
+
+#: templates/Operations/jobs.html:82
+msgid "Retrying…"
+msgstr "جارٍ إعادة المحاولة…"
+

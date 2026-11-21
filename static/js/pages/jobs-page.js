@@ -24,6 +24,11 @@ var JOBS_PAGE_DATA = (function () {
 
   if (!document.getElementById('jobsBody') || !document.getElementById('btnRefresh')) return;
 
+  // One escaper for every string this page writes into the table.
+  const escapeText = (value) => String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
   const fmtDur = (s) => {
     if (s == null) return '—';
     const m = Math.floor(s / 60), sec = Math.round(s % 60);
@@ -51,13 +56,30 @@ var JOBS_PAGE_DATA = (function () {
     if (st) p.set('status', st);
     if (u) p.set('user', u);
     p.set('limit', '100');
-    const r = await fetch('/api/jobs?' + p.toString());
-    const d = await r.json();
-    if (!d.success || !(d.jobs || []).length) {
-      body.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4">' + JOBS_PAGE_DATA.noJobsYetStartAnIngestion + '</td></tr>';
+    // AUDIT-UI-01: a failed request used to be reported as the empty state -
+    // "No jobs yet. Start an ingestion or import." - for a 500, a 401 and a
+    // dead network alike. An operator reading that concludes their jobs were
+    // lost. Failures and emptiness are different answers and now look different.
+    let response = null;
+    let d = null;
+    try {
+      response = await fetch('/api/jobs?' + p.toString(), {headers: {'Accept': 'application/json'}});
+      d = await response.json();
+    } catch (_error) {
+      response = null;
+    }
+    if (!response || !response.ok || !d || !d.success) {
+      const message = (d && d.error && (d.error.message || d.error)) || JOBS_PAGE_DATA.jobsCouldNotBeLoaded;
+      body.innerHTML = '<tr><td colspan="11" class="text-center text-danger py-4">' +
+        escapeText(message) + ' <span class="text-muted">' + JOBS_PAGE_DATA.retrying + '</span></td></tr>';
       return;
     }
-    const esc = (s) => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    if (!(d.jobs || []).length) {
+      body.innerHTML = '<tr><td colspan="11" class="text-center text-muted py-4">' +
+        escapeText(JOBS_PAGE_DATA.noJobsYetStartAnIngestion) + '</td></tr>';
+      return;
+    }
+    const esc = (s) => escapeText(s);
     const issueBadge = (j) => {
       const ec = Number(j.errors_count) || 0;
       const wc = Number(j.warnings_count) || 0;

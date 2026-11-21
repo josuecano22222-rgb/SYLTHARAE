@@ -163,8 +163,15 @@ def test_alert_index_migration_has_a_unique_version():
     # table plus its indexes, nothing altered in m0001-m0004. Adding it here is
     # the deliberate, reviewed change of the freeze gate - the diff is this
     # dict and the comment above it, not an exemption.
+    # 0006 is the *third* such exception, approved in the 2026-11 audit round:
+    # it drops paths.idx_paths_hash_id (an index whose name refers to a column
+    # that no longer exists, duplicating idx_paths_context_id) and adds the two
+    # missing foreign-key indexes on alerts (scenario_id,
+    # scenario_evaluation_id). Indexes only - no table, column or constraint of
+    # m0001-m0005 is altered, and the migration carries its own downgrade.
     assert versions == {"0001": "m0001_baseline.py",
                         "0002": "m0002_category_parent_id.py",
                         "0003": "m0003_sources_attachments.py",
                         "0004": "m0004_category_hierarchy_depth.py",
-                        "0005": "m0005_term_names.py"}, versions
+                        "0005": "m0005_term_names.py",
+                        "0006": "m0006_index_hygiene.py"}, versions

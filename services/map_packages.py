@@ -127,21 +127,38 @@ def _write_download_status(package_id: str, payload: Dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
 
 
+def _is_inside(path: Path, root: Path) -> bool:
+    """Is ``path`` (already resolved) inside ``root``?
+
+    ``str(path).startswith(str(root))`` is not an answer: it accepts a sibling
+    whose name merely begins with the root's (``/data/installed/pkg_evil`` for
+    root ``/data/installed/pkg``), so a crafted manifest could name a file
+    outside its own package and have it served. ``is_relative_to`` compares path
+    components, which is what "inside" means.
+    """
+    try:
+        return path.is_relative_to(root)
+    except AttributeError:  # pragma: no cover - Python < 3.9
+        return root == path or root in path.parents
+
+
 def _safe_extract(archive_path: Path, dest: Path) -> None:
     dest.mkdir(parents=True, exist_ok=True)
     if tarfile.is_tarfile(archive_path):
         with tarfile.open(archive_path, "r:*") as tar:
+            root = dest.resolve()
             for member in tar.getmembers():
                 target = (dest / member.name).resolve()
-                if not str(target).startswith(str(dest.resolve())):
+                if not _is_inside(target, root):
                     raise ValueError("Archive path escapes destination")
             tar.extractall(dest, filter="data")
         return
     if zipfile.is_zipfile(archive_path):
         with zipfile.ZipFile(archive_path) as zf:
+            root = dest.resolve()
             for name in zf.namelist():
                 target = (dest / name).resolve()
-                if not str(target).startswith(str(dest.resolve())):
+                if not _is_inside(target, root):
                     raise ValueError("Archive path escapes destination")
             zf.extractall(dest)
         return
@@ -282,7 +299,7 @@ def installed_pmtiles_path(package_id: str) -> Optional[Path]:
         return None
     path = (map_data_root() / "installed" / package_id / str(rel)).resolve()
     root = (map_data_root() / "installed" / package_id).resolve()
-    if not str(path).startswith(str(root)) or not path.is_file():
+    if not _is_inside(path, root) or not path.is_file():
         return None
     return path
 
@@ -295,6 +312,6 @@ def raster_tile_path(package_id: str, z: int, x: int, y: int) -> Optional[Path]:
     rel = template.format(z=z, x=x, y=y)
     path = (map_data_root() / "installed" / package_id / rel).resolve()
     root = (map_data_root() / "installed" / package_id).resolve()
-    if not str(path).startswith(str(root)) or not path.is_file():
+    if not _is_inside(path, root) or not path.is_file():
         return None
     return path

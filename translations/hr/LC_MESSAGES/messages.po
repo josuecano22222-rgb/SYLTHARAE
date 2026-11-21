@@ -25224,3 +25224,11 @@ msgstr "Stavke bez datoteka su prikazane"
 msgid "The focused item had no files, so the view moved up one level."
 msgstr "Fokusirana stavka nije imala datoteka pa se prikaz pomaknuo jednu "
 "razinu više."
+#: templates/Operations/jobs.html:81
+msgid "The job list could not be loaded."
+msgstr "Popis poslova nije se mogao učitati."
+
+#: templates/Operations/jobs.html:82
+msgid "Retrying…"
+msgstr "Pokušavam ponovno…"
+

@@ -63,7 +63,9 @@ def register_words_routes(app):
                                    sort_order=sort_order)
         except Exception as e:
             logger.error(f"Error loading words: {e}")
-            flash(f"Error loading words: {e}", "error")
+            # AUDIT-LEAK-01: log the detail, tell the user what happened.
+            logger.exception("Could not load words")
+            flash("Could not load words. Try again, and check the logs if it persists.", "error")
             return render_template('Word/Word_list.html', words=[], page=1, per_page=10, total_pages=1, total_words=0, search='', sort_by='usage_count', sort_order='desc')
     
     @app.route('/words/add', methods=['GET', 'POST'])

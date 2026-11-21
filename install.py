@@ -400,7 +400,11 @@ def write_config_json(config: Dict[str, str]):
 
 # ── Phase: Install ──
 def run_install(config: Dict[str, str]) -> bool:
-    from core.installer import run_installation
+    from core.installer import run_installation, set_gazetteer_seeder
+    from services.geo.gazetteer_seed import ensure_seed
+
+    # core must not import services, so the installer is handed the seeder.
+    set_gazetteer_seeder(ensure_seed)
     section("Installing")
     result = run_installation(config)
     for step in result.get("steps", []):

@@ -35,7 +35,6 @@
 
 import datetime
 import logging
-import uuid
 
 from flask import jsonify, request
 
@@ -44,6 +43,7 @@ from core.security.flask_ext import admin_required, current_user, login_required
 from core.security.rate_limit import INTERACTIVE_READ_LIMIT, limiter
 from services.detection import detectors as detector_registry
 from services.detection import redetection, signal_store
+from Api.utils.envelope import render_error as _error
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +54,6 @@ FILTER_OPTION_LIMIT = 1000
 MAX_REDETECT_IDS = 10_000
 
 
-def _error(code, message, status):
-    return jsonify({"success": False, "error": {
-        "code": code, "message": message, "request_id": uuid.uuid4().hex[:12]}}), status
 
 
 def _parse_reference_date(raw):

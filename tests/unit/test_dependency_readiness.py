@@ -340,6 +340,9 @@ def test_install_is_closed_to_anonymous_users_once_initialized(setup_app, monkey
     import Api.routes.setup as setup_routes
 
     monkeypatch.setattr(setup_routes, "_is_initialized", lambda: True)
+    # Installed *and* has an account: the setup window is closed (the second
+    # half is the database probe, stubbed so the test never needs PostgreSQL).
+    monkeypatch.setattr(setup_routes, "_has_users", lambda: True)
     started = []
     monkeypatch.setattr(dr, "start_install", lambda names: started.append(names))
     resp = setup_app.test_client().post("/api/setup/dependencies/install",

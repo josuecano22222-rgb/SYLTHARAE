@@ -22925,3 +22925,11 @@ msgstr "פריטים בלי קבצים מוצגים"
 #: core/interfaces/registry.py templates/Lexis/cosmos.html static/js/pages/lexis-cosmos-page.js
 msgid "The focused item had no files, so the view moved up one level."
 msgstr "לפריט שבמיקוד לא היו קבצים, ולכן התצוגה עלתה רמה אחת."
+#: templates/Operations/jobs.html:81
+msgid "The job list could not be loaded."
+msgstr "לא ניתן היה לטעון את רשימת המשימות."
+
+#: templates/Operations/jobs.html:82
+msgid "Retrying…"
+msgstr "מנסה שוב…"
+

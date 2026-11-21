@@ -22,6 +22,7 @@ All handlers return client-safe errors (SEC-08) and write audit records.
 from __future__ import annotations
 
 import logging
+from urllib.parse import unquote
 
 import os
 
@@ -65,6 +66,31 @@ def _client_ip() -> str:
     tests/security/test_proxy_deployment.py).
     """
     return request.remote_addr or ""
+
+
+def _safe_next_url(value) -> str:
+    """The page to continue to after sign-in, or ``/``.
+
+    Only a same-origin path may be returned. A leading ``//`` is protocol
+    relative (another host), and a **backslash** is worse than it looks: every
+    browser normalises ``\\`` to ``/`` before resolving, so ``/\\evil.example``
+    becomes ``//evil.example`` and the user who just typed their password into
+    the real application is handed to somebody else's site. Percent-encoded
+    forms (``/%5Cevil.example``) are decoded by the browser before that
+    normalisation, so the raw character has to be refused here. Control
+    characters are refused for the same reason a header would be.
+    """
+    candidate = (value or "").strip()
+    if not candidate.startswith("/") or candidate.startswith("//"):
+        return "/"
+    # Checked both raw and percent-decoded: this function is also reachable from
+    # code that has not decoded its input yet, and a caller should not have to
+    # know that the browser decodes before it normalises.
+    if "\\" in candidate or "\\" in unquote(candidate):
+        return "/"
+    if any(ord(character) < 0x20 or ord(character) == 0x7F for character in candidate):
+        return "/"
+    return candidate
 
 
 @auth_bp.route("/auth/login", methods=["GET"])
@@ -121,9 +147,7 @@ def login():
         username=user.username,
         ip_address=_client_ip(),
     )
-    next_url = request.args.get("next") or request.form.get("next") or "/"
-    if not next_url.startswith("/") or next_url.startswith("//"):
-        next_url = "/"  # prevent open redirect
+    next_url = _safe_next_url(request.args.get("next") or request.form.get("next"))
     if request.is_json or request.accept_mimetypes.best == "application/json":
         return jsonify({"success": True, "user": user.to_safe_dict(), "redirect": next_url})
     return redirect(next_url)

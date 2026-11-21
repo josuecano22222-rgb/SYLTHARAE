@@ -23406,3 +23406,11 @@ msgstr "موارد بدون فایل نمایش داده شدند"
 #: core/interfaces/registry.py templates/Lexis/cosmos.html static/js/pages/lexis-cosmos-page.js
 msgid "The focused item had no files, so the view moved up one level."
 msgstr "مورد کانونی فایلی نداشت، بنابراین نما یک سطح بالاتر رفت."
+#: templates/Operations/jobs.html:81
+msgid "The job list could not be loaded."
+msgstr "فهرست کارها بارگذاری نشد."
+
+#: templates/Operations/jobs.html:82
+msgid "Retrying…"
+msgstr "در حال تلاش دوباره…"
+

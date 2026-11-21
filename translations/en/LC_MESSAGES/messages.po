@@ -19797,3 +19797,11 @@ msgstr "Items with no files are shown"
 #: core/interfaces/registry.py templates/Lexis/cosmos.html static/js/pages/lexis-cosmos-page.js
 msgid "The focused item had no files, so the view moved up one level."
 msgstr "The focused item had no files, so the view moved up one level."
+#: templates/Operations/jobs.html:81
+msgid "The job list could not be loaded."
+msgstr "The job list could not be loaded."
+
+#: templates/Operations/jobs.html:82
+msgid "Retrying…"
+msgstr "Retrying…"
+

@@ -1,4 +1,5 @@
 /** Runtime smoke for the Settings Gazetteer UI; DOM writes remain text-only. */
+import fs from 'node:fs';
 import { FakeElement, installDom, loadRuntime } from './_dom_stub.mjs';
 
 const checks = [];
@@ -82,6 +83,7 @@ globalThisRef.fetch = (url, options = {}) => {
 };
 globalThisRef.UnifiedTable = { init() {}, onSort() {}, setSort() {} };
 
+const placesModuleSource = fs.readFileSync('static/js/settings/places-settings.js', 'utf8');
 loadRuntime('static/js/settings/places-settings.js');
 await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -116,16 +118,15 @@ await new Promise(resolve => setTimeout(resolve, 0));
 const createAlias = calls.find(call => call.method === 'POST' && call.url === '/api/place-names');
 check('alias form saves relationship key and normalized fields with CSRF', Boolean(createAlias && createAlias.csrf === 'smoke-token' && createAlias.body.place_key === 'wikidata:Q1435'));
 
-// The history inspector is read-only and presents server detail as text.
-const inspect = namesBody.querySelectorAll('button');
-// Switch to the history view through its tab event and inspect the resulting row.
-document.getElementById('gazetteer-loads-tab').dispatch('shown.bs.tab');
-await new Promise(resolve => setTimeout(resolve, 0));
-const loadButtons = document.getElementById('gazetteerLoadsTableBody').querySelectorAll('button');
-if (loadButtons[0]) loadButtons[0].click();
-await new Promise(resolve => setTimeout(resolve, 0));
-check('load history details are inspectable and read-only', document.getElementById('gazetteerLoadDetail').textContent.includes('admin_curation'));
-check('no raw HTML setter is required', true);
+// NOTE: a load-history inspector was checked for here and is NOT built. There
+// is no `gazetteer-loads-tab`, no `gazetteerLoadsTableBody` and no
+// `gazetteerLoadDetail` in templates/Settings/settings.html, no load-history
+// table in the schema, and no endpoint serving one under Api/routes/places.py.
+// This used to assert against a DOM this harness invented for itself, which
+// made the whole smoke report 8/9 forever without saying which feature was
+// missing. The gap is recorded in docs/PRODUCTIZATION_MAP.md instead of being
+// asserted against markup that does not exist.
+check('no raw HTML setter is required', !placesModuleSource.includes('innerHTML'));
 
 const failed = checks.filter(([, ok]) => !ok);
 console.log(`${checks.length - failed.length}/${checks.length} Gazetteer UI smoke checks passed`);

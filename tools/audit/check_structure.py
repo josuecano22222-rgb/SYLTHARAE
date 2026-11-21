@@ -157,11 +157,21 @@ def registry_reality(app):
 
 
 def i18n_coverage():
-    """msgids used by templates/JS but absent from a catalogue."""
+    """msgids used by templates/JS but absent from a catalogue.
+
+    Returns ``None`` - not an empty list - when the inventory this reads has not
+    been built. An audit check that answers "0 gaps" because it cannot see its
+    input is worse than no check: it is a green light for a release nobody
+    measured. ``main`` reports that case as "not measured" and points at the
+    generator; ``catalogue_translation_gap`` below covers the other axis (entries
+    that exist and are empty or fuzzy) straight from the catalogues, so the
+    release has a real number either way.
+    """
     inventory = ROOT / "audit_report" / "inventory" / "i18n_msgids.csv"
     langs = ["en", "ar", "he", "fa", "hr"]
     rows = []
-    if inventory.exists():
+    measured = inventory.exists()
+    if measured:
         with inventory.open(encoding="utf-8") as fh:
             for row in csv.DictReader(fh):
                 if row.get("coverage") != "gap":
@@ -175,17 +185,51 @@ def i18n_coverage():
         w.writerow(["msgid", "used_in", "missing_from", "status"])
         for r in rows:
             w.writerow(list(r) + ["UNTOUCHED"])
-    return rows
+    return rows if measured else None
+
+
+def catalogue_translation_gap():
+    """Untranslated/fuzzy catalogue entries, measured from the ``.po`` files.
+
+    The other axis: the msgid is *in* the catalogue and its ``msgstr`` is blank
+    or fuzzy. Counted by ``tools/i18n/export_translation_gaps.py`` (the same
+    measurement the translator worksheets come from), so this stays true on a
+    clean checkout where the inventory has not been built.
+    """
+    try:
+        from tools.i18n import export_translation_gaps as gaps
+    except Exception:                                  # pragma: no cover - import path only
+        return None
+    counts = {}
+    for language in gaps.LANGUAGES:
+        try:
+            counts[language] = len(gaps.collect(language))
+        except SystemExit:                             # catalogue missing
+            counts[language] = None
+    return counts
 
 
 def rtl_check():
-    """The RTL locales must produce a right-to-left document."""
+    """The document direction must be *derived* from the language, not fixed.
+
+    The previous version looked for ``dir="{{`` and so reported "no dir
+    attribute" for a template that writes
+    ``dir="{% if current_language in [...] %}rtl{% else %}ltr{% endif %}"`` - a
+    correct attribute the regex could not see. A yes/no on "does the attribute
+    exist" was also the weaker question: the property that matters is that the
+    value depends on the language, because a hardcoded ``dir="ltr"`` would pass
+    the old test and render every Arabic page left-to-right.
+    """
     base = ROOT / "templates" / "base.html"
     text = base.read_text(encoding="utf-8", errors="replace") if base.exists() else ""
-    has_dir = bool(re.search(r"dir=\\\\?[\"']?\{\{", text)) or 'dir="rtl"' in text
-    has_lang_dir = "is_rtl" in text or "rtl" in text.lower()
-    return {"base_template_has_dir_attribute": has_dir,
-            "base_template_mentions_rtl": has_lang_dir}
+    match = re.search(r"""\bdir\s*=\s*(["'])(.*?)\1""", text, re.S)
+    value = match.group(2) if match else ""
+    templated = bool(re.search(r"\{%|\{\{", value))
+    return {
+        "base_template_has_dir_attribute": bool(match),
+        "direction_is_derived_from_the_language": templated and "rtl" in value.lower(),
+        "base_template_mentions_rtl": "rtl" in text.lower() or "is_rtl" in text,
+    }
 
 
 CHECKS = ("dead", "registry", "i18n")
@@ -217,11 +261,24 @@ def main(argv=None):
 
     if "i18n" in wanted:
         i18n = i18n_coverage()
-        by_lang = collections.Counter()
-        for r in i18n:
-            for lang in r[2].split(","):
-                by_lang[lang] += 1
-        print(f"msgids with an incomplete catalogue: {len(i18n)} {dict(by_lang)}")
+        if i18n is None:
+            print("msgids with an incomplete catalogue: not measured "
+                  "(audit_report/inventory/i18n_msgids.csv is missing; "
+                  "run python tools/audit/build_inventories.py)")
+        else:
+            by_lang = collections.Counter()
+            for r in i18n:
+                for lang in r[2].split(","):
+                    by_lang[lang] += 1
+            print(f"msgids with an incomplete catalogue: {len(i18n)} {dict(by_lang)}")
+        counts = catalogue_translation_gap()
+        if counts is None:
+            print("untranslated/fuzzy catalogue entries: not measured")
+        else:
+            total = sum(v for v in counts.values() if v)
+            detail = ", ".join(f"{k} {v}" for k, v in counts.items())
+            print(f"untranslated/fuzzy catalogue entries: {total} ({detail}) "
+                  "-> docs/TRANSLATION_HANDOFF.md")
 
     if not args.only:
         print("RTL:", rtl_check())

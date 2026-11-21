@@ -16532,3 +16532,11 @@ msgstr ""
 msgid "File binding: counts are available; individual files could not be bound"
 msgstr ""
 
+#: templates/Operations/jobs.html:81
+msgid "The job list could not be loaded."
+msgstr ""
+
+#: templates/Operations/jobs.html:82
+msgid "Retrying…"
+msgstr ""
+

@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import html
 import logging
-import uuid
 from datetime import date, datetime, time
 
 from flask import jsonify, render_template, request
@@ -35,6 +34,7 @@ from flask import jsonify, render_template, request
 from core.security.flask_ext import current_user, login_required
 from core.security.rate_limit import INTERACTIVE_READ_LIMIT, limiter
 from settings.languages import SUPPORTED_LANGUAGES
+from Api.utils.envelope import render_error as _error
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +52,6 @@ _DATE_FIELDS = ("date_from", "date_to")
 _TIME_FIELDS = ("time_from", "time_to")
 
 
-def _error(code: str, message: str, status: int):
-    return jsonify({"success": False, "error": {
-        "code": code, "message": message, "request_id": uuid.uuid4().hex[:12]}}), status
 
 
 def _parse_date(name: str):

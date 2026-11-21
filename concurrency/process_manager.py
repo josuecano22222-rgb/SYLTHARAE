@@ -12,6 +12,11 @@ from datetime import datetime
 import psutil
 import os
 
+from concurrency.manager_start import (
+    MANAGER_START_TIMEOUT_SECONDS,
+    start_manager_with_timeout,
+)
+
 
 # Standalone monitoring function (must be at module level for pickling)
 def _monitor_loop_standalone(monitor_active, process_pids, interval, monitor_queue):
@@ -186,15 +191,17 @@ class ManagedProcess:
                 )
 
 
+
 class ProcessManager:
     """Manages multiple processes with full lifecycle control"""
     
-    def __init__(self):
+    def __init__(self, manager_start_timeout: float = MANAGER_START_TIMEOUT_SECONDS):
         self.processes: Dict[str, ManagedProcess] = {}
         self.next_id = 0
         self.monitor_process = None
         self.monitor_active = mp.Value('i', 0)
-        self.manager = mp.Manager()
+        #: Raises TimeoutError/RuntimeError instead of blocking the caller.
+        self.manager = start_manager_with_timeout(manager_start_timeout)
         self.shared_dict = self.manager.dict()
     
     # 1) LAUNCHING
