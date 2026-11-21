@@ -163,6 +163,33 @@ def test_checker_reads_expression_then_field_then_classifiers():
     assert checker.verdict(expression)[0] == "unknown"
 
 
+def test_the_pymupdf_companion_pins_ship_no_code():
+    """The two packages pymupdf 2.x pulls are empty, which is why their entry
+    in the checker's ``REVIEWED`` table is pymupdf's licence.
+
+    Their metadata has no ``License`` field at all (which is how they showed up
+    as "unknown"), and their own description explains why: they exist so a pip
+    upgrade from pymupdf 1.x does not break the environment, and the code that
+    used to live in them is now inside ``pymupdf``. That claim is checked here
+    rather than trusted - if a future release ships files, this test fails and
+    the licence has to be read again.
+    """
+    import importlib.metadata as importlib_metadata
+
+    checked = []
+    for name in ("pymupdf4llm", "pymupdf-layout"):
+        try:
+            dist = importlib_metadata.distribution(name)
+        except importlib_metadata.PackageNotFoundError:
+            continue
+        shipped = [str(path) for path in (dist.files or [])
+                   if ".dist-info/" not in str(path)]
+        assert shipped == [], f"{name} {dist.version} now ships {shipped[:5]}"
+        checked.append(name)
+    if not checked:
+        pytest.skip("pymupdf and its companion pins are not installed here")
+
+
 def test_checker_cli_exits_zero_on_this_environment():
     result = subprocess.run([sys.executable, "tools/licenses/check_licenses.py", "--quiet"],
                             cwd=ROOT, capture_output=True, text=True)

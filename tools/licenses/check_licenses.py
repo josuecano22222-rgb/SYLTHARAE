@@ -106,6 +106,20 @@ REVIEWED: Dict[str, Tuple[str, str]] = {
     "pymupdf": ("AGPL-3.0-only",
                 "'Dual Licensed - GNU AFFERO GPL 3.0 or Artifex Commercial License'; "
                 "used under the AGPL"),
+    #: pymupdf 2.x depends on two packages that ship nothing but their metadata.
+    #: Their own description says so - "This is an empty package that is
+    #: required by pymupdf-2.x, in order to avoid a pip bug ... [The pymupdf-2.x
+    #: package now contains the code that used to be here]" - and their RECORD
+    #: lists only dist-info entries. The code a user runs is pymupdf, which is
+    #: AGPL-3.0-only above, so these pins carry pymupdf's licence and no other.
+    "pymupdf4llm": ("AGPL-3.0-only",
+                    "empty shim required by pymupdf 2.x; carries no files beyond its "
+                    "dist-info RECORD, and its own description says the code moved into "
+                    "pymupdf (AGPL-3.0-only)"),
+    "pymupdf-layout": ("AGPL-3.0-only",
+                       "empty shim required by pymupdf 2.x; carries no files beyond its "
+                       "dist-info RECORD, and its own description says the code moved into "
+                       "pymupdf (AGPL-3.0-only)"),
     "ebooklib": ("AGPL-3.0-or-later", "classifier 'AGPLv3+'; upstream LICENSE.txt"),
     "pgserver": ("Apache-2.0", "no licence metadata; github.com/orm011/pgserver LICENSE is Apache-2.0 "
                  "(test-only: disposable PostgreSQL for the test suite)"),
