@@ -37,6 +37,7 @@ function updateMetrics() {
                 updateManagerCard('process', data.metrics.process_manager);
                 updateManagerCard('async', data.metrics.async_manager);
                 updateManagerCard('pool', data.metrics.pool_manager);
+                updateMode(data);
             }
         })
         .catch(error => console.error('Error fetching metrics:', error));
@@ -46,6 +47,25 @@ function updateMetrics() {
     updateProcesses();
     updateAsyncTasks();
     updatePools();
+}
+
+function updateMode(data) {
+    const banner = document.getElementById('concurrency-mode');
+    if (!banner) return;
+    if (!data.degraded) {
+        banner.classList.add('d-none');
+        banner.textContent = '';
+        return;
+    }
+    const reason = (data.metrics.process_manager && data.metrics.process_manager.reason)
+        || (data.metrics.pool_manager && data.metrics.pool_manager.reason)
+        || 'Running without the process and pool managers.';
+    const capacity = data.metrics.worker_capacity || {};
+    const recommended = capacity.recommended_workers;
+    banner.classList.remove('d-none');
+    banner.textContent = recommended
+        ? `${reason} This host recommends ${recommended} worker(s).`
+        : reason;
 }
 
 function updateManagerCard(type, metrics) {
@@ -61,7 +81,16 @@ function updateManagerCard(type, metrics) {
         card.innerHTML = `<p class="text-danger">Error: ${escapeHtml(metrics.error || 'Unknown error')}</p>`;
         return;
     }
-    
+
+    if (metrics.status === 'unavailable') {
+        // The host cannot start a multiprocessing manager. The server sends a
+        // fixed sentence (never an exception text) and the card says what it
+        // means instead of pretending the manager is idle.
+        card.innerHTML = '<p><strong>Status:</strong> <span class="badge bg-secondary">unavailable</span></p>'
+            + `<p class="text-muted mb-0">${escapeHtml(metrics.reason || 'Not available on this host.')}</p>`;
+        return;
+    }
+
     const statusClass = metrics.status === 'active' ? 'bg-success' : 'bg-secondary';
     let html = `<p><strong>Status:</strong> <span class="badge ${statusClass}">${metrics.status || 'unknown'}</span></p>`;
     
@@ -123,7 +152,9 @@ function updateProcesses() {
             if (data.success) {
                 const list = document.getElementById('processes-list');
                 if (!list) return;
-                if (!data.processes || data.processes.length === 0) {
+                if (data.available === false) {
+                    list.innerHTML = `<p class="text-muted">${escapeHtml(data.reason || 'Not available on this host.')}</p>`;
+                } else if (!data.processes || data.processes.length === 0) {
                     list.innerHTML = '<p class="text-muted">No processes</p>';
                 } else {
                     list.innerHTML = '<table class="table table-sm"><thead><tr><th>ID</th><th>Name</th><th>State</th><th>PID</th><th>Priority</th></tr></thead><tbody>' +
@@ -161,7 +192,9 @@ function updatePools() {
             if (data.success) {
                 const list = document.getElementById('pools-list');
                 if (!list) return;
-                if (!data.pools || data.pools.length === 0) {
+                if (data.available === false) {
+                    list.innerHTML = `<p class="text-muted">${escapeHtml(data.reason || 'Not available on this host.')}</p>`;
+                } else if (!data.pools || data.pools.length === 0) {
                     list.innerHTML = '<p class="text-muted">No pools</p>';
                 } else {
                     list.innerHTML = '<table class="table table-sm"><thead><tr><th>ID</th><th>Name</th><th>State</th><th>Workers</th><th>Active Workers</th><th>Priority</th></tr></thead><tbody>' +

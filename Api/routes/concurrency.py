@@ -27,6 +27,56 @@ logger = logging.getLogger(__name__)
 concurrency_bp = Blueprint('concurrency', __name__, url_prefix='/concurrency')
 
 
+#: The two managers that need ``multiprocessing.Manager()`` cannot exist without
+#: it; the thread and async managers do not need one at all. When the start
+#: fails on a host (see ``concurrency.manager_start``) the honest report is a
+#: thread-only one, not an error stub: the figures below are real, the two
+#: missing cards say why, and an operator can still see what the application is
+#: doing. The reason is a fixed sentence - never the exception text - because it
+#: is rendered in the dashboard.
+MANAGER_UNAVAILABLE_CODE = "multiprocessing_unavailable"
+MANAGER_UNAVAILABLE_REASON = (
+    "The multiprocessing manager could not be started on this host, so process "
+    "and worker-pool figures are not available. Thread and async figures are "
+    "live, and ingestion is unaffected: it runs on the thread pool."
+)
+
+
+def _unavailable() -> dict:
+    """The card payload for a manager this host cannot build."""
+    return {
+        "status": "unavailable",
+        "mode": "threads-only",
+        "reason_code": MANAGER_UNAVAILABLE_CODE,
+        "reason": MANAGER_UNAVAILABLE_REASON,
+        "active_processes": 0,
+        "total_processes": 0,
+    }
+
+
+def _worker_capacity() -> dict:
+    """What this host can actually run, without starting a manager.
+
+    The resource coordinator is what the ingestion path asks for a safe worker
+    count, so reporting its answer is the same number an operator would see in a
+    run - it is measured, not guessed.
+    """
+    capacity = {}
+    try:
+        from core.resource_coordinator import get_safe_worker_count
+
+        capacity["recommended_workers"] = get_safe_worker_count(4)
+    except Exception:  # the coordinator is optional
+        pass
+    try:
+        import os
+
+        capacity["cpu_count"] = os.cpu_count()
+    except Exception:
+        pass
+    return capacity
+
+
 @concurrency_bp.route('/')
 def dashboard():
     """Concurrency monitoring dashboard page"""
@@ -43,6 +93,7 @@ def get_metrics():
             'async_manager': {},
             'pool_manager': {}
         }
+        unavailable = []
         
         # Thread Manager metrics
         try:
@@ -78,8 +129,9 @@ def get_metrics():
                 'status': 'active' if hub.is_initialized('process') else 'inactive'
             }
         except Exception as e:
-            logger.warning(f"Error getting process manager metrics: {e}")
-            metrics['process_manager'] = {'status': 'error', 'error': client_safe_message(e, subsystem='Api.routes.concurrency')}
+            logger.warning("Process manager metrics unavailable: %s", e)
+            metrics['process_manager'] = _unavailable()
+            unavailable.append('process_manager')
         
         # Async Manager metrics
         try:
@@ -116,11 +168,19 @@ def get_metrics():
                 'status': 'active' if hub.is_initialized('pool') else 'inactive'
             }
         except Exception as e:
-            logger.warning(f"Error getting pool manager metrics: {e}")
-            metrics['pool_manager'] = {'status': 'error', 'error': client_safe_message(e, subsystem='Api.routes.concurrency')}
+            logger.warning("Pool manager metrics unavailable: %s", e)
+            metrics['pool_manager'] = _unavailable()
+            unavailable.append('pool_manager')
         
+        degraded = bool(unavailable)
+        if degraded:
+            # The measured numbers an operator needs when the managers are gone.
+            metrics['worker_capacity'] = _worker_capacity()
         return jsonify({
             'success': True,
+            'mode': 'threads-only' if degraded else 'full',
+            'degraded': degraded,
+            'unavailable': sorted(unavailable),
             'metrics': metrics,
             'timestamp': str(datetime.now().isoformat())
         })
@@ -192,8 +252,15 @@ def get_processes():
             'count': len(process_list)
         })
     except Exception as e:
-        logger.error(f"Error getting processes: {e}", exc_info=True)
-        return client_error(e, subsystem='Api.routes.concurrency', success_key='success', status=500)
+        logger.warning("Process list unavailable: %s", e)
+        return jsonify({
+            'success': True,
+            'available': False,
+            'reason_code': MANAGER_UNAVAILABLE_CODE,
+            'reason': MANAGER_UNAVAILABLE_REASON,
+            'processes': [],
+            'count': 0,
+        })
 
 
 @concurrency_bp.route('/api/async-tasks')
@@ -258,6 +325,13 @@ def get_pools():
             'count': len(pool_list)
         })
     except Exception as e:
-        logger.error(f"Error getting pools: {e}", exc_info=True)
-        return client_error(e, subsystem='Api.routes.concurrency', success_key='success', status=500)
+        logger.warning("Pool list unavailable: %s", e)
+        return jsonify({
+            'success': True,
+            'available': False,
+            'reason_code': MANAGER_UNAVAILABLE_CODE,
+            'reason': MANAGER_UNAVAILABLE_REASON,
+            'pools': [],
+            'count': 0,
+        })
 

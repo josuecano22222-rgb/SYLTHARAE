@@ -111,8 +111,13 @@ def test_the_metrics_route_reports_every_dead_manager_instead_of_crashing(
     payload = response.get_json()
     assert payload is not None, "the endpoint did not answer JSON"
     assert payload["success"] is True
-    for key in ("thread_manager", "process_manager", "async_manager", "pool_manager"):
+    # Thread and async managers that fail their own call report the failure per
+    # card; the two that need a multiprocessing manager report "unavailable"
+    # and the page explains it (see tests/unit/test_concurrency_metrics_fallback.py
+    # for the full contract and tests/js/concurrency_fallback_smoke.mjs for the page).
+    for key in ("thread_manager", "async_manager"):
         assert payload["metrics"][key]["status"] == "error", key
-        # The operator gets a reference, not the exception text (the disclosure
-        # rule): the dashboard can report "error" and correlate it with the log.
         assert payload["metrics"][key]["error"], key
+    for key in ("process_manager", "pool_manager"):
+        assert payload["metrics"][key]["status"] == "unavailable", key
+        assert payload["metrics"][key]["reason_code"] == "multiprocessing_unavailable", key

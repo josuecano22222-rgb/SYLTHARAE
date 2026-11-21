@@ -38,3 +38,19 @@ def test_cancelling_a_job_from_its_page_asks_first():
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "FAIL" not in proc.stdout, proc.stdout
     assert "9/9 checks passed" in proc.stdout, proc.stdout
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="node not installed")
+def test_the_concurrency_dashboard_explains_a_thread_only_host():
+    """AUDIT-ROUND-3: the dashboard rendered an error reference, not a reason.
+
+    The server now reports ``mode: "threads-only"`` with a fixed sentence for the
+    two managers this host cannot build; the harness runs the real page module
+    against that answer and checks the card, the banner and the lists say so
+    (tests/unit/test_concurrency_metrics_fallback.py pins the server side).
+    """
+    proc = subprocess.run(["node", "tests/js/concurrency_fallback_smoke.mjs"],
+                          cwd=ROOT, capture_output=True, text=True, timeout=120)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "FAIL" not in proc.stdout, proc.stdout
+    assert "12/12 checks passed" in proc.stdout, proc.stdout
