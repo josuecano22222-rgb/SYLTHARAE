@@ -1,0 +1,118 @@
+{
+  "languages": {
+    "ar": {
+      "total": 309,
+      "by_status": {
+        "fuzzy": 235,
+        "missing": 74
+      },
+      "by_module": {
+        "templates/Settings": 67,
+        "templates/file": 52,
+        "Api/routes": 50,
+        "templates/Notifications": 32,
+        "templates/components": 30,
+        "templates/Category": 22,
+        "templates/auth": 13,
+        "templates/Search": 10,
+        "templates/Analysis": 6,
+        "templates/Side": 6,
+        "templates/Sources": 6,
+        "Api/blueprints": 4,
+        "templates/Keyword": 4,
+        "core/i18n": 2,
+        "templates/Analyst": 1,
+        "templates/Reports": 1,
+        "templates/Scheduling": 1,
+        "templates/Word": 1,
+        "tests/unit": 1
+      }
+    },
+    "he": {
+      "total": 284,
+      "by_status": {
+        "fuzzy": 218,
+        "missing": 66
+      },
+      "by_module": {
+        "templates/Settings": 67,
+        "Api/routes": 50,
+        "templates/Notifications": 32,
+        "templates/components": 30,
+        "templates/file": 28,
+        "templates/Category": 22,
+        "templates/auth": 13,
+        "templates/Search": 10,
+        "templates/Analysis": 6,
+        "templates/Side": 6,
+        "templates/Sources": 6,
+        "Api/blueprints": 4,
+        "templates/Keyword": 4,
+        "core/i18n": 2,
+        "templates/Reports": 1,
+        "templates/Scheduling": 1,
+        "templates/Word": 1,
+        "tests/unit": 1
+      }
+    },
+    "fa": {
+      "total": 284,
+      "by_status": {
+        "fuzzy": 218,
+        "missing": 66
+      },
+      "by_module": {
+        "templates/Settings": 67,
+        "Api/routes": 50,
+        "templates/Notifications": 32,
+        "templates/components": 30,
+        "templates/file": 28,
+        "templates/Category": 22,
+        "templates/auth": 13,
+        "templates/Search": 10,
+        "templates/Analysis": 6,
+        "templates/Side": 6,
+        "templates/Sources": 6,
+        "Api/blueprints": 4,
+        "templates/Keyword": 4,
+        "core/i18n": 2,
+        "templates/Reports": 1,
+        "templates/Scheduling": 1,
+        "templates/Word": 1,
+        "tests/unit": 1
+      }
+    },
+    "hr": {
+      "total": 359,
+      "by_status": {
+        "fuzzy": 279,
+        "missing": 80
+      },
+      "by_module": {
+        "templates/Settings": 71,
+        "templates/file": 58,
+        "Api/routes": 50,
+        "templates/Notifications": 33,
+        "templates/components": 31,
+        "templates/auth": 23,
+        "templates/Category": 22,
+        "templates/Operations": 11,
+        "core/i18n": 10,
+        "templates/Search": 10,
+        "templates/Analysis": 6,
+        "templates/Side": 6,
+        "templates/Sources": 6,
+        "templates/Setup": 5,
+        "Api/blueprints": 4,
+        "templates/403.html": 4,
+        "templates/Keyword": 4,
+        "templates/Analyst": 1,
+        "templates/Reports": 1,
+        "templates/Scheduling": 1,
+        "templates/Word": 1,
+        "tests/unit": 1
+      }
+    }
+  },
+  "total": 1236
+}
