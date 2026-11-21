@@ -230,6 +230,16 @@ exist and are empty or fuzzy — straight from the `.po` files via the new
 `tests/unit/test_audit_i18n_reporting.py` pins both the blind case and the
 measured case.
 
+The same script's `rtl_check()` had the milder version of the same fault: it
+looked for `dir="{{` and therefore reported "no dir attribute" for `base.html`,
+which writes `dir="{% if current_language in [...] %}rtl{% else %}ltr{% endif %}"`
+— a correct attribute the regex could not see. Asking "does a dir attribute
+exist" was also the weaker question: a hardcoded `dir="ltr"` would have passed
+while rendering every Arabic page left-to-right. It now reports whether the
+direction is **derived from the language**, and three tests pin the templated
+case, the hardcoded case and the real shell.
+
+
 ### 1.14 A JS harness that could never run was deleted, and its intent tested
 
 `tests/js/reports_page_smoke.mjs` imported `static/js/pages/reports-page.js` and

@@ -86,3 +86,39 @@ def test_the_check_prints_the_catalogue_gap_it_measured(capsys, tmp_path, monkey
     total = sum(len(gaps.collect(language)) for language in gaps.LANGUAGES)
     assert f"untranslated/fuzzy catalogue entries: {total}" in printed
     assert "TRANSLATION_HANDOFF.md" in printed
+
+
+def test_the_rtl_check_sees_a_templated_direction(tmp_path, monkeypatch):
+    """The template writes ``dir="{% if … %}rtl{% else %}ltr{% endif %}"``.
+
+    The check used to look for ``dir="{{`` and reported "no dir attribute" for
+    that line, which is a false negative on a correct template.
+    """
+    (tmp_path / "templates").mkdir()
+    (tmp_path / "templates" / "base.html").write_text(
+        '<html lang="{{ current_language }}" '
+        'dir="{% if current_language in [\'ar\', \'he\'] %}rtl{% else %}ltr{% endif %}">\n',
+        encoding="utf-8")
+    monkeypatch.setattr(check_structure, "ROOT", tmp_path)
+
+    result = check_structure.rtl_check()
+    assert result["base_template_has_dir_attribute"] is True
+    assert result["direction_is_derived_from_the_language"] is True
+
+
+def test_a_hardcoded_direction_is_reported(tmp_path, monkeypatch):
+    """``dir="ltr"`` would satisfy "has a dir attribute" and render Arabic wrongly."""
+    (tmp_path / "templates").mkdir()
+    (tmp_path / "templates" / "base.html").write_text(
+        '<html lang="{{ current_language }}" dir="ltr">\n', encoding="utf-8")
+    monkeypatch.setattr(check_structure, "ROOT", tmp_path)
+
+    result = check_structure.rtl_check()
+    assert result["base_template_has_dir_attribute"] is True
+    assert result["direction_is_derived_from_the_language"] is False
+
+
+def test_the_real_shell_derives_its_direction():
+    result = check_structure.rtl_check()
+    assert result["base_template_has_dir_attribute"] is True
+    assert result["direction_is_derived_from_the_language"] is True

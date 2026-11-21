@@ -210,13 +210,26 @@ def catalogue_translation_gap():
 
 
 def rtl_check():
-    """The RTL locales must produce a right-to-left document."""
+    """The document direction must be *derived* from the language, not fixed.
+
+    The previous version looked for ``dir="{{`` and so reported "no dir
+    attribute" for a template that writes
+    ``dir="{% if current_language in [...] %}rtl{% else %}ltr{% endif %}"`` - a
+    correct attribute the regex could not see. A yes/no on "does the attribute
+    exist" was also the weaker question: the property that matters is that the
+    value depends on the language, because a hardcoded ``dir="ltr"`` would pass
+    the old test and render every Arabic page left-to-right.
+    """
     base = ROOT / "templates" / "base.html"
     text = base.read_text(encoding="utf-8", errors="replace") if base.exists() else ""
-    has_dir = bool(re.search(r"dir=\\\\?[\"']?\{\{", text)) or 'dir="rtl"' in text
-    has_lang_dir = "is_rtl" in text or "rtl" in text.lower()
-    return {"base_template_has_dir_attribute": has_dir,
-            "base_template_mentions_rtl": has_lang_dir}
+    match = re.search(r"""\bdir\s*=\s*(["'])(.*?)\1""", text, re.S)
+    value = match.group(2) if match else ""
+    templated = bool(re.search(r"\{%|\{\{", value))
+    return {
+        "base_template_has_dir_attribute": bool(match),
+        "direction_is_derived_from_the_language": templated and "rtl" in value.lower(),
+        "base_template_mentions_rtl": "rtl" in text.lower() or "is_rtl" in text,
+    }
 
 
 CHECKS = ("dead", "registry", "i18n")

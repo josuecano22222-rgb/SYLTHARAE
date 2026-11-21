@@ -94,6 +94,11 @@ the `version` field of `pyproject.toml`. Both are checked by
 - The migration freeze gate records `m0006_index_hygiene` as a reviewed
   exception, in the test that owns the freeze, and the schema reference is
   regenerated from the migrated database.
+- **The audit's RTL check could not see the direction it was checking.** It
+  looked for `dir="{{`, so `base.html`'s
+  `dir="{% if current_language in [...] %}rtl{% else %}ltr{% endif %}"` was
+  reported as a missing attribute. It now reports whether the direction is
+  derived from the language — a hardcoded `dir="ltr"` passed the old check.
 - **The audit's i18n check no longer answers "0" when it is blind.**
   `tools/audit/check_structure.py` read a generated inventory file and printed
   "msgids with an incomplete catalogue: 0" whenever that file was absent. It now
