@@ -70,11 +70,42 @@ the `version` field of `pyproject.toml`. Both are checked by
   — the request and its worker hung with no error to report. The start is bounded
   and the endpoint reports a degraded manager.
 
+- **The concurrency dashboard lied when a manager could not start.** With the
+  bounded start in place, `/concurrency/api/metrics` still answered
+  `{"status": "error", "error": "Internal error (ERR-…)"}` for the process and
+  pool cards, and `/concurrency/api/processes` and `/api/pools` returned a 500 —
+  while the thread and async managers, which need no multiprocessing, were
+  answering normally. The endpoint now reports `mode: "full"` or
+  `"threads-only"`, keeps the live cards, explains each unavailable one with a
+  fixed sentence and `reason_code: multiprocessing_unavailable`, and reports the
+  host's `worker_capacity` so an operator knows what the machine can still do.
+  The dashboard shows a banner only when the server says it is degraded and
+  explains an empty process/pool list instead of claiming there are none.
+- **Two PyMuPDF companion pins were reported as unknown licences.**
+  `pymupdf4llm` and `pymupdf_layout` are hard requirements of PyMuPDF 2.1 and are
+  empty packages (their own metadata says they exist to dodge a pip upgrade bug
+  and that the code moved into `pymupdf`). The licence checker gains a reviewed
+  entry for each, and a test proves they ship no files, so a future release that
+  does ship code fails the test rather than sliding through the exception.
+  `check_licenses.py` now answers 118 compatible / 0 incompatible / 0 unknown.
+
 ### Changed
 
 - The migration freeze gate records `m0006_index_hygiene` as a reviewed
   exception, in the test that owns the freeze, and the schema reference is
   regenerated from the migrated database.
+- **The audit's i18n check no longer answers "0" when it is blind.**
+  `tools/audit/check_structure.py` read a generated inventory file and printed
+  "msgids with an incomplete catalogue: 0" whenever that file was absent. It now
+  says "not measured", names the generator, and reports the untranslated/fuzzy
+  entry count straight from the catalogs (`1236`: ar 309, he 284, fa 284, hr
+  359).
+- **The translation gap is handed over as worksheets.** New
+  `tools/i18n/export_translation_gaps.py` writes one CSV per language
+  (`audit_report/findings/i18n_untranslated_<lang>.csv`) with the msgid, its
+  status (missing / fuzzy / partial), the untrusted draft, its source locations
+  and an always-empty `translation` column. It never writes into `translations/`,
+  and `--check` fails if the committed sheets drift from the catalogs.
 
 ### Documentation
 
@@ -84,6 +115,13 @@ the `version` field of `pyproject.toml`. Both are checked by
 - `docs/AUDIT_ROUND_2.md` — what this round found, what it fixed, and what it
   deliberately did not: the whole-catalog translation gap is a translator's
   decision, not a code change, and it is recorded there with its numbers.
+- `docs/TRANSLATION_HANDOFF.md` — the 1236 untranslated/fuzzy entries per locale
+  and per area, the apply/recompile/verify workflow, and the Croatian decision
+  brief (keep excluded and documented, enable in the UI and the Translation
+  Manager, or add an explicit configuration flag — cost and consequence for
+  each, none chosen by this release).
+- `docs/RELEASE_SIGNOFF.md` — the final pre-release verification matrix and the
+  release readiness verdict.
 
 ## v2.2.0
 

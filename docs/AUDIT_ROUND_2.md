@@ -155,6 +155,98 @@ the check meant; `tests/unit/test_map_package_paths.py` pins the sibling case fo
 both archive formats, keeps an ordinary archive extracting, and shows a manifest
 cannot reach a neighbouring package.
 
+### 1.11 Two dependency pins reported as "unknown licence" were empty shims
+
+A clean install of `requirements.txt` made `tools/licenses/check_licenses.py` fail
+with two packages it could not classify, `pymupdf4llm` and `pymupdf_layout`. The
+obvious readings are both wrong: they are not undeclared drift, and they are not
+a licensing surprise. PyMuPDF 2.1 declares both as `==2.1` hard requirements of
+the plain closure, and both distributions are **empty**: their own `METADATA`
+says the package exists only to dodge a pip 1.x → 2.x upgrade bug and that the
+code moved into `pymupdf`, and their `RECORD` lists nothing but dist-info files.
+PyMuPDF itself declares `AGPL-3.0-or-later`, which is what the project already
+ships under.
+
+The fix is a reviewed exception that states the evidence, not a broader query and
+not a threshold change: two `REVIEWED` entries in `check_licenses.py` map the pins
+to `AGPL-3.0-only` with the shim rationale, and
+`test_the_pymupdf_companion_pins_ship_no_code` re-proves the claim the exception
+rests on — if a future release starts shipping code in either package, the test
+fails instead of the exception silently covering a real dependency.
+
+Result: `118 compatible, 0 incompatible, 0 unknown, 0 not installed` in the
+development image and in a fresh `python -m venv` build of `requirements.txt`;
+`tests/unit/test_licensing.py` 23/23 in both.
+
+### 1.12 A manager that cannot start now costs two cards, not the whole dashboard
+
+§1.7 bounded the `multiprocessing.Manager()` start at five seconds, which turned a
+hung request into a reported failure. What the operator got for the process and
+pool cards was `{"status": "error", "error": "Internal error (ERR-…)"}`: a log
+reference where a reason belongs, and no figures at all — even though the thread
+and async managers need no multiprocessing and were answering normally.
+
+`/concurrency/api/metrics` now reports the mode it is in:
+
+```json
+{"success": true, "mode": "threads-only", "degraded": true,
+ "unavailable": ["pool_manager", "process_manager"],
+ "metrics": {"thread_manager": {...live...}, "async_manager": {...live...},
+             "process_manager": {"status": "unavailable",
+                                 "reason_code": "multiprocessing_unavailable",
+                                 "reason": "<fixed sentence>"},
+             "pool_manager": {...same shape...},
+             "worker_capacity": {"recommended_workers": 2, "cpu_count": 2}}}
+```
+
+The sentence is fixed text, never exception text (the disclosure rule §1.1
+established), and `worker_capacity` comes from the same
+`core.resource_coordinator.get_safe_worker_count()` the ingestion path uses, so an
+operator sees what the host can still do. `/concurrency/api/processes` and
+`/api/pools` answer `{success: true, available: false, reason, []}` instead of a
+500, and the dashboard shows a banner only when the server says it is degraded —
+it explains an empty process/pool list rather than claiming there are none.
+
+Verified both ways: on this host a real (unpatched) request answers `mode: full`,
+four active managers and no `worker_capacity`; with the two managers refusing,
+`test_concurrency_metrics_fallback.py` (8 tests) pins the contract and
+`tests/js/concurrency_fallback_smoke.mjs` (12 checks, executed by the suite) runs
+the real page module against the degraded payload and against a hostile one.
+
+### 1.13 An audit check answered "0" when it could not see its input
+
+`tools/audit/check_structure.py::i18n_coverage()` reads
+`audit_report/inventory/i18n_msgids.csv`, which is generated and not checked in.
+On a clean checkout the file is absent, so the check wrote an empty
+`findings/i18n_gaps.csv` and printed `msgids with an incomplete catalogue: 0` —
+a pass for a measurement nobody ran. The counts in this round's §2.1 and in the
+release sign-off would have cited that line.
+
+It now returns "not measured", names the generator
+(`tools/audit/build_inventories.py`), and reports the other axis — entries that
+exist and are empty or fuzzy — straight from the `.po` files via the new
+`catalogue_translation_gap()`, so the number is real on any checkout:
+`untranslated/fuzzy catalogue entries: 1236 (ar 309, he 284, fa 284, hr 359)`.
+`tests/unit/test_audit_i18n_reporting.py` pins both the blind case and the
+measured case.
+
+### 1.14 A JS harness that could never run was deleted, and its intent tested
+
+`tests/js/reports_page_smoke.mjs` imported `static/js/pages/reports-page.js` and
+read a `reports-page-labels` element from `templates/Reports/reports.html`.
+Neither has ever existed in this repository, so the harness aborted before its
+first check; the suite ran it as a strict xfail, which recorded "still broken"
+forever and would have failed as XPASS if anyone had written the module it
+assumed. The Reports page is server-rendered on purpose — its template says so,
+the CSP has no `unsafe-inline` — so the module is not deferred work, it is not
+wanted.
+
+The harness is gone and
+`test_the_reports_page_is_server_rendered_without_a_page_module` asserts what it
+was reaching for against the product that exists: server-side totals in the HTML,
+no page module, no inline script, and the template keeps the sentence describing
+the design it must not break.
+
 ---
 
 ## 2. Items that were investigated and deliberately not "fixed"
@@ -253,11 +345,22 @@ environment-only failure (`test_install_cli_config`).
 
 ## 5. Still open
 
-1. §2.1 — the translation gap, four locales, 1236 entries. Needs a translator.
-2. §2.2 — whether Croatian becomes an offered language.
-3. `tests/js/reports_page_smoke.mjs` targets a page module that does not exist
-   (`static/js/pages/reports-page.js`); the harness is an explicit xfail so a
-   future implementation reports XPASS rather than silence.
-4. The concurrency hub still starts a real multiprocessing manager on first use
-   of the dashboard. A bounded start makes the failure visible; making the
-   dashboard useful without one (thread-only metrics) is a design change.
+Round 2 closed with four open items. Their state after the pre-release stage:
+
+1. **§2.1 — the translation gap, four locales, 1236 entries. Still open by
+   design.** It is now packaged for the translator instead of living in a test
+   failure: `docs/TRANSLATION_HANDOFF.md` carries the counts per locale and per
+   area, and `tools/i18n/export_translation_gaps.py` writes the worksheets
+   (`audit_report/findings/i18n_untranslated_<lang>.csv`). Still needs a human;
+   the gate stays red until the last entry lands.
+2. **§2.2 — whether Croatian becomes an offered language. Still open, now a
+   decision brief** with three options, their cost and their consequence
+   (`docs/TRANSLATION_HANDOFF.md` §4). No `hr` entry was added, no test that
+   pins the exclusion was edited.
+3. **§5.3 — the reports harness. Closed** (§1.14): the harness could never run and
+   assumed a client module the page deliberately does not have. Deleted, and its
+   intent tested against the server-rendered page.
+4. **§5.4 — the concurrency dashboard without a multiprocessing manager. Closed**
+   (§1.12): the endpoint reports a `threads-only` mode with live thread figures, a
+   fixed reason per unavailable card and the host's worker capacity; the page
+   explains the empty lists.
